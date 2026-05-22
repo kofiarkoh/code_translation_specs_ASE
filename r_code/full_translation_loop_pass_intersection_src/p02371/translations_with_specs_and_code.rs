@@ -1,77 +1,78 @@
 use std::io::{self, Read};
 
-fn main() {
-    // Read all input
-    let mut s = String::new();
-    io::stdin().read_to_string(&mut s).unwrap();
-    let mut it = s.split_whitespace();
-
-    let n: usize = match it.next() {
-        Some(x) => x.parse().unwrap(),
-        None => return,
-    };
-    let m = n.saturating_sub(1);
-
-    // Build adjacency list for an undirected weighted tree.
-    // Spec assumes indices are in [0, n-1] and weights are non-negative.
-    let mut adj: Vec<Vec<(usize, i32)>> = vec![Vec::new(); n];
-    for _ in 0..m {
-        let a: usize = it.next().unwrap().parse().unwrap();
-        let b: usize = it.next().unwrap().parse().unwrap();
-        let c: i32 = it.next().unwrap().parse().unwrap();
-        adj[a].push((b, c));
-        adj[b].push((a, c));
-    }
-
-    // Two-pass tree diameter by weighted distances:
-    // 1) From an arbitrary node (0), find farthest node g.
-    // 2) From g, find farthest distance => diameter length.
-    //
-    // This matches the C program's effective behavior (it uses DFS with accumulated
-    // distances and then repeats from the farthest node).
-    fn farthest_from(start: usize, adj: &[Vec<(usize, i32)>]) -> (usize, i32) {
-        let n = adj.len();
-        let mut dist: Vec<i32> = vec![0; n];
-        let mut visited: Vec<bool> = vec![false; n];
-
-        // Iterative DFS to avoid recursion depth issues.
-        let mut stack: Vec<(usize, usize)> = Vec::new(); // (node, next neighbor index)
-        visited[start] = true;
-        dist[start] = 0;
-        stack.push((start, 0));
-
-        let mut far_node = start;
-        let mut far_dist: i32 = 0;
-
-        while let Some((u, idx)) = stack.pop() {
-            if idx < adj[u].len() {
-                // Put current frame back with advanced index
-                stack.push((u, idx + 1));
-                let (v, w) = adj[u][idx];
-                if !visited[v] {
-                    visited[v] = true;
-                    dist[v] = dist[u] + w;
-                    if dist[v] > far_dist {
-                        far_dist = dist[v];
-                        far_node = v;
-                    }
-                    stack.push((v, 0));
-                }
-            }
+fn dfs(
+    s: usize,
+    adj: &Vec<Vec<(usize, i32)>>,
+    dist: &mut Vec<i32>,
+    visited: &mut Vec<bool>,
+    d: i32,
+) -> i32 {
+    let mut maxv = d;
+    for &(to, w) in &adj[s] {
+        if visited[to] {
+            continue;
         }
+        visited[to] = true;
+        dist[to] = dist[s] + w;
+        let sub = dfs(to, adj, dist, visited, d + w);
+        if sub > maxv {
+            maxv = sub;
+        }
+    }
+    maxv
+}
 
-        (far_node, far_dist)
+fn tyokkei(n: usize, a: &[usize], b: &[usize], c: &[i32]) -> i32 {
+    // Build undirected adjacency list (each edge stored in both directions).
+    let mut adj: Vec<Vec<(usize, i32)>> = vec![Vec::new(); n];
+    for i in 0..(n - 1) {
+        adj[a[i]].push((b[i], c[i]));
+        adj[b[i]].push((a[i], c[i]));
     }
 
-    if n == 0 {
-        // Not expected under spec (tree is connected), but keep behavior defined.
-        print!("0\n");
-        return;
+    // First DFS from 0.
+    let mut dist = vec![1_000_000_000i32; n];
+    let mut visited = vec![false; n];
+    dist[0] = 0;
+    visited[0] = true;
+    let max1 = dfs(0, &adj, &mut dist, &mut visited, 0);
+
+    // Pick endpoint g: if multiple vertices have dist == max1, choose greatest index.
+    let mut g: usize = 0;
+    for i in 0..n {
+        if dist[i] == max1 {
+            g = i; // scan order ensures greatest index wins
+        }
     }
 
-    let (g, _) = farthest_from(0, &adj);
-    let (_, diameter) = farthest_from(g, &adj);
+    // Second DFS from g.
+    dist.fill(1_000_000_000i32);
+    visited.fill(false);
+    dist[g] = 0;
+    visited[g] = true;
+    dfs(g, &adj, &mut dist, &mut visited, 0)
+}
 
-    // Output exactly one integer and newline.
-    print!("{diameter}\n");
+fn main() {
+    // Read all input.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut a: Vec<usize> = Vec::with_capacity(n.saturating_sub(1));
+    let mut b: Vec<usize> = Vec::with_capacity(n.saturating_sub(1));
+    let mut c: Vec<i32> = Vec::with_capacity(n.saturating_sub(1));
+
+    for _ in 0..n - 1 {
+        let ai: usize = it.next().unwrap().parse().unwrap();
+        let bi: usize = it.next().unwrap().parse().unwrap();
+        let ci: i32 = it.next().unwrap().parse().unwrap();
+        a.push(ai);
+        b.push(bi);
+        c.push(ci);
+    }
+
+    let ans = tyokkei(n, &a, &b, &c);
+    print!("{ans}\n");
 }

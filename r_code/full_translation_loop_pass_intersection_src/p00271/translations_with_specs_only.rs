@@ -10,10 +10,11 @@ fn main() {
         let a: i64 = it.next().unwrap().parse().unwrap();
         let b: i64 = it.next().unwrap().parse().unwrap();
 
-        // The specification states overflow behavior is not inferable/undefined.
-        // Use normal subtraction; in debug builds Rust may panic on overflow,
-        // which is acceptable given the precondition that results are representable.
+        // The specification states overflow/underflow is undefined; we use normal subtraction.
+        // In debug builds, Rust may panic on overflow; in release builds it wraps.
+        // The precondition says differences are representable, so overflow should not occur.
         let diff = a - b;
-        println!("{diff}");
+
+        println!("{}", diff);
     }
 }

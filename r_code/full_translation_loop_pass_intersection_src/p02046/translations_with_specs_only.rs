@@ -1,50 +1,46 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin as whitespace-separated tokens.
     let mut input = String::new();
-    io::stdin().read_to_string(&mut input).unwrap();
+    io::stdin().read_to_string(&mut input).ok();
 
     let mut it = input.split_whitespace();
 
     let mut out = String::new();
 
     loop {
-        let a = match it.next() {
-            Some(tok) => tok.parse::<i128>().unwrap(),
-            None => break, // end-of-input
+        let x = match it.next() {
+            Some(s) => match s.parse::<i64>() {
+                Ok(v) => v,
+                Err(_) => break, // behavior undefined; stop producing further output
+            },
+            None => break,
         };
-        let b = match it.next() {
-            Some(tok) => tok.parse::<i128>().unwrap(),
-            None => break, // incomplete trailing data: behavior not inferable; choose to stop
+        let y = match it.next() {
+            Some(s) => match s.parse::<i64>() {
+                Ok(v) => v,
+                Err(_) => break, // behavior undefined; stop producing further output
+            },
+            None => break, // incomplete pair; behavior undefined; stop
         };
 
-        // x = |a|, y = |b| with non-negative result.
-        // Using i128 to reduce overflow risk; spec does not define overflow behavior.
-        let x = a.abs();
-        let y = b.abs();
+        // Specification precondition: abs must be representable (no overflow).
+        let a = x.abs();
+        let b = y.abs();
 
-        let sum = x + y;
+        let sum = a + b;
 
         let t = if sum == 1 {
             1
+        } else if (a & 1) == 1 && (b & 1) == 1 {
+            sum - 1
+        } else if (a & 1) == 0 && (b & 1) == 0 {
+            sum
+        } else if a != 0 && b != 0 {
+            sum
         } else {
-            let x_odd = (x & 1) == 1;
-            let y_odd = (y & 1) == 1;
-            let x_even = !x_odd;
-            let y_even = !y_odd;
-
-            if x_odd && y_odd {
-                sum - 1
-            } else if x_even && y_even {
-                sum
-            } else if x > 0 && y > 0 {
-                // Mixed parity, both non-zero
-                sum
-            } else {
-                // Mixed parity and at least one is zero
-                sum + 1
-            }
+            // Exactly one of a,b is zero and sum != 1
+            sum + 1
         };
 
         out.push_str(&t.to_string());

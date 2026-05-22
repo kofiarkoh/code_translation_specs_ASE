@@ -5,9 +5,7 @@ fn bs(d: &[i32], n: i32, c: i32) -> i32 {
     let mut k: i32 = n - 1;
     loop {
         if j <= k {
-            // In C: l = (j+k)/2 with int arithmetic.
-            // Here j,k are non-negative and small, so i32 is fine.
-            let l: i32 = (j + k) / 2;
+            let l = (j + k) / 2;
             let dl = d[l as usize];
             if dl > c {
                 k = l - 1;
@@ -23,29 +21,33 @@ fn bs(d: &[i32], n: i32, c: i32) -> i32 {
 }
 
 fn main() {
-    // Read all input, parse as i32 like scanf("%d").
+    // Read entire stdin, parse as whitespace-separated integers (like scanf("%d")).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
     let n: i32 = match it.next() {
-        Some(x) => x.parse::<i32>().unwrap(),
-        None => return,
+        Some(x) => x.parse().unwrap(),
+        None => return, // If no input, do nothing (closest to C's behavior under missing input).
     };
 
-    // Match fixed-size C arrays.
-    let mut a = vec![0i32; 100_000];
-    let mut dp = vec![0i32; 100_000];
+    // Match C's fixed-size arrays.
+    let mut a = vec![0i32; 100000];
+    let mut dp = vec![0i32; 100000];
 
     for i in 0..n {
-        a[i as usize] = it.next().unwrap().parse::<i32>().unwrap();
+        if let Some(x) = it.next() {
+            a[i as usize] = x.parse().unwrap();
+        } else {
+            // Missing input: in C this would leave a[i] uninitialized (UB).
+            // We keep default 0; this is a best-effort safe behavior.
+            a[i as usize] = 0;
+        }
     }
 
-    // Preserve C behavior; note: if n <= 0, the C code has UB (a[0]).
-    // We emulate the same indexing assumptions; for n <= 0 we just avoid panicking.
+    // The C code assumes n >= 1; if n <= 0, it would access a[0] (UB).
+    // We avoid panicking; best-effort: print 0.
     if n <= 0 {
-        // C would be undefined; choose to print 0 to avoid crash.
-        // (No external spec; this is a best-effort to keep program running.)
         print!("0\n");
         return;
     }

@@ -1,3 +1,5 @@
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
 use std::io::{self, Read};
 
 struct Scanner {
@@ -6,172 +8,64 @@ struct Scanner {
 }
 impl Scanner {
     fn new() -> Self {
-        let mut input = Vec::new();
-        io::stdin().read_to_end(&mut input).unwrap();
-        Self { buf: input, idx: 0 }
+        let mut input = String::new();
+        io::stdin().read_to_string(&mut input).unwrap();
+        Self { buf: input.into_bytes(), idx: 0 }
     }
-    #[inline]
     fn next_usize(&mut self) -> usize {
         while self.idx < self.buf.len() && self.buf[self.idx].is_ascii_whitespace() {
             self.idx += 1;
         }
-        if self.idx >= self.buf.len() {
-            return 0;
-        }
         let mut n: usize = 0;
-        while self.idx < self.buf.len() {
-            let b = self.buf[self.idx];
-            if b.is_ascii_whitespace() {
-                break;
-            }
-            n = n * 10 + (b - b'0') as usize;
+        while self.idx < self.buf.len() && !self.buf[self.idx].is_ascii_whitespace() {
+            n = n * 10 + (self.buf[self.idx] - b'0') as usize;
             self.idx += 1;
         }
         n
     }
 }
 
-/// A fast min-heap specialized for (t, r, c) with i32 key `t`.
-/// This avoids the overhead of std::collections::BinaryHeap<Reverse<...>> which can TLE on AOJ.
-#[derive(Clone, Copy)]
-struct Node {
-    t: i32,
-    r: u16,
-    c: u16,
-}
-struct MinHeap {
-    a: Vec<Node>,
-}
-impl MinHeap {
-    #[inline]
-    fn new(cap: usize) -> Self {
-        Self { a: Vec::with_capacity(cap) }
-    }
-    #[inline]
-    fn is_empty(&self) -> bool {
-        self.a.is_empty()
-    }
-    #[inline]
-    fn push(&mut self, x: Node) {
-        self.a.push(x);
-        let mut i = self.a.len() - 1;
-        while i > 0 {
-            let p = (i - 1) >> 1;
-            if self.a[p].t <= self.a[i].t {
-                break;
-            }
-            self.a.swap(p, i);
-            i = p;
-        }
-    }
-    #[inline]
-    fn pop_min(&mut self) -> Node {
-        let min = self.a[0];
-        let last = self.a.pop().unwrap();
-        if !self.a.is_empty() {
-            self.a[0] = last;
-            self.sift_down(0);
-        }
-        min
-    }
-    #[inline]
-    fn sift_down(&mut self, mut i: usize) {
-        let n = self.a.len();
-        loop {
-            let l = (i << 1) + 1;
-            if l >= n {
-                break;
-            }
-            let r = l + 1;
-            let mut m = l;
-            if r < n && self.a[r].t < self.a[l].t {
-                m = r;
-            }
-            if self.a[i].t <= self.a[m].t {
-                break;
-            }
-            self.a.swap(i, m);
-            i = m;
-        }
-    }
-}
+/// Derive sequence S(k) for k=0..reachable_count, where:
+/// S(0)=0 and for k>=1, S(k) is the minimal possible maximum cell value
+/// among connected (4-adjacent) sets of exactly k cells containing the start.
+/// Per spec invariant, this equals the smallest threshold T such that at least
+/// k cells are reachable from the start using only cells with value <= T.
+///
+/// Implementation matches the C code: a best-first expansion by cell value,
+/// tracking the running maximum of popped values; after each pop, append that max.
+fn derive_levels(grid: &[Vec<i32>], w: usize, h: usize, sx: usize, sy: usize) -> Vec<i32> {
+    let mut seen = vec![vec![false; w]; h];
+    let mut heap: BinaryHeap<(Reverse<i32>, usize, usize)> = BinaryHeap::new();
 
-/// Derive S(k) sequence for one grid, matching the C algorithm:
-/// - mark visited when enqueued (so each cell enqueued at most once)
-/// - always pop reachable cell with minimum value
-/// - S(k) is running maximum of popped values, with S(0)=0
-fn derive_levels(grid: &[i32], w: usize, h: usize, sx: usize, sy: usize) -> Vec<i32> {
-    let n = w * h;
-    let mut visited = vec![false; n];
-    let mut heap = MinHeap::new(n.min(150_000)); // capacity hint; not a hard limit in Rust
+    let start_val = grid[sy][sx];
+    seen[sy][sx] = true;
+    heap.push((Reverse(start_val), sy, sx));
 
-    let mut levels = Vec::with_capacity(n + 1);
-    levels.push(0);
+    let mut levels: Vec<i32> = Vec::new();
+    levels.push(0); // S(0)=0
 
-    let start = sy * w + sx;
-    visited[start] = true;
-    heap.push(Node {
-        t: grid[start],
-        r: sy as u16,
-        c: sx as u16,
-    });
+    let mut current_max: i32 = 0;
+    let dirs = [(-1isize, 0isize), (0, 1), (1, 0), (0, -1)];
 
-    let mut current_max = 0i32;
-
-    while !heap.is_empty() {
-        let Node { t, r, c } = heap.pop_min();
+    while let Some((Reverse(t), r, c)) = heap.pop() {
         if t > current_max {
             current_max = t;
         }
         levels.push(current_max);
 
-        let r = r as usize;
-        let c = c as usize;
-
-        // neighbors; compute indices directly
-        if r > 0 {
-            let ni = (r - 1) * w + c;
-            if !visited[ni] {
-                visited[ni] = true;
-                heap.push(Node {
-                    t: grid[ni],
-                    r: (r - 1) as u16,
-                    c: c as u16,
-                });
+        for (dr, dc) in dirs {
+            let nr = r as isize + dr;
+            let nc = c as isize + dc;
+            if nr < 0 || nr >= h as isize || nc < 0 || nc >= w as isize {
+                continue;
             }
-        }
-        if c + 1 < w {
-            let ni = r * w + (c + 1);
-            if !visited[ni] {
-                visited[ni] = true;
-                heap.push(Node {
-                    t: grid[ni],
-                    r: r as u16,
-                    c: (c + 1) as u16,
-                });
+            let (nr, nc) = (nr as usize, nc as usize);
+            if seen[nr][nc] {
+                continue;
             }
-        }
-        if r + 1 < h {
-            let ni = (r + 1) * w + c;
-            if !visited[ni] {
-                visited[ni] = true;
-                heap.push(Node {
-                    t: grid[ni],
-                    r: (r + 1) as u16,
-                    c: c as u16,
-                });
-            }
-        }
-        if c > 0 {
-            let ni = r * w + (c - 1);
-            if !visited[ni] {
-                visited[ni] = true;
-                heap.push(Node {
-                    t: grid[ni],
-                    r: r as u16,
-                    c: (c - 1) as u16,
-                });
-            }
+            // Match C behavior: mark when enqueued so each cell is enqueued at most once.
+            seen[nr][nc] = true;
+            heap.push((Reverse(grid[nr][nc]), nr, nc));
         }
     }
 
@@ -183,43 +77,45 @@ fn main() {
     let mut out = String::new();
 
     loop {
-        let r_budget = sc.next_usize();
-        if r_budget == 0 {
+        let r_total = sc.next_usize();
+        if r_total == 0 {
             break;
         }
 
         let mut seqs: [Vec<i32>; 2] = [Vec::new(), Vec::new()];
 
-        for g in 0..2 {
+        for gi in 0..2 {
             let w = sc.next_usize();
             let h = sc.next_usize();
-            let x0 = sc.next_usize() - 1;
-            let y0 = sc.next_usize() - 1;
+            let x1 = sc.next_usize(); // 1-based
+            let y1 = sc.next_usize(); // 1-based
+            let sx = x1 - 1;
+            let sy = y1 - 1;
 
-            let mut grid = vec![0i32; w * h];
-            for r in 0..h {
-                let base = r * w;
-                for c in 0..w {
-                    grid[base + c] = sc.next_usize() as i32;
+            let mut grid = vec![vec![0i32; w]; h];
+            for rr in 0..h {
+                for cc in 0..w {
+                    grid[rr][cc] = sc.next_usize() as i32;
                 }
             }
 
-            seqs[g] = derive_levels(&grid, w, h, x0, y0);
+            seqs[gi] = derive_levels(&grid, w, h, sx, sy);
         }
 
-        let mut ans = i32::MAX;
-        for i in 0..=r_budget {
-            let j = r_budget - i;
-            if i < seqs[0].len() && j < seqs[1].len() {
-                let t = seqs[0][i] + seqs[1][j];
+        // Combine: min over k where 0<=k<=R, k in range of seq1 and R-k in range of seq2.
+        // If no feasible pair exists, C would print a large sentinel; spec assumes feasibility.
+        let mut ans: i32 = i32::MAX;
+        for k in 0..=r_total {
+            let j = r_total - k;
+            if k < seqs[0].len() && j < seqs[1].len() {
+                let t = seqs[0][k] + seqs[1][j];
                 if t < ans {
                     ans = t;
                 }
             }
         }
 
-        out.push_str(&ans.to_string());
-        out.push('\n');
+        out.push_str(&format!("{ans}\n"));
     }
 
     print!("{out}");

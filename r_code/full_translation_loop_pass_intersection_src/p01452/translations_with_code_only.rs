@@ -3,7 +3,7 @@ use std::io::{self, Read};
 const N: i64 = 1_000_000_007;
 
 fn inittable(memo: &mut [i64], n: i64) {
-    // C code sets memo[1]=1 then fills 2..=n; memo[0] is set later in main.
+    // C code sets memo[1]=1 then fills 2..=n, and later sets memo[0]=1 in main.
     memo[1] = 1;
     for i in 2..=n {
         let idx = i as usize;
@@ -12,25 +12,29 @@ fn inittable(memo: &mut [i64], n: i64) {
     }
 }
 
-fn extgcd(a: i64, b: i64) -> (i64, i64, i64) {
-    // Returns (d, x, y) such that a*x + b*y = d, where d = gcd(a,b).
-    // Mirrors the C recursion and coefficient swapping.
+fn extgcd(a: i64, b: i64, x: &mut i64, y: &mut i64) -> i64 {
+    // Mirrors the C recursion and pointer swapping.
+    let mut d = a;
     if b != 0 {
-        let (d, x1, y1) = extgcd(b, a % b);
-        // In C: d=extgcd(b,a%b,y,x); *y -= (a/b)*(*x);
-        // Mapping: x corresponds to y1, y corresponds to x1 after swap.
-        let x = y1;
-        let y = x1 - (a / b) * y1;
-        (d, x, y)
+        let mut x1: i64 = 0;
+        let mut y1: i64 = 0;
+        d = extgcd(b, a % b, &mut y1, &mut x1);
+        // After the call: y <- y1, x <- x1 (due to swapped pointers in C)
+        *x = x1;
+        *y = y1 - (a / b) * (*x);
     } else {
-        (a, 1, 0)
+        *x = 1;
+        *y = 0;
     }
+    d
 }
 
 fn mod_inv(a: i64, m: i64) -> i64 {
-    let (_d, x, _y) = extgcd(a, m);
-    // C: (m + x%m) % m; ensure non-negative.
-    (m + (x % m)) % m
+    let mut x: i64 = 0;
+    let mut y: i64 = 0;
+    let _d = extgcd(a, m, &mut x, &mut y);
+    // Same normalization as C: (m + x%m) % m
+    (m + x.rem_euclid(m)) % m
 }
 
 fn mod_cmb(memo: &[i64], n: i64, r: i64, m: i64) -> i64 {
@@ -45,40 +49,42 @@ fn mod_cmb(memo: &[i64], n: i64, r: i64, m: i64) -> i64 {
 }
 
 fn main() {
-    // Read all input, parse as i64 then cast to i32 where appropriate.
-    let mut s = String::new();
-    io::stdin().read_to_string(&mut s).unwrap();
-    let mut it = s.split_whitespace();
+    // Read all input, parse three ints.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+    let x: i32 = it.next().unwrap().parse().unwrap();
+    let y: i32 = it.next().unwrap().parse().unwrap();
+    let k: i32 = it.next().unwrap().parse().unwrap();
 
-    let x: i64 = it.next().unwrap().parse::<i64>().unwrap();
-    let y: i64 = it.next().unwrap().parse::<i64>().unwrap();
-    let k: i64 = it.next().unwrap().parse::<i64>().unwrap();
-
-    // C has global memo[220001]; assume inputs keep x+y+2*k within bounds.
+    // memo size matches C: 220001
     let mut memo = vec![0i64; 220_001];
 
-    inittable(&mut memo, x + y + 2 * k);
+    let n_init = (x as i64) + (y as i64) + 2 * (k as i64);
+    inittable(&mut memo, n_init);
     memo[0] = 1;
 
     let mut ans: i64 = 0;
 
     for i in 0..=k {
-        let xgr = (mod_cmb(&memo, x + 2 * (k - i), k - i, N)
-            - mod_cmb(&memo, x + 2 * (k - i), k - i - 1, N)
-            + N)
-            % N;
-        let ygr = (mod_cmb(&memo, y + 2 * i, i, N)
-            - mod_cmb(&memo, y + 2 * i, i - 1, N)
-            + N)
-            % N;
+        let ii = i as i64;
+        let kk = k as i64;
+        let xx = x as i64;
+        let yy = y as i64;
 
-        let term = (xgr * ygr) % N;
-        let comb = mod_cmb(&memo, x + y + 2 * k, y + 2 * i, N);
-        ans = (ans + (term * comb) % N) % N;
+        let x_n = xx + 2 * (kk - ii);
+        let x_r = kk - ii;
+        let xgr = (mod_cmb(&memo, x_n, x_r, N) - mod_cmb(&memo, x_n, x_r - 1, N) + N) % N;
+
+        let y_n = yy + 2 * ii;
+        let y_r = ii;
+        let ygr = (mod_cmb(&memo, y_n, y_r, N) - mod_cmb(&memo, y_n, y_r - 1, N) + N) % N;
+
+        let comb = mod_cmb(&memo, xx + yy + 2 * kk, yy + 2 * ii, N);
+        ans = (ans + ((xgr * ygr) % N) * comb) % N;
     }
 
-    // C prints with "%d\n" even though ans is long long; emulate numeric value.
-    // ans is already in [0, N), but keep the C's (ans+N)%N.
-    let out = (ans + N) % N;
-    println!("{}", out);
+    // C prints with "%d\n" even though ans is long long; emulate by casting to i32.
+    let out = ((ans + N) % N) as i32;
+    print!("{out}\n");
 }

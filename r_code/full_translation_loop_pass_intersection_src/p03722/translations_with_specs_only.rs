@@ -1,14 +1,15 @@
+use std::collections::VecDeque;
 use std::io::{self, Read};
 
 #[derive(Clone, Copy)]
 struct Edge {
-    a: usize,
-    b: usize,
+    from: usize,
+    to: usize,
     w: i64,
 }
 
 fn main() {
-    // Read all input as whitespace-separated integers.
+    // Read all input as whitespace-separated tokens.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -20,39 +21,56 @@ fn main() {
     let m: usize = it.next().unwrap().parse().unwrap();
 
     let mut edges: Vec<Edge> = Vec::with_capacity(m);
+    let mut rev_adj: Vec<Vec<usize>> = vec![Vec::new(); n + 1];
+
     for _ in 0..m {
-        let a: usize = it.next().unwrap().parse().unwrap();
-        let b: usize = it.next().unwrap().parse().unwrap();
-        let w: i64 = it.next().unwrap().parse().unwrap();
-        edges.push(Edge { a, b, w });
+        let u: usize = it.next().unwrap().parse().unwrap();
+        let v: usize = it.next().unwrap().parse().unwrap();
+        let c: i64 = it.next().unwrap().parse().unwrap();
+        edges.push(Edge { from: u, to: v, w: c });
+        // Reverse adjacency for reachability-to-N computation.
+        rev_adj[v].push(u);
     }
 
-    // Sentinel chosen to be a "large negative value" for unreachable nodes.
-    // The spec says that if no path exists, the program outputs a large negative
-    // value derived from its internal sentinel (not a meaningful indicator).
-    // We use a typical very-negative i64 sentinel.
+    // Compute which nodes can reach N (in the original graph) via reverse BFS/DFS from N.
+    let mut can_reach_n = vec![false; n + 1];
+    if n >= 1 {
+        let mut q = VecDeque::new();
+        can_reach_n[n] = true;
+        q.push_back(n);
+        while let Some(x) = q.pop_front() {
+            for &p in &rev_adj[x] {
+                if !can_reach_n[p] {
+                    can_reach_n[p] = true;
+                    q.push_back(p);
+                }
+            }
+        }
+    }
+
+    // We want maximum path weight. Use Bellman-Ford style relaxation for maximum.
+    // Sentinel for "no path": a very large negative integer value.
+    // Keep it far from i64::MIN to avoid accidental underflow on addition in typical cases.
     let neg_inf: i64 = -9_000_000_000_000_000_000i64;
 
-    // Best-known maximum path total to each node (1-indexed).
     let mut dist = vec![neg_inf; n + 1];
     if n >= 1 {
         dist[1] = 0;
     }
 
-    // Initial stabilization phase: relax edges N-1 times for maximum path.
-    // (Bellman-Ford style, but maximizing instead of minimizing.)
+    // Relax edges up to N-1 times.
     for _ in 0..n.saturating_sub(1) {
         let mut changed = false;
         for e in &edges {
-            if e.a <= n && e.b <= n {
-                let da = dist[e.a];
-                if da != neg_inf {
-                    let cand = da + e.w; // Spec says overflow is not guaranteed-safe; we assume it doesn't happen.
-                    if cand > dist[e.b] {
-                        dist[e.b] = cand;
-                        changed = true;
-                    }
-                }
+            let du = dist[e.from];
+            if du == neg_inf {
+                continue;
+            }
+            // Contract assumes sums fit in i64; no explicit overflow handling required.
+            let cand = du + e.w;
+            if cand > dist[e.to] {
+                dist[e.to] = cand;
+                changed = true;
             }
         }
         if !changed {
@@ -60,31 +78,17 @@ fn main() {
         }
     }
 
-    // Infinity detection phase:
-    // Perform additional relaxations; if node N can still be improved after
-    // sufficient steps, report "inf".
-    //
-    // The spec frames this as "whether the best-known value for node N can still
-    // be improved after sufficient relaxation steps", which corresponds to
-    // detecting a reachable positive cycle that can still lead to N.
+    // Detect if there is a reachable positive cycle that can still reach N:
+    // If any edge can still be relaxed (improved) from a node reachable from 1 (dist != neg_inf),
+    // and the destination can reach N, then the maximum is unbounded.
     let mut infinite = false;
-    for _ in 0..n {
-        let mut improved_n = false;
-        for e in &edges {
-            if e.a <= n && e.b <= n {
-                let da = dist[e.a];
-                if da != neg_inf {
-                    let cand = da + e.w;
-                    if cand > dist[e.b] {
-                        dist[e.b] = cand;
-                        if e.b == n {
-                            improved_n = true;
-                        }
-                    }
-                }
-            }
+    for e in &edges {
+        let du = dist[e.from];
+        if du == neg_inf {
+            continue; // not reachable from 1 under current best-known values
         }
-        if improved_n {
+        let cand = du + e.w;
+        if cand > dist[e.to] && can_reach_n[e.to] {
             infinite = true;
             break;
         }
@@ -93,13 +97,7 @@ fn main() {
     if infinite {
         print!("inf");
     } else {
-        // If no path exists, dist[n] remains the sentinel-derived large negative value.
-        // This matches the spec's postcondition.
-        if n <= dist.len() - 1 {
-            print!("{}", dist[n]);
-        } else {
-            // Narrowest reasonable behavior if n==0 (not intended by spec): print sentinel.
-            print!("{}", neg_inf);
-        }
+        // If N is unreachable, this prints the sentinel-like large negative number as specified.
+        print!("{}", dist[n]);
     }
 }

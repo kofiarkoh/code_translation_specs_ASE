@@ -1,102 +1,90 @@
 use std::io::{self, Read};
 
-fn main() {
-    const MAX: usize = 100;
+fn solve_instance(n: usize, t: i32, board: &[u8]) -> f64 {
+    // Memo table indexed by (r, t). Bounds are assumed valid per spec (<= 100).
+    // Use NaN as "uncomputed" sentinel.
+    let mut memo = vec![vec![f64::NAN; (t.max(0) as usize) + 1]; n + 1];
 
-    let mut s = String::new();
-    io::stdin().read_to_string(&mut s).unwrap();
-    let mut it = s.split_whitespace();
+    fn rec(n: usize, r: usize, t: i32, board: &[u8], memo: &mut [Vec<f64>]) -> f64 {
+        // Success state
+        if r == 0 {
+            return 1.0;
+        }
+        // Failure state
+        if t <= 0 {
+            return 0.0;
+        }
+        // Additional base-case behavior (special squares ignored)
+        if t == 1 && r <= 6 {
+            return 1.0 / 6.0;
+        }
+
+        let tu = t as usize;
+        if !memo[r][tu].is_nan() {
+            return memo[r][tu];
+        }
+
+        let mut acc = 0.0f64;
+        for d in 1usize..=6 {
+            // Bounce rule: r' = |r - d|
+            let rp = if r >= d { r - d } else { d - r };
+            // pos = N - r'
+            let pos = n - rp;
+
+            // board[pos]: 0 normal, 1 lose-extra-turn, 2 back-to-start
+            let val = match board[pos] {
+                1 => rec(n, rp, t - 2, board, memo),
+                2 => rec(n, n, t - 1, board, memo),
+                _ => rec(n, rp, t - 1, board, memo),
+            };
+            acc += val;
+        }
+
+        let res = acc / 6.0;
+        memo[r][tu] = res;
+        res
+    }
+
+    rec(n, n, t, board, &mut memo)
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
     let mut out = String::new();
 
     loop {
-        let n = match it.next() {
-            Some(v) => v.parse::<usize>().unwrap(),
-            None => break,
-        };
-        let t = it.next().unwrap().parse::<i32>().unwrap();
-        let l = it.next().unwrap().parse::<usize>().unwrap();
-        let b = it.next().unwrap().parse::<usize>().unwrap();
+        let Some(ns) = it.next() else { break };
+        let n: usize = ns.parse().unwrap();
+        let t: i32 = it.next().unwrap().parse().unwrap();
+        let l: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
 
         if n == 0 && t == 0 && l == 0 && b == 0 {
             break;
         }
 
-        // Interpret special square positions as "board positions from the start",
-        // i.e., position p corresponds to remaining distance (N - p).
-        // This matches the sample behavior for the known problem.
-        let mut lose_turn = [false; MAX];
-        let mut back_to_start = [false; MAX];
+        // board positions are measured from the start, valid indices assumed.
+        // 0 = normal, 1 = lose-extra-turn, 2 = back-to-start
+        let mut board = vec![0u8; n + 1];
 
         for _ in 0..l {
-            let pos = it.next().unwrap().parse::<usize>().unwrap();
-            if pos < MAX {
-                lose_turn[pos] = true;
-            }
+            let pos: usize = it.next().unwrap().parse().unwrap();
+            board[pos] = 1;
         }
         for _ in 0..b {
-            let pos = it.next().unwrap().parse::<usize>().unwrap();
-            if pos < MAX {
-                back_to_start[pos] = true;
-            }
+            let pos: usize = it.next().unwrap().parse().unwrap();
+            // Back-to-start overwrites lose-extra-turn if both specified.
+            board[pos] = 2;
         }
 
-        let mut memo = vec![vec![None::<f64>; MAX + 1]; MAX + 1];
+        let ans = solve_instance(n, t, &board);
 
-        fn solve(
-            r: usize,
-            turns: i32,
-            n: usize,
-            lose_turn: &[bool; MAX],
-            back_to_start: &[bool; MAX],
-            memo: &mut Vec<Vec<Option<f64>>>,
-        ) -> f64 {
-            if r == 0 {
-                return 1.0;
-            }
-            if turns <= 0 {
-                return 0.0;
-            }
-
-            let ti = turns as usize;
-            if r <= MAX && ti <= MAX {
-                if let Some(v) = memo[r][ti] {
-                    return v;
-                }
-            }
-
-            let mut acc = 0.0f64;
-            for d in 1usize..=6 {
-                let next = if r >= d { r - d } else { d - r };
-
-                // Map remaining distance to board position from start.
-                // If next > n, the implied position would be negative; treat as normal.
-                let pos_opt = if next <= n { Some(n - next) } else { None };
-
-                let (nr, nt) = if let Some(pos) = pos_opt {
-                    if pos < MAX && back_to_start[pos] {
-                        (n, turns - 1)
-                    } else if pos < MAX && lose_turn[pos] {
-                        (next, turns - 2)
-                    } else {
-                        (next, turns - 1)
-                    }
-                } else {
-                    (next, turns - 1)
-                };
-
-                acc += solve(nr, nt, n, lose_turn, back_to_start, memo);
-            }
-
-            let res = acc / 6.0;
-            if r <= MAX && ti <= MAX {
-                memo[r][ti] = Some(res);
-            }
-            res
-        }
-
-        let prob = solve(n, t, n, &lose_turn, &back_to_start, &mut memo);
-        out.push_str(&format!("{:.6}\n", prob));
+        // The reference output matches typical "%lf" usage with fixed 6 decimals in this problem.
+        // Use 6 digits after the decimal point to preserve observable I/O behavior.
+        out.push_str(&format!("{:.6}\n", ans));
     }
 
     print!("{out}");

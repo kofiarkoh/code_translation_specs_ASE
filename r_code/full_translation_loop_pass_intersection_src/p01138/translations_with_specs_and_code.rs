@@ -1,7 +1,7 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, then parse tokens. Times are given as "H:M:S" with no spaces.
+    // Read entire stdin; input is assumed well-formed per spec.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -12,14 +12,14 @@ fn main() {
     loop {
         let n_opt = it.next();
         if n_opt.is_none() {
-            break; // unspecified behavior in spec; just stop if input ends
+            break; // No more datasets.
         }
         let n: usize = n_opt.unwrap().parse().unwrap();
         if n == 0 {
-            break;
+            break; // Termination marker; no output for this dataset.
         }
 
-        let mut time = vec![0u32; DAY];
+        let mut time = vec![0i32; DAY];
 
         for _ in 0..n {
             let start_tok = it.next().unwrap();
@@ -28,14 +28,13 @@ fn main() {
             let dep = parse_hms_to_seconds(start_tok);
             let arr = parse_hms_to_seconds(end_tok);
 
-            // Spec: interval includes seconds >= start and < end; if equal, contributes nothing.
+            // Spec: count every whole second t with start <= t < end.
             for t in dep..arr {
-                // Preconditions guarantee t is within the day.
                 time[t] += 1;
             }
         }
 
-        let mut maxv: u32 = 0;
+        let mut maxv = 0i32;
         for &v in &time {
             if v > maxv {
                 maxv = v;
@@ -48,10 +47,11 @@ fn main() {
     print!("{out}");
 }
 
-fn parse_hms_to_seconds(s: &str) -> usize {
-    let mut parts = s.split(':');
+fn parse_hms_to_seconds(tok: &str) -> usize {
+    // Input is guaranteed to be in H:M:S form per spec; no extra error handling.
+    let mut parts = tok.split(':');
     let h: usize = parts.next().unwrap().parse().unwrap();
     let m: usize = parts.next().unwrap().parse().unwrap();
-    let sec: usize = parts.next().unwrap().parse().unwrap();
-    h * 3600 + m * 60 + sec
+    let s: usize = parts.next().unwrap().parse().unwrap();
+    h * 3600 + m * 60 + s
 }

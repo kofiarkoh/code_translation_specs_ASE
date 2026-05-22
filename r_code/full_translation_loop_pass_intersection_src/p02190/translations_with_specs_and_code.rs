@@ -9,17 +9,18 @@ fn main() {
 
     let n: usize = it.next().unwrap().parse().unwrap();
 
-    // Store up to 100001 integers as per constraints.
+    // Fixed maximum capacity per spec: 100001.
+    // Preconditions guarantee n <= 100001 and n >= 1.
     let mut a: Vec<i32> = Vec::with_capacity(n);
     for _ in 0..n {
         let v: i32 = it.next().unwrap().parse().unwrap();
         a.push(v);
     }
 
-    // Ordering-based distinct counting (superlinear due to sort), matching C qsort approach.
+    // Sort ascending (matches C qsort with comparator).
     a.sort_unstable();
 
-    // Preconditions guarantee n >= 1; otherwise behavior is unspecified.
+    // Count distinct values in sorted array.
     let mut ret: i32 = 1;
     let mut prev = a[0];
     for &x in a.iter().skip(1) {

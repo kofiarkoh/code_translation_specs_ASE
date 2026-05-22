@@ -1,76 +1,81 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read all input; tokens are non-negative integers separated by non-digits.
+    // Read all input tokens (well-formed per spec).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
-    let bytes = input.as_bytes();
-    let mut idx: usize = 0;
+    let mut it = input.split_whitespace();
 
-    fn next_nonneg_i64(bytes: &[u8], idx: &mut usize) -> i64 {
-        while *idx < bytes.len() && !(b'0'..=b'9').contains(&bytes[*idx]) {
-            *idx += 1;
-        }
-        let mut n: i64 = 0;
-        while *idx < bytes.len() {
-            let c = bytes[*idx];
-            if (b'0'..=b'9').contains(&c) {
-                n = n * 10 + (c - b'0') as i64;
-                *idx += 1;
-            } else {
-                break;
-            }
-        }
-        n
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut prefix = vec![0i64; n];
+    for i in 0..n {
+        let x: i64 = it.next().unwrap().parse().unwrap();
+        prefix[i] = x + if i > 0 { prefix[i - 1] } else { 0 };
     }
 
-    let n = next_nonneg_i64(bytes, &mut idx) as usize;
     if n <= 1 {
-        print!("0\n");
+        println!("0");
         return;
     }
 
-    // Prefix sums w[i] = sum(weights[0..=i])
-    let mut w = vec![0i64; n];
-    w[0] = next_nonneg_i64(bytes, &mut idx);
-    for i in 1..n {
-        w[i] = w[i - 1] + next_nonneg_i64(bytes, &mut idx);
-    }
-
-    // dp and k are (n+1)x(n+1) to mirror the C code's ability to read k[i+1][j]
-    // even when i+1 == n (it will be 0-initialized and never used in a valid state).
-    let size = n + 1;
-    let inf: i64 = 0x3333_3333_3333_3333i64;
-    let mut dp = vec![vec![inf; size]; size];
-    let mut k = vec![vec![0usize; size]; size];
+    let inf: i64 = i64::MAX / 4;
+    let mut dp = vec![vec![inf; n]; n];
+    let mut k = vec![vec![0usize; n]; n];
 
     for i in 0..n {
         dp[i][i] = 0;
         k[i][i] = i;
     }
 
-    // Follow the C loop structure exactly:
-    // for (a = 1; a <= n; a++) for (i = 0, j = a; j < n; i++, j++)
-    for a in 1..=n {
-        let mut i = 0usize;
-        let mut j = a;
-        while j < n {
-            let start = k[i][j - 1];
-            let end = k[i + 1][j]; // safe due to (n+1)x(n+1) allocation
-            for b in start..=end {
-                let mut c = dp[i][b] + dp[b + 1][j] + w[j];
-                if i > 0 {
-                    c -= w[i - 1];
-                }
-                if c < dp[i][j] {
-                    dp[i][j] = c;
-                    k[i][j] = b;
-                }
-            }
-            i += 1;
-            j += 1;
+    #[inline]
+    fn sum_range(prefix: &[i64], i: usize, j: usize) -> i64 {
+        if i == 0 {
+            prefix[j]
+        } else {
+            prefix[j] - prefix[i - 1]
         }
     }
 
-    print!("{}\n", dp[0][n - 1]);
+    // Compute by increasing interval length.
+    for len in 2..=n {
+        for i in 0..=n - len {
+            let j = i + len - 1;
+
+            // Knuth optimization bounds.
+            // For len==2, k[i+1][j] refers to k[j][j], which is initialized.
+            let mut left = k[i][j - 1];
+            let mut right = k[i + 1][j];
+
+            // Clamp to valid split range: b must satisfy i <= b < j.
+            if left < i {
+                left = i;
+            }
+            if right > j - 1 {
+                right = j - 1;
+            }
+            if left > right {
+                // Shouldn't happen under the optimization assumptions, but keep safe.
+                left = i;
+                right = j - 1;
+            }
+
+            let s = sum_range(&prefix, i, j);
+            let mut best = inf;
+            let mut best_b = left;
+
+            for b in left..=right {
+                // b+1 is in [i+1..=j], so dp[b+1][j] is in-bounds.
+                let cand = dp[i][b] + dp[b + 1][j] + s;
+                if cand < best {
+                    best = cand;
+                    best_b = b;
+                }
+            }
+
+            dp[i][j] = best;
+            k[i][j] = best_b;
+        }
+    }
+
+    println!("{}", dp[0][n - 1]);
 }

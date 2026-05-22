@@ -1,48 +1,50 @@
 use std::cmp::min;
 use std::io::{self, Read};
 
+#[derive(Clone, Copy)]
+struct Edge {
+    a: usize,
+    b: usize,
+    w: i64,
+}
+
 fn main() {
-    // Read entire stdin
+    // Read all input as whitespace-separated tokens.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let n: usize = match it.next() {
-        Some(x) => x.parse().unwrap(),
-        None => return,
-    };
+    let n: usize = it.next().unwrap().parse().unwrap();
     let m: usize = it.next().unwrap().parse().unwrap();
 
-    // Store original edges (1-based in input -> 0-based here)
-    let mut edges: Vec<(usize, usize, i64)> = Vec::with_capacity(m);
+    let mut edges: Vec<Edge> = Vec::with_capacity(m);
 
-    // All-pairs distance matrix initialized to "infinity"
-    // Specification assumes no overflow in intermediate computations.
+    // Use a large "infinity" value. The spec states sums remain in range, so this is safe.
     let inf: i64 = i64::MAX / 4;
-    let mut dist = vec![vec![inf; n]; n];
 
+    // Distance table initialized to INF, diagonal to 0.
+    let mut dist = vec![vec![inf; n]; n];
     for i in 0..n {
         dist[i][i] = 0;
     }
 
-    // Multiple edges between same pair are treated as minimum weight for shortest paths.
+    // Read edges; for shortest paths, keep minimum weight among parallel edges.
     for _ in 0..m {
         let a_in: usize = it.next().unwrap().parse().unwrap();
         let b_in: usize = it.next().unwrap().parse().unwrap();
         let w: i64 = it.next().unwrap().parse().unwrap();
+
         let a = a_in - 1;
         let b = b_in - 1;
 
-        edges.push((a, b, w));
+        edges.push(Edge { a, b, w });
 
-        // Undirected graph: update both directions with min weight.
-        if w < dist[a][b] {
-            dist[a][b] = w;
-            dist[b][a] = w;
-        }
+        // Undirected graph: update both directions with minimum direct edge weight.
+        dist[a][b] = min(dist[a][b], w);
+        dist[b][a] = min(dist[b][a], w);
     }
 
-    // Floyd-Warshall: O(n^3)
+    // Floyd-Warshall all-pairs shortest paths.
     for k in 0..n {
         for i in 0..n {
             let dik = dist[i][k];
@@ -62,33 +64,28 @@ fn main() {
         }
     }
 
-    // Count edges that are NOT used by any shortest-path relation:
-    // An input edge (u,v,w) is considered "used" if there exists some source s such that
-    // dist[s][u] + w == dist[s][v] OR dist[s][v] + w == dist[s][u].
-    // (The spec describes "one endpoint plus edge weight equals the other endpoint".)
-    let mut used = vec![false; m];
-
-    for (idx, &(u, v, w)) in edges.iter().enumerate() {
-        let mut ok = false;
+    // Count edges that are not used by any shortest path in the specified sense.
+    // An edge record (a,b,w) is "used" if there exists some source s such that:
+    // dist[s][a] + w == dist[s][b]  (direction as given by the input record).
+    let mut unused = 0usize;
+    for e in &edges {
+        let mut used = false;
         for s in 0..n {
-            let dsu = dist[s][u];
-            let dsv = dist[s][v];
-
-            // If unreachable, skip; also avoids inf + w.
-            if dsu != inf && dsu + w == dsv {
-                ok = true;
-                break;
+            // If dist[s][a] is INF, the sum cannot match a finite dist[s][b] under the spec's
+            // assumptions; still, we avoid adding INF.
+            let dsa = dist[s][e.a];
+            if dsa == inf {
+                continue;
             }
-            if dsv != inf && dsv + w == dsu {
-                ok = true;
+            if dsa + e.w == dist[s][e.b] {
+                used = true;
                 break;
             }
         }
-        used[idx] = ok;
+        if !used {
+            unused += 1;
+        }
     }
 
-    let used_count = used.iter().filter(|&&b| b).count();
-    let not_used = m - used_count;
-
-    println!("{}", not_used);
+    print!("{}", unused);
 }

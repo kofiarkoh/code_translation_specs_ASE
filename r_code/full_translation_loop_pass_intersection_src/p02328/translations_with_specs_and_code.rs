@@ -6,53 +6,61 @@ struct Rect {
     pos: i64,
 }
 
-fn large_histogram(heights: &[i64]) -> i64 {
-    let w = heights.len();
+fn large_histogram(w: i64, table: &mut Vec<i64>) -> i64 {
+    let mut sp: usize = 0;
     let mut max_area: i64 = 0;
+    let mut stack: Vec<Rect> = vec![Rect { height: 0, pos: 0 }; 100001];
 
-    // Monotone increasing stack of (height, leftmost position where this height applies).
-    let mut stack: Vec<Rect> = Vec::with_capacity(w + 1);
+    // Sentinel to flush remaining rectangles, as in the C code.
+    table[w as usize] = 0;
 
-    // Iterate through all bars plus a sentinel 0 height to flush the stack.
     for i in 0..=w {
-        let cur_h = if i == w { 0 } else { heights[i] };
-        let mut start = i as i64;
+        let mut r = Rect {
+            height: table[i as usize],
+            pos: i,
+        };
 
-        // Pop while the stack height is greater than current height.
-        // This is the standard correct algorithm for largest rectangle in histogram.
-        while let Some(top) = stack.last() {
-            if top.height <= cur_h {
-                break;
+        if sp == 0 || stack[sp - 1].height < r.height {
+            stack[sp] = r;
+            sp += 1;
+        } else if stack[sp - 1].height > r.height {
+            let mut target = i;
+            while sp != 0 && stack[sp - 1].height >= r.height {
+                sp -= 1;
+                let pre = stack[sp];
+                let area = pre.height * (i - pre.pos);
+                if max_area < area {
+                    max_area = area;
+                }
+                target = pre.pos;
             }
-            let pre = stack.pop().unwrap();
-            let area = pre.height * ((i as i64) - pre.pos);
-            if area > max_area {
-                max_area = area;
-            }
-            start = pre.pos;
+            r.pos = target;
+            stack[sp] = r;
+            sp += 1;
         }
-
-        // Push current bar with the earliest start it can extend to.
-        stack.push(Rect {
-            height: cur_h,
-            pos: start,
-        });
+        // If equal height, do nothing (matches the C code's control flow).
     }
 
     max_area
 }
 
 fn main() {
+    // Match C behavior: no explicit input validation; assume parseable integers exist.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let w: usize = it.next().unwrap().parse().unwrap();
-    let mut heights: Vec<i64> = Vec::with_capacity(w);
-    for _ in 0..w {
-        heights.push(it.next().unwrap().parse().unwrap());
+    let w: i64 = it.next().unwrap().parse().unwrap();
+
+    // Fixed maximum capacity per spec/C code: 100001, and we write sentinel at index w.
+    // We allocate exactly 100001 to mirror the C fixed-size array behavior.
+    let mut table = vec![0i64; 100001];
+
+    for i in 0..w {
+        table[i as usize] = it.next().unwrap().parse().unwrap();
     }
 
-    let ans = if w == 0 { 0 } else { large_histogram(&heights) };
-    print!("{ans}\n");
+    let temp = large_histogram(w, &mut table);
+    let max_val = temp; // In C, max starts at 0 and is updated with temp; temp is non-negative.
+    print!("{max_val}\n");
 }

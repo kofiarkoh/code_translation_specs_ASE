@@ -1,17 +1,17 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin (scanf-like behavior: whitespace-separated tokens).
+    // Read entire stdin (scanf-style whitespace-separated parsing).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
-    let mut it = input.split_whitespace();
 
+    let mut it = input.split_whitespace();
     let a: i32 = it.next().unwrap().parse().unwrap();
     let p: i32 = it.next().unwrap().parse().unwrap();
 
-    // C `int` arithmetic can overflow (UB). We emulate typical two's-complement
-    // wraparound using Rust's wrapping operations.
+    // In C, signed overflow is undefined. Rust's wrapping_* provides a stable,
+    // well-defined behavior if overflow occurs, approximating common two's-complement wraparound.
     let result = a.wrapping_mul(3).wrapping_add(p) / 2;
 
-    print!("{result}\n");
+    print!("{}\n", result);
 }

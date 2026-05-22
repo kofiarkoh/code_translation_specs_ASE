@@ -1,7 +1,7 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, parse two signed integers (as in C: long).
+    // Read entire stdin and parse two signed integers.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -9,7 +9,8 @@ fn main() {
     let n: i64 = it.next().unwrap().parse().unwrap();
     let mut p: i64 = it.next().unwrap().parse().unwrap();
 
-    // Per spec: n >= 1, p >= 1; no explicit error handling required.
+    // Per spec: compute product over primes q of q^(floor(e/n)).
+    // Trial division up to sqrt(mutated p), like the C code.
     let mut ans: i64 = 1;
 
     let mut i: i64 = 2;
@@ -22,14 +23,14 @@ fn main() {
         if cnt >= n {
             let times = cnt / n;
             for _ in 0..times {
-                ans *= i; // overflow behavior is undefined per spec, matching C.
+                ans *= i;
             }
         }
         i += 1;
     }
 
-    // Matches the C code: only multiply remaining prime factor if n == 1.
-    // (For n > 1, any leftover p has exponent 1, so contributes nothing.)
+    // If remaining p > 1, it is a prime factor with exponent 1.
+    // It contributes only when n == 1 (since floor(1/n) is 1 iff n==1).
     if p > 1 && n == 1 {
         ans *= p;
     }

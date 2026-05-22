@@ -1,6 +1,6 @@
 use std::io::{self, Read};
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Default)]
 struct T {
     id: i32,
     x1: i32,
@@ -10,69 +10,28 @@ struct T {
     used: bool,
 }
 
-fn in_read(data: &[u8], idx: &mut usize) -> i32 {
-    // Mirrors the C in(): assumes input is well-formed and starts at a digit.
-    // It stops when the next byte is < '0' (not checking > '9'), matching the C code.
-    let mut n: i32 = 0;
-    if *idx >= data.len() {
-        return 0;
-    }
-    let mut c = data[*idx];
-    *idx += 1;
-    loop {
-        n = n
-            .wrapping_shl(3)
-            .wrapping_add(n.wrapping_shl(1))
-            .wrapping_add((c & 0x0f) as i32);
-        if *idx >= data.len() {
-            break;
-        }
-        c = data[*idx];
-        *idx += 1;
-        if c < b'0' {
-            break;
-        }
-    }
-    n
-}
-
-fn cmp(a: &T, b: &T) -> std::cmp::Ordering {
-    // C comparator: if (a->x1 - b->x1) return a->x1 - b->x1; return a->y1 - b->y1;
-    // Use wrapping subtraction to emulate potential overflow behavior.
-    let dx = a.x1.wrapping_sub(b.x1);
-    if dx != 0 {
-        return if dx < 0 {
-            std::cmp::Ordering::Less
-        } else {
-            std::cmp::Ordering::Greater
-        };
-    }
-    let dy = a.y1.wrapping_sub(b.y1);
-    if dy < 0 {
-        std::cmp::Ordering::Less
-    } else if dy > 0 {
-        std::cmp::Ordering::Greater
-    } else {
-        std::cmp::Ordering::Equal
-    }
-}
-
 fn calc(t: &mut [T], ans: &mut [i32], order: &mut i32) {
-    let n = t.len();
-    if n == 0 {
-        return;
-    }
+    // C qsort with comparator:
+    // if (a->x1 - b->x1) return a->x1 - b->x1; return a->y1 - b->y1;
+    // Use i64 to avoid overflow in subtraction while preserving ordering intent.
+    t.sort_by(|a, b| {
+        let dx = (a.x1 as i64) - (b.x1 as i64);
+        if dx != 0 {
+            dx.cmp(&0)
+        } else {
+            let dy = (a.y1 as i64) - (b.y1 as i64);
+            dy.cmp(&0)
+        }
+    });
 
-    t.sort_by(cmp);
-
-    let id0 = t[0].id as usize;
+    // ans[t[0].id] = ++order, t[0].used = 1;
     *order += 1;
-    ans[id0] = *order;
+    ans[t[0].id as usize] = *order;
     t[0].used = true;
 
     let y = t[0].y2;
     let mut x: i32 = 501;
-    for i in 0..n {
+    for i in 0..t.len() {
         if t[i].used {
             continue;
         }
@@ -82,9 +41,9 @@ fn calc(t: &mut [T], ans: &mut [i32], order: &mut i32) {
         }
     }
 
-    // xx, yy are unused in the C code; keep no-ops out.
-    let mut tmp: Vec<T> = Vec::with_capacity(10);
-    for i in 0..n {
+    // Collect into tmp those with y2 <= y && x2 <= x, marking them used in current slice.
+    let mut tmp: Vec<T> = Vec::new();
+    for i in 0..t.len() {
         if t[i].used {
             continue;
         }
@@ -98,65 +57,100 @@ fn calc(t: &mut [T], ans: &mut [i32], order: &mut i32) {
     }
 
     // for (i = 0; i < n; i++) if (t[i].used == 0) calc(t+i, n-i);
+    // This relies on passing a subarray starting at i; we emulate with a mutable subslice.
+    let n = t.len();
     for i in 0..n {
         if !t[i].used {
-            // Recurse on the suffix starting at i, as in the C pointer arithmetic.
-            calc(&mut t[i..], ans, order);
+            let (left, right) = t.split_at_mut(i);
+            let _ = left; // unused
+            calc(right, ans, order);
         }
     }
 }
 
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut input = Vec::new();
+        io::stdin().read_to_end(&mut input).unwrap();
+        Self { buf: input, idx: 0 }
+    }
+
+    // Emulates the C in(): reads an unsigned integer, assuming the next byte is a digit.
+    // Stops when encountering a byte < '0'. (C code does not skip whitespace.)
+    fn in_num(&mut self) -> i32 {
+        let mut n: i32 = 0;
+        if self.idx >= self.buf.len() {
+            return 0;
+        }
+        let mut c = self.buf[self.idx];
+        self.idx += 1;
+        loop {
+            n = n
+                .wrapping_shl(3)
+                .wrapping_add(n.wrapping_shl(1))
+                .wrapping_add((c & 0x0f) as i32);
+            if self.idx >= self.buf.len() {
+                break;
+            }
+            c = self.buf[self.idx];
+            self.idx += 1;
+            if c < b'0' {
+                break;
+            }
+        }
+        n
+    }
+}
+
 fn main() {
-    let mut input = String::new();
-    io::stdin().read_to_string(&mut input).unwrap();
-    let data = input.as_bytes();
-    let mut idx: usize = 0;
+    let mut sc = Scanner::new();
 
-    let mut out = String::new();
+    let mut tbl = [T::default(); 10];
+    let mut ans = [0i32; 10];
+
     let mut cno = 0;
-
     loop {
-        let n = in_read(data, &mut idx);
+        let n = sc.in_num();
         if n == 0 {
             break;
         }
         let n_usize = n as usize;
 
-        let mut tbl: Vec<T> = vec![
-            T {
-                id: 0,
-                x1: 0,
-                y1: 0,
-                x2: 0,
-                y2: 0,
-                used: false
-            };
-            n_usize
-        ];
-        let mut ans: Vec<i32> = vec![0; n_usize];
-
         for i in 0..n_usize {
-            let x1 = in_read(data, &mut idx);
-            let y1 = in_read(data, &mut idx);
-            let x2 = in_read(data, &mut idx);
-            let y2 = in_read(data, &mut idx);
+            let x1 = sc.in_num();
+            let y1 = sc.in_num();
+            let x2 = sc.in_num();
+            let y2 = sc.in_num();
 
-            let (xx1, xx2) = if x1 <= x2 { (x1, x2) } else { (x2, x1) };
-            let (yy1, yy2) = if y1 <= y2 { (y1, y2) } else { (y2, y1) };
+            let mut t = T::default();
+            t.id = i as i32;
+            t.used = false;
 
-            tbl[i] = T {
-                id: i as i32,
-                x1: xx1,
-                y1: yy1,
-                x2: xx2,
-                y2: yy2,
-                used: false,
-            };
+            if x1 <= x2 {
+                t.x1 = x1;
+                t.x2 = x2;
+            } else {
+                t.x1 = x2;
+                t.x2 = x1;
+            }
+            if y1 <= y2 {
+                t.y1 = y1;
+                t.y2 = y2;
+            } else {
+                t.y1 = y2;
+                t.y2 = y1;
+            }
+            tbl[i] = t;
         }
 
         let mut order: i32 = 0;
-        calc(&mut tbl[..], &mut ans[..], &mut order);
+        calc(&mut tbl[..n_usize], &mut ans[..], &mut order);
 
+        let mut out = String::new();
         if cno == 0 {
             cno = 1;
         } else {
@@ -165,7 +159,6 @@ fn main() {
         for i in 0..n_usize {
             out.push_str(&format!("{}\n", ans[i]));
         }
+        print!("{out}");
     }
-
-    print!("{out}");
 }

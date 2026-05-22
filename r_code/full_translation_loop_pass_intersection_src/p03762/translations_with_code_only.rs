@@ -12,7 +12,7 @@ fn main() {
     };
     let m: i64 = it.next().unwrap().parse().unwrap();
 
-    // C uses VLA with indices 1..=n/m; we emulate with Vec and ignore index 0.
+    // C uses VLAs x[n+1], y[m+1] and indexes from 1..=n/m.
     let mut x = vec![0i64; (n as usize) + 1];
     let mut y = vec![0i64; (m as usize) + 1];
 
@@ -23,24 +23,31 @@ fn main() {
         y[i] = it.next().unwrap().parse::<i64>().unwrap();
     }
 
-    // Use i128 for intermediate arithmetic to avoid overflow/panic.
-    // C's signed overflow is UB; this choice preserves intended math for typical constraints.
-    const MOD: i128 = 1_000_000_007;
+    const MOD: i64 = 1_000_000_007;
 
-    let mut t: i128 = 0;
-    for i in 1..=n {
-        let xi = x[i as usize] as i128;
-        let term = (i - 1) as i128 * xi - (n - i) as i128 * xi;
-        t = (t + term) % MOD; // keep C-like remainder behavior (can be negative)
+    // In C, intermediate arithmetic is in signed long long and can overflow (UB).
+    // We emulate typical two's-complement wraparound using wrapping_* operations.
+    // Also, C's % keeps the sign of the dividend; Rust's % does the same for i64.
+    let mut t: i64 = 0;
+    for i_usize in 1..=n as usize {
+        let i = i_usize as i64;
+        let xi = x[i_usize];
+        let a = (i - 1).wrapping_mul(xi);
+        let b = (n - i).wrapping_mul(xi);
+        let term = a.wrapping_sub(b);
+        t = t.wrapping_add(term) % MOD;
     }
 
-    let mut k: i128 = 0;
-    for i in 1..=m {
-        let yi = y[i as usize] as i128;
-        let term = (i - 1) as i128 * yi - (m - i) as i128 * yi;
-        k = (k + term) % MOD; // can be negative
+    let mut k: i64 = 0;
+    for i_usize in 1..=m as usize {
+        let i = i_usize as i64;
+        let yi = y[i_usize];
+        let a = (i - 1).wrapping_mul(yi);
+        let b = (m - i).wrapping_mul(yi);
+        let term = a.wrapping_sub(b);
+        k = k.wrapping_add(term) % MOD;
     }
 
-    let ans = (t * k) % MOD; // can be negative, matching C's % behavior
-    println!("{}", ans);
+    let ans = t.wrapping_mul(k) % MOD;
+    print!("{ans}\n");
 }

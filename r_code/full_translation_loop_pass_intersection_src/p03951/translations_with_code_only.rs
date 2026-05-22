@@ -1,51 +1,65 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, token-scan like scanf("%d %s %s")
+    // Read entire stdin, then parse as whitespace-separated tokens (like scanf).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
     let n: i32 = match it.next() {
-        Some(x) => x.parse().unwrap(),
+        Some(tok) => tok.parse().unwrap(),
         None => return,
     };
-    let s_str = it.next().unwrap_or("");
-    let t_str = it.next().unwrap_or("");
 
-    // C uses VLA char S[N+1], T[N+1] and scanf("%s") (no bounds checking).
-    // We emulate the intended behavior for well-formed inputs: treat S and T as byte arrays.
-    // Indexing is by byte, matching C char indexing.
-    let s = s_str.as_bytes();
-    let t = t_str.as_bytes();
+    // In the C code, S and T are read with "%s" into char arrays of size N+1.
+    // We emulate by reading tokens; if missing, treat as empty.
+    let s = it.next().unwrap_or("").as_bytes().to_vec();
+    let t = it.next().unwrap_or("").as_bytes().to_vec();
 
     let mut ans: i32 = 0;
 
-    // Mirror C's int variables and control flow as closely as possible.
-    let mut i: i32 = n - 1;
-    let mut j: i32 = i;
+    // The C code has a logic bug: it declares `int i=N-1; int j=i;`
+    // then enters `while (i>=0)` but *redeclares* `int i=N-1;` inside,
+    // so the outer `i` never changes and the loop would be infinite unless it breaks.
+    // We preserve that behavior by modeling the outer loop as an infinite loop that
+    // only exits via the same break conditions.
+    let mut j: i32 = n - 1;
 
-    // Note: In the C code, the outer `while (i>=0)` never changes `i` (it is shadowed inside),
-    // so termination relies on `break`. We preserve that structure.
-    while i >= 0 {
-        // This shadows the outer i in C; in Rust we just create a new variable.
-        let mut i_inner: i32 = n - 1;
+    loop {
+        // Inner `i` shadows the outer `i` in C; it is reset each iteration.
+        let mut i: i32 = n - 1;
 
-        while j >= 0 && s[i_inner as usize] != t[j as usize] {
+        while j >= 0 {
+            let si = s.get(i as usize).copied().unwrap_or(0);
+            let tj = t.get(j as usize).copied().unwrap_or(0);
+            if si == tj {
+                break;
+            }
             j -= 1;
         }
 
         if j >= 0 {
-            while j >= 0 && s[i_inner as usize] == t[j as usize] {
-                i_inner -= 1;
+            while j >= 0 {
+                let si = s.get(i as usize).copied().unwrap_or(0);
+                let tj = t.get(j as usize).copied().unwrap_or(0);
+                if si != tj {
+                    break;
+                }
+                i -= 1;
                 j -= 1;
             }
             if j < 0 {
-                ans = 2 * n - (n - i_inner - 1);
+                // ans = 2*N - (N - i - 1)
+                // Use wrapping to mimic C signed overflow behavior as closely as possible.
+                ans = (2i32)
+                    .wrapping_mul(n)
+                    .wrapping_sub(n.wrapping_sub(i).wrapping_sub(1));
                 break;
             }
         } else {
-            ans = 2 * n - (n - i_inner - 1);
+            ans = (2i32)
+                .wrapping_mul(n)
+                .wrapping_sub(n.wrapping_sub(i).wrapping_sub(1));
             break;
         }
     }

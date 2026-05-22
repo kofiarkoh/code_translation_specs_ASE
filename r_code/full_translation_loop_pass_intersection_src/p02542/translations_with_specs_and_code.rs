@@ -14,157 +14,144 @@ struct Edge {
     cost: i32,
 }
 
-fn successive_shortest_path(n: usize, adj: &[Vec<usize>], edges: &mut [Edge], b: &[i32]) -> i64 {
-    let m2 = edges.len();
-
-    // Initial objective value from existing flows (normally 0 here).
+fn successive_shortest_path(
+    n_nodes: usize,
+    m_edges: usize,
+    adj: &Vec<Vec<usize>>, // stores edge indices
+    e: &mut Vec<Edge>,
+    b: &Vec<i32>,
+) -> i64 {
     let mut ans: i64 = 0;
-    for e in edges.iter() {
-        ans += (e.cost as i64) * (e.flow as i64);
+    for i in 0..m_edges {
+        ans += (e[i].cost as i64) * (e[i].flow as i64);
     }
 
-    // Potentials
-    let mut pi = vec![SUP; n + 1];
+    let mut flag = vec![0i32; n_nodes + 1];
+    let mut def = vec![0i32; n_nodes + 1];
+    let mut dist = vec![SUP; n_nodes + 1];
+    let mut pi = vec![SUP; n_nodes + 1];
+    let mut prev: Vec<Option<usize>> = vec![None; n_nodes + 1];
 
-    // Compute node deficits def[i] = b[i] + sum_out(flow) - sum_in(flow)
-    // (the C code computes this via adjacency and reverse-edge flows; we do it directly).
-    let mut def = vec![0i32; n + 1];
-    for i in 1..=n {
-        def[i] = b[i];
-    }
-    for e in edges.iter() {
-        def[e.tail] += e.flow;
-        def[e.head] -= e.flow;
-    }
+    // Initialize deficits and potentials (Bellman-Ford-like) for nodes with negative deficit.
+    let mut h_def: BinaryHeap<(Reverse<i32>, usize)> = BinaryHeap::new(); // (def, node), min by def
+    for i in 1..=n_nodes {
+        let mut di = b[i];
+        for &eid in &adj[i] {
+            // def[i] += p->e->flow - e[(p->e->id)^1].flow;
+            di += e[eid].flow - e[eid ^ 1].flow;
+        }
+        def[i] = di;
 
-    // Heap of nodes with negative deficit (need to send flow out).
-    let mut h_def: BinaryHeap<(Reverse<i32>, usize)> = BinaryHeap::new();
-
-    // Initialize potentials using Bellman-Ford from any node with negative deficit, as in C.
-    for i in 1..=n {
         if def[i] < 0 {
             h_def.push((Reverse(def[i]), i));
+
             if pi[i] == SUP {
                 pi[i] = 0;
-                // Bellman-Ford relaxation over all residual edges.
-                let mut updated = false;
-                for _ in 1..=n {
-                    updated = false;
-                    for k in 0..m2 {
-                        if edges[k].flow == edges[k].cap {
+                // Relax all edges up to N times; if still relaxable on Nth, negative cycle sentinel.
+                let mut j = 1usize;
+                while j <= n_nodes {
+                    let mut changed = false;
+                    for k in 0..m_edges {
+                        if e[k].flow == e[k].cap {
                             continue;
                         }
-                        let u = edges[k].tail;
-                        let w = edges[k].head;
+                        let u = e[k].tail;
+                        let w = e[k].head;
                         if pi[u] != SUP {
-                            let cand = pi[u] + edges[k].cost as i64;
+                            let cand = pi[u] + e[k].cost as i64;
                             if pi[w] > cand {
                                 pi[w] = cand;
-                                updated = true;
+                                changed = true;
                             }
                         }
                     }
-                    if !updated {
+                    if !changed {
                         break;
                     }
+                    j += 1;
                 }
-                if updated {
-                    // Negative cycle / ill-posed per spec => return INF sentinel.
-                    return INF;
+                if j > n_nodes {
+                    return INF; // negative-cost cycle sentinel
                 }
             }
         }
     }
 
-    let mut dist = vec![SUP; n + 1];
-    let mut seen = vec![false; n + 1];
-    let mut prev: Vec<Option<usize>> = vec![None; n + 1];
-
-    while let Some((Reverse(_key), s)) = h_def.pop() {
-        // Dijkstra on reduced costs from s.
-        for u in 1..=n {
+    while let Some((_, s)) = h_def.pop() {
+        for u in 1..=n_nodes {
+            flag[u] = 0;
             dist[u] = SUP;
-            seen[u] = false;
             prev[u] = None;
         }
         dist[s] = 0;
 
-        let mut pq: BinaryHeap<(Reverse<i64>, usize)> = BinaryHeap::new();
-        pq.push((Reverse(0), s));
+        let mut h_dist: BinaryHeap<(Reverse<i64>, usize)> = BinaryHeap::new();
+        h_dist.push((Reverse(0), s));
 
-        while let Some((Reverse(_d), u)) = pq.pop() {
-            if seen[u] {
+        while let Some((Reverse(_dk), u)) = h_dist.pop() {
+            if flag[u] != 0 {
                 continue;
             }
-            seen[u] = true;
+            flag[u] = 1;
 
             for &eid in &adj[u] {
-                let e = &edges[eid];
-                if e.flow == e.cap {
-                    continue; // no residual capacity
+                let w = e[eid].head;
+                if e[eid].flow == e[eid].cap {
+                    continue;
                 }
-                let w = e.head;
-                // reduced cost: c + pi[u] - pi[w]
-                let rc = e.cost as i64 + pi[u] - pi[w];
-                let nd = dist[u] + rc;
-                if dist[w] > nd {
-                    dist[w] = nd;
+                // reduced cost: cost + pi[u] - pi[w]
+                let rc = e[eid].cost as i64 + pi[u] - pi[w];
+                let cand = dist[u] + rc;
+                if dist[w] > cand {
+                    dist[w] = cand;
                     prev[w] = Some(eid);
-                    pq.push((Reverse(nd), w));
+                    h_dist.push((Reverse(dist[w]), w));
                 }
             }
         }
 
-        // Find any t with def[t] > 0 reachable.
-        let mut t: usize = 0;
-        for i in 1..=n {
-            if dist[i] != SUP && def[i] > 0 {
-                t = i;
+        let mut t = 1usize;
+        while t <= n_nodes {
+            if dist[t] != SUP && def[t] > 0 {
                 break;
             }
+            t += 1;
         }
-        if t == 0 {
-            // Infeasible / no augmenting path to satisfy deficits.
-            return SUP;
+        if t > n_nodes {
+            return SUP; // cannot find augmenting path sentinel
         }
 
-        // Determine augmentation amount.
-        let mut min_amt: i32 = (-def[s]).min(def[t]);
+        let mut minf: i32 = (-def[s]).min(def[t]);
         let mut u = t;
         while let Some(eid) = prev[u] {
-            let e = &edges[eid];
-            let residual = e.cap - e.flow;
-            if min_amt > residual {
-                min_amt = residual;
+            let residual = e[eid].cap - e[eid].flow;
+            if minf > residual {
+                minf = residual;
             }
-            u = e.tail;
+            u = e[eid].tail;
         }
 
-        // Augment along path, updating flows/caps exactly like the C code.
-        let mut u2 = t;
-        while let Some(eid) = prev[u2] {
-            let rev = eid ^ 1;
-            if edges[rev].flow > 0 {
-                edges[rev].flow -= min_amt;
-                edges[eid].cap -= min_amt;
+        u = t;
+        while let Some(eid) = prev[u] {
+            if e[eid ^ 1].flow > 0 {
+                e[eid ^ 1].flow -= minf;
+                e[eid].cap -= minf;
             } else {
-                edges[eid].flow += min_amt;
-                edges[rev].cap += min_amt;
+                e[eid].flow += minf;
+                e[eid ^ 1].cap += minf;
             }
-            ans += (edges[eid].cost as i64) * (min_amt as i64);
-            u2 = edges[eid].tail;
+            ans += (e[eid].cost as i64) * (minf as i64);
+            u = e[eid].tail;
         }
 
-        // Update potentials.
-        for i in 1..=n {
+        for i in 1..=n_nodes {
             if dist[i] != SUP {
                 pi[i] += dist[i];
             }
         }
 
-        // Update deficits and reinsert s if still negative.
-        def[s] += min_amt;
-        def[t] -= min_amt;
+        def[s] += minf;
+        def[t] -= minf;
         if def[s] < 0 {
             h_def.push((Reverse(def[s]), s));
         }
@@ -174,183 +161,182 @@ fn successive_shortest_path(n: usize, adj: &[Vec<usize>], edges: &mut [Edge], b:
 }
 
 fn main() {
-    // Read all input.
+    // Read all input
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let n_rows: usize = match it.next() {
-        Some(x) => x.parse().unwrap(),
-        None => return,
-    };
-    let n_cols: usize = it.next().unwrap().parse().unwrap();
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
 
-    // Grid with 1-based indexing and a zero border (non-passable).
-    let mut s = vec![vec![b'\0'; n_cols + 2]; n_rows + 2];
-    for i in 1..=n_rows {
-        let row = it.next().unwrap().as_bytes().to_vec();
-        for j in 1..=n_cols {
-            s[i][j] = row[j - 1];
+    // Grid with 1-based indexing and a zero border (like C's zero-initialized array).
+    // We allocate (n+2) x (m+2) filled with '\0'.
+    let mut s = vec![vec!['\0'; m + 2]; n + 2];
+    for i in 1..=n {
+        let row = it.next().unwrap();
+        let chars: Vec<char> = row.chars().collect();
+        for j in 1..=m {
+            s[i][j] = chars[j - 1];
         }
     }
 
-    // Build min-cost flow model as in C.
+    // Build flow network.
     // Node ids:
-    // 1..=N*M : grid cells
-    // N*M + 1.. : marked-cell nodes (one per 'o'), in scan order
-    // plus a super source and super sink at the end.
-    let nm = n_rows * n_cols;
+    // 1..=N*M : grid cells (id = (i-1)*M + j)
+    // N*M + k : k-th 'o' source node (k starts at 1)
+    // N*M + n_o + 1 : sink cell-usage node
+    // N*M + n_o : super source for all 'o' nodes (added after counting)
+    //
+    // We follow the C construction exactly: during scanning, n_o counter is `n_o = 1` and
+    // increments after each 'o'. After scan, `n_o` equals (#o + 1).
+    let mut edge_list: Vec<Edge> = Vec::new();
+    let mut adj: Vec<Vec<usize>> = vec![Vec::new(); 2603]; // per spec: bounded; mirrors C's fixed arrays
 
-    // Collect edges and adjacency (store edge indices).
-    let mut edges: Vec<Edge> = Vec::new();
-    let mut adj: Vec<Vec<usize>> = vec![Vec::new(); 2603.max(nm + 2603)]; // ensure enough; spec says <= 50*50.
+    let mut dist = vec![-1i32; n * m + 1];
+    let mut q = vec![0usize; n * m + 1];
 
-    let mut m_pairs: usize = 0;
-    let mut mark_index: usize = 1; // corresponds to `n` in C, starting at 1
-
-    // BFS arrays sized to N*M (<= 2500).
-    let mut dist = vec![-1i32; nm + 1];
-    let mut q = vec![0usize; nm + 1];
-
-    // Scan from bottom-right to top-left, as in C.
-    for i in (1..=n_rows).rev() {
-        for j in (1..=n_cols).rev() {
-            if s[i][j] != b'o' {
+    let mut n_o: usize = 1; // corresponds to C variable `n`
+    for i in (1..=n).rev() {
+        for j in (1..=m).rev() {
+            if s[i][j] != 'o' {
                 continue;
             }
-            s[i][j] = b'.';
+            s[i][j] = '.';
 
-            // Reset dist
-            for k in 1..=nm {
+            for k in 1..=n * m {
                 dist[k] = -1;
             }
-
-            let start = (i - 1) * n_cols + j;
+            let start = (i - 1) * m + j;
             q[0] = start;
             dist[start] = 0;
 
-            let mut head = 0usize;
-            let mut tail = 1usize;
+            let mut head: usize = 0;
+            let mut tail: usize = 1;
             while head < tail {
                 let v = q[head];
-                head += 1;
-                let r = (v - 1) / n_cols + 1;
-                let c = (v - 1) % n_cols + 1;
+                let r = (v - 1) / m + 1;
+                let c = (v - 1) % m + 1;
 
-                // Move down
-                if r + 1 <= n_rows && s[r + 1][c] == b'.' {
-                    let to = r * n_cols + c;
-                    if dist[to] == -1 {
-                        dist[to] = dist[v] + 1;
-                        q[tail] = to;
+                // Move "down" in stored array: (r+1, c) => id = r*m + c
+                if r + 1 <= n && s[r + 1][c] == '.' {
+                    let nid = r * m + c;
+                    if dist[nid] == -1 {
+                        dist[nid] = dist[v] + 1;
+                        q[tail] = nid;
                         tail += 1;
                     }
                 }
-                // Move right
-                if c + 1 <= n_cols && s[r][c + 1] == b'.' {
-                    let to = (r - 1) * n_cols + (c + 1);
-                    if dist[to] == -1 {
-                        dist[to] = dist[v] + 1;
-                        q[tail] = to;
+                // Move right: (r, c+1) => id = (r-1)*m + (c+1)
+                if c + 1 <= m && s[r][c + 1] == '.' {
+                    let nid = (r - 1) * m + (c + 1);
+                    if dist[nid] == -1 {
+                        dist[nid] = dist[v] + 1;
+                        q[tail] = nid;
                         tail += 1;
                     }
                 }
+
+                head += 1;
             }
 
-            // Add edges to up to 100 farthest reachable destinations.
-            // C iterates from last discovered backwards, taking at most 100.
-            let mark_node = nm + mark_index;
-            let mut taken = 0usize;
-            let mut idx = tail;
-            while idx > 0 && taken < 100 {
-                idx -= 1;
-                let cell = q[idx];
-                let d = dist[cell];
-                if d < 0 {
-                    continue;
-                }
+            // Take up to last 100 discovered nodes in BFS order.
+            // C does: for (head--; head >= 0 && head >= tail - 100; head--)
+            let mut idx: isize = head as isize - 1;
+            let lower = (tail as isize) - 100;
+            while idx >= 0 && idx >= lower {
+                let cell = q[idx as usize];
+                let dcell = dist[cell];
 
-                // forward edge: mark_node -> cell, cap 1, cost = -distance
-                let eid_f = edges.len();
-                edges.push(Edge {
-                    tail: mark_node,
+                let o_node = n * m + n_o;
+
+                // forward edge: o_node -> cell, cap 1, cost = -dist
+                let eid_f = edge_list.len();
+                edge_list.push(Edge {
+                    tail: o_node,
                     head: cell,
                     flow: 0,
                     cap: 1,
-                    cost: -d,
+                    cost: -dcell,
                 });
-                let eid_r = edges.len();
-                edges.push(Edge {
+                // reverse edge: cell -> o_node, cap 0, cost = +dist
+                let eid_r = edge_list.len();
+                edge_list.push(Edge {
                     tail: cell,
-                    head: mark_node,
+                    head: o_node,
                     flow: 0,
                     cap: 0,
-                    cost: d,
+                    cost: dcell,
                 });
 
-                if mark_node >= adj.len() {
-                    adj.resize(mark_node + 1, Vec::new());
+                // adjacency
+                if o_node >= adj.len() {
+                    adj.resize(o_node + 1, Vec::new());
                 }
                 if cell >= adj.len() {
                     adj.resize(cell + 1, Vec::new());
                 }
-                adj[mark_node].push(eid_f);
+                adj[o_node].push(eid_f);
                 adj[cell].push(eid_r);
 
-                m_pairs += 1;
-                taken += 1;
+                idx -= 1;
             }
 
-            mark_index += 1;
+            n_o += 1;
         }
     }
 
-    let num_marks = mark_index - 1;
-    let super_source = nm + mark_index; // N*M + n in C after loop
-    let super_sink = nm + mark_index + 1;
+    // Now n_o == (#o + 1)
+    let super_source = n * m + n_o;
+    let sink = n * m + n_o + 1;
 
-    if super_sink >= adj.len() {
-        adj.resize(super_sink + 1, Vec::new());
+    if super_source >= adj.len() {
+        adj.resize(super_source + 1, Vec::new());
+    }
+    if sink >= adj.len() {
+        adj.resize(sink + 1, Vec::new());
     }
 
-    // super_source -> each mark node, cap 1
-    for i in 1..=num_marks {
-        let mark_node = nm + i;
-        let eid_f = edges.len();
-        edges.push(Edge {
+    // Connect super_source -> each o_node with cap 1, cost 0
+    for i in 1..n_o {
+        let o_node = n * m + i;
+
+        let eid_f = edge_list.len();
+        edge_list.push(Edge {
             tail: super_source,
-            head: mark_node,
+            head: o_node,
             flow: 0,
             cap: 1,
             cost: 0,
         });
-        let eid_r = edges.len();
-        edges.push(Edge {
-            tail: mark_node,
+        let eid_r = edge_list.len();
+        edge_list.push(Edge {
+            tail: o_node,
             head: super_source,
             flow: 0,
             cap: 0,
             cost: 0,
         });
 
+        if o_node >= adj.len() {
+            adj.resize(o_node + 1, Vec::new());
+        }
         adj[super_source].push(eid_f);
-        adj[mark_node].push(eid_r);
-        m_pairs += 1;
+        adj[o_node].push(eid_r);
     }
 
-    // each cell -> super_sink, cap 1
-    for cell in 1..=nm {
-        let eid_f = edges.len();
-        edges.push(Edge {
+    // Connect each grid cell -> sink with cap 1, cost 0
+    for cell in 1..=n * m {
+        let eid_f = edge_list.len();
+        edge_list.push(Edge {
             tail: cell,
-            head: super_sink,
+            head: sink,
             flow: 0,
             cap: 1,
             cost: 0,
         });
-        let eid_r = edges.len();
-        edges.push(Edge {
-            tail: super_sink,
+        let eid_r = edge_list.len();
+        edge_list.push(Edge {
+            tail: sink,
             head: cell,
             flow: 0,
             cap: 0,
@@ -358,18 +344,18 @@ fn main() {
         });
 
         adj[cell].push(eid_f);
-        adj[super_sink].push(eid_r);
-        m_pairs += 1;
+        adj[sink].push(eid_r);
     }
 
-    // b vector (node demands): b[super_source] = -(num_marks), b[super_sink] = num_marks
-    let total_nodes = super_sink; // nodes are 1..=super_sink
-    let mut b = vec![0i32; total_nodes + 1];
-    b[super_source] = -(num_marks as i32);
-    b[super_sink] = num_marks as i32;
+    let n_nodes = sink;
+    let m_edges = edge_list.len();
 
-    // Run min-cost flow; output is negated to become maximum total distance.
-    let res = successive_shortest_path(total_nodes, &adj[..=total_nodes], &mut edges, &b);
-    let out = -res;
-    print!("{out}\n");
+    // b array (node demands): b[super_source] = -(#o), b[sink] = +(#o)
+    let mut b = vec![0i32; n_nodes + 1];
+    b[super_source] = -((n_o - 1) as i32);
+    b[sink] = (n_o - 1) as i32;
+
+    let min_cost = successive_shortest_path(n_nodes, m_edges, &adj, &mut edge_list, &b);
+    // Per spec/C: print negated min cost (max total distance), including sentinel behavior.
+    println!("{}", -min_cost);
 }

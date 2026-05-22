@@ -1,85 +1,84 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin (C code assumes well-formed non-negative integers separated by non-digits).
+    // Read entire stdin. The spec guarantees well-formed non-negative integers separated
+    // by non-digit delimiters, so a simple digit-scanner matches the C behavior.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let bytes = input.as_bytes();
-    let mut idx: usize = 0;
+    let mut idx = 0usize;
 
-    // Parse next non-negative integer similarly to the C `in()`:
-    // - Accumulate while current byte is a digit.
-    // - Then advance one extra byte (assumes a separator exists).
-    fn next_int(bytes: &[u8], idx: &mut usize) -> usize {
-        let mut n: usize = 0;
-        while *idx < bytes.len() && bytes[*idx].is_ascii_digit() {
-            n = n * 10 + (bytes[*idx] - b'0') as usize;
+    fn next_uint(bytes: &[u8], idx: &mut usize) -> usize {
+        // Skip non-digits
+        while *idx < bytes.len() && (bytes[*idx] < b'0' || bytes[*idx] > b'9') {
             *idx += 1;
         }
-        // Mimic `p++` in C: skip one separator character if present.
-        if *idx < bytes.len() {
+        let mut n: usize = 0;
+        while *idx < bytes.len() && (b'0'..=b'9').contains(&bytes[*idx]) {
+            n = n * 10 + (bytes[*idx] - b'0') as usize;
             *idx += 1;
         }
         n
     }
 
-    let n = next_int(bytes, &mut idx) as usize;
+    let n = next_uint(bytes, &mut idx);
 
-    // Segment tree size: next power of two >= n (as in C).
+    // Segment tree size: smallest power of two >= n (as in C).
     let mut sz: usize = 1;
     while sz < n {
         sz <<= 1;
     }
 
-    // seg array: C uses fixed 262145, but spec allows sizing to next power of two.
-    // We implement a classic iterative segment tree for max with 0 as identity.
-    // Leaves correspond to indices [0, sz).
-    let mut seg = vec![0i64; 2 * sz];
+    // seg[k] stores max over the segment for node k in a 0-based heap layout:
+    // children of k are 2k+1 and 2k+2. Leaves start at index (sz-1).
+    let mut seg = vec![0i64; 2 * sz - 1];
 
-    // Query max on [l, r) over value indices.
-    let mut query = |mut l: usize, mut r: usize, seg: &Vec<i64>, sz: usize| -> i64 {
-        let mut res = 0i64;
-        l += sz;
-        r += sz;
-        while l < r {
-            if (l & 1) == 1 {
-                res = res.max(seg[l]);
-                l += 1;
-            }
-            if (r & 1) == 1 {
-                r -= 1;
-                res = res.max(seg[r]);
-            }
-            l >>= 1;
-            r >>= 1;
-        }
-        res
-    };
-
-    // Update position pos to value v (overwrite), then recompute ancestors with max.
-    let mut update = |pos: usize, v: i64, seg: &mut Vec<i64>, sz: usize| {
-        let mut k = pos + sz;
-        seg[k] = v;
-        while k > 1 {
-            k >>= 1;
-            seg[k] = seg[k << 1].max(seg[(k << 1) | 1]);
+    // Update leaf corresponding to value k (1..=n) to v, then recompute ancestors.
+    // This mirrors the C code's update() behavior.
+    let mut update = |k: usize, v: i64, seg: &mut [i64], sz: usize| {
+        let mut pos = k + sz - 1;
+        seg[pos] = v;
+        while pos > 0 {
+            // In C: if (!(k & 1)) k--; then parent = k>>1, and compare siblings.
+            // Here we compute parent and take max of its two children directly.
+            let parent = (pos - 1) / 2;
+            let left = 2 * parent + 1;
+            let right = left + 1;
+            let newv = if seg[left] < seg[right] { seg[right] } else { seg[left] };
+            seg[parent] = newv;
+            pos = parent;
         }
     };
+
+    // Query max in [a, b) over value-domain indices, using segment tree range [l, r).
+    fn query(a: usize, b: usize, k: usize, l: usize, r: usize, seg: &[i64]) -> i64 {
+        if r <= a || b <= l {
+            return 0;
+        }
+        if a <= l && r <= b {
+            return seg[k];
+        }
+        let m = (l + r) >> 1;
+        let left = query(a, b, 2 * k + 1, l, m, seg);
+        let right = query(a, b, 2 * k + 2, m, r, seg);
+        if left < right { right } else { left }
+    }
 
     // Process n values.
     for _ in 0..n {
-        let x = next_int(bytes, &mut idx) as usize;
-        // State transition per spec:
-        // best[x] = x + max(best[v]) for v in [1, x)  (strictly less than x)
-        // C queries query(1, x, 0, 0, sz) and updates at index x.
-        let best_prefix = query(1, x, &seg, sz);
-        let new_val = x as i64 + best_prefix;
-        update(x, new_val, &mut seg, sz);
+        let x = next_uint(bytes, &mut idx);
+        // Spec precondition: 1 <= x <= n. Undefined behavior otherwise (as in C).
+        let best_prefix = query(1, x, 0, 0, sz, &seg); // max over values in [1, x)
+        let val = x as i64 + best_prefix;
+        update(x, val, &mut seg, sz);
     }
 
-    let total = (n as i64) * ((n as i64) + 1) / 2;
-    let m = query(1, n + 1, &seg, sz);
-    let ans = total - m;
-
+    let s = (n as i64) * ((n as i64) + 1) / 2;
+    let m = if n == 0 {
+        0
+    } else {
+        query(1, n + 1, 0, 0, sz, &seg) // max over values in [1, n+1) == [1..=n]
+    };
+    let ans = s - m;
     print!("{ans}\n");
 }

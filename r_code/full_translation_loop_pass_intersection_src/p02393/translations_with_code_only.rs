@@ -4,18 +4,17 @@ fn main() {
     // Read entire stdin, like scanf would consume from stdin.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
-
     let mut it = input.split_whitespace();
 
-    // The C code does not check scanf's return value; if input is missing,
-    // behavior would be undefined. Here we unwrap to fail similarly (panic).
+    // In the C code, scanf return value is ignored; if fewer than 3 ints are present,
+    // behavior is undefined. Here we mimic that by unwrapping.
     let a: i32 = it.next().unwrap().parse().unwrap();
     let b: i32 = it.next().unwrap().parse().unwrap();
     let c: i32 = it.next().unwrap().parse().unwrap();
 
-    // Determine d,e,f according to the same chain of comparisons.
-    // This effectively sorts a,b,c in nondecreasing order.
-    let (d, e, f): (i32, i32, i32) = if a <= b && b <= c {
+    // In C, d/e/f are uninitialized but the if/else chain is exhaustive for total order,
+    // so they will be assigned for all i32 values.
+    let (d, e, f) = if a <= b && b <= c {
         (a, b, c)
     } else if a <= c && c <= b {
         (a, c, b)
@@ -25,13 +24,10 @@ fn main() {
         (b, c, a)
     } else if c <= a && a <= b {
         (c, a, b)
-    } else if c <= b && b <= a {
-        (c, b, a)
     } else {
-        // For total order on i32, one of the above must hold.
-        unreachable!();
+        // c <= b && b <= a
+        (c, b, a)
     };
 
-    // Match C's printf formatting exactly: three ints separated by spaces, then newline.
     print!("{} {} {}\n", d, e, f);
 }

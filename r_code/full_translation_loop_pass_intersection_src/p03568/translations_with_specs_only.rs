@@ -3,27 +3,25 @@ use std::io::{self, Read};
 fn main() {
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
-
     let mut it = input.split_whitespace();
 
     let n: i64 = it.next().unwrap().parse().unwrap();
-    let n_usize: usize = n.try_into().unwrap();
 
-    // Accumulates 2^E_p where E_p is the number of even values seen so far.
-    let mut pow2: i128 = 1;
-    for _ in 0..n_usize {
+    // Use i128 to reduce the chance of overflow in Rust debug builds.
+    // The specification states no overflow occurs for the program's integer type.
+    let mut pow2_even: i128 = 1; // equals 2^E_p for the processed prefix
+    for _ in 0..n {
         let x: i128 = it.next().unwrap().parse().unwrap();
         if x % 2 == 0 {
-            pow2 *= 2;
+            pow2_even *= 2;
         }
     }
 
-    // Accumulates 3^N.
-    let mut pow3: i128 = 1;
-    for _ in 0..n_usize {
+    let mut pow3: i128 = 1; // equals 3^k during computation
+    for _ in 0..n {
         pow3 *= 3;
     }
 
-    let result: i128 = pow3 - pow2;
+    let result: i128 = pow3 - pow2_even;
     print!("{}", result);
 }

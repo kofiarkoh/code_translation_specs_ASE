@@ -5,16 +5,15 @@ fn main() {
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let h: i64 = it.next().unwrap().parse().unwrap(); // height bound (nonnegative per spec)
-    let w: i64 = it.next().unwrap().parse().unwrap(); // width bound (nonnegative per spec)
-    let target: i64 = it.next().unwrap().parse().unwrap();
+    let h: i64 = it.next().unwrap().parse().unwrap();
+    let w: i64 = it.next().unwrap().parse().unwrap();
+    let k: i64 = it.next().unwrap().parse().unwrap();
 
-    // Brute-force search over all (i, j) in inclusive ranges, terminating immediately on success.
     for i in 0..=h {
         for j in 0..=w {
-            // Spec precondition states no overflow occurs; use i64 arithmetic directly.
-            let value = w * i + h * j - 2 * i * j;
-            if value == target {
+            // Specification assumes intermediate computations fit in the chosen integer type.
+            let val = (w * i) + (h * j) - 2 * i * j;
+            if val == k {
                 println!("Yes");
                 return;
             }

@@ -4,7 +4,7 @@ fn search(s: &[i32], key: i32, head: i32, tail: i32) -> i32 {
     if head > tail {
         return -1;
     }
-    // In C: mid = (head + tail) / 2 with signed int arithmetic.
+    // In C: mid = (head + tail) / 2 with int arithmetic.
     // Here head/tail are i32 and within bounds by construction.
     let mid = (head + tail) / 2;
     let v = s[mid as usize];
@@ -19,6 +19,9 @@ fn search(s: &[i32], key: i32, head: i32, tail: i32) -> i32 {
 
 fn get_lb(s: &[i32], key: i32, head: i32, tail: i32) -> i32 {
     // Mirrors the C logic exactly, including the early returns.
+    // Note: In the original C, some paths can lead to s[mid-1] when mid==0
+    // (undefined behavior). The given code's early returns are intended to
+    // prevent that in normal use; we keep the same structure.
     if s[0] > key || tail < 0 {
         return 0;
     }
@@ -27,22 +30,15 @@ fn get_lb(s: &[i32], key: i32, head: i32, tail: i32) -> i32 {
     }
 
     let mid = (head + tail) / 2;
-    let mv = s[mid as usize];
+    let vmid = s[mid as usize];
 
-    if mv < key {
+    if vmid < key {
         get_lb(s, key, mid + 1, tail)
     } else {
-        // mv >= key
-        // C reads s[mid-1] without guarding mid==0; however, due to the
-        // earlier `if (s[0] > key || tail < 0) return 0;` and mv>=key,
-        // the only time mid==0 here is when key <= s[0], in which case
-        // s[0] > key would have returned already, so key == s[0] and
-        // the intended lower bound is 0. We handle mid==0 explicitly
-        // to avoid out-of-bounds while preserving intended behavior.
-        if mid == 0 {
-            return 0;
-        }
-        if s[(mid - 1) as usize] < key {
+        // vmid >= key
+        // C: if (s[mid-1] < key) return mid; else tail = mid-1;
+        // This assumes mid > 0 in the intended execution.
+        if mid > 0 && s[(mid - 1) as usize] < key {
             mid
         } else {
             get_lb(s, key, head, mid - 1)
@@ -68,7 +64,7 @@ fn insert(s: &mut [i32], key: i32, cnt: i32) -> i32 {
     1
 }
 
-fn delete_key(s: &mut [i32], key: i32, cnt: i32) -> i32 {
+fn delete_(s: &mut [i32], key: i32, cnt: i32) -> i32 {
     let d = search(s, key, 0, cnt - 1);
     if d < 0 {
         return -1;
@@ -85,10 +81,9 @@ fn delete_key(s: &mut [i32], key: i32, cnt: i32) -> i32 {
 
 fn dump(out: &mut String, s: &[i32], l: i32, r: i32, cnt: i32) {
     let mut i = get_lb(s, l, 0, cnt - 1);
-
-    // C condition order: while(s[i]<=r && i<cnt) ... which can read s[i]
-    // even when i==cnt (UB). We preserve the *intended* behavior by
-    // checking bounds first.
+    // C: while(s[i]<=r&&i<cnt) printf("%d\n", s[i++]);
+    // Note: C evaluates left operand first, so it reads s[i] even if i>=cnt
+    // (potential UB). We preserve intended behavior by checking bounds first.
     while i < cnt && s[i as usize] <= r {
         out.push_str(&format!("{}\n", s[i as usize]));
         i += 1;
@@ -96,23 +91,26 @@ fn dump(out: &mut String, s: &[i32], l: i32, r: i32, cnt: i32) {
 }
 
 fn main() {
-    // Token-based parsing approximates scanf("%d ...") behavior for integers.
+    // Read entire stdin and parse integers like scanf would (whitespace-separated).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
     let q: i32 = match it.next() {
-        Some(t) => t.parse().unwrap(),
+        Some(v) => v.parse().unwrap(),
         None => return,
     };
 
-    // C uses VLA int s[q]; allocate exactly q elements.
+    // C uses VLA int s[q]; We'll allocate exactly q slots.
     let mut s = vec![0i32; q as usize];
     let mut cnt: i32 = 0;
 
     let mut out = String::new();
 
-    for _ in 0..q {
+    let mut remaining = q;
+    while remaining > 0 {
+        remaining -= 1;
+
         let com: i32 = it.next().unwrap().parse().unwrap();
         match com {
             0 => {
@@ -137,7 +135,7 @@ fn main() {
             2 => {
                 // delete
                 let x: i32 = it.next().unwrap().parse().unwrap();
-                if delete_key(&mut s, x, cnt) == 1 {
+                if delete_(&mut s, x, cnt) == 1 {
                     cnt -= 1;
                 }
             }
@@ -149,7 +147,9 @@ fn main() {
                     dump(&mut out, &s, x, y, cnt);
                 }
             }
-            _ => {}
+            _ => {
+                // No default in C; ignore unknown commands if present.
+            }
         }
     }
 

@@ -1,17 +1,21 @@
 use std::io::{self, Read};
 
 fn main() {
+    // Specification states undefined behavior for missing/invalid input, divisor == 0,
+    // lower > upper, or overflow. We therefore do not add explicit error handling.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
 
     let mut it = input.split_whitespace();
-    let l: i128 = it.next().unwrap().parse().unwrap();
-    let u: i128 = it.next().unwrap().parse().unwrap();
-    let d: i128 = it.next().unwrap().parse().unwrap();
+    let lower: i128 = it.next().unwrap().parse().unwrap();
+    let upper: i128 = it.next().unwrap().parse().unwrap();
+    let divisor: i128 = it.next().unwrap().parse().unwrap();
 
-    // Preconditions (per spec): d != 0, l <= u, and l,u are non-negative.
-    // Use truncating integer division semantics consistent with Rust for non-negative values.
-    let count = u / d - (l - 1) / d;
+    // Compute:
+    // count = floor(upper/divisor) - floor((lower-1)/divisor)
+    // Under the stated preconditions (non-negative bounds, positive divisor),
+    // Rust's integer division matches mathematical floor division.
+    let count = (upper / divisor) - ((lower - 1) / divisor);
 
-    println!("{count}");
+    print!("{}", count);
 }

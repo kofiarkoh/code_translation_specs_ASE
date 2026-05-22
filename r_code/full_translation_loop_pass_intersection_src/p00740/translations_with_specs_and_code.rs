@@ -1,7 +1,7 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, parse as whitespace-separated integers.
+    // Read entire stdin as whitespace-separated integers.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -11,27 +11,29 @@ fn main() {
     loop {
         let n_opt = it.next();
         if n_opt.is_none() {
-            break; // no more input
+            break; // malformed/short input: undefined by spec; just stop
         }
         let n: i32 = n_opt.unwrap().parse().unwrap();
-        let p: i32 = match it.next() {
-            Some(x) => x.parse().unwrap(),
-            None => break, // incomplete pair; undefined in C, we just stop
-        };
+
+        let p_opt = it.next();
+        if p_opt.is_none() {
+            break; // malformed/short input: undefined by spec; just stop
+        }
+        let p: i32 = p_opt.unwrap().parse().unwrap();
 
         if n == 0 {
-            break; // terminating pair produces no output
+            break;
         }
 
-        // C uses fixed array size 50; spec says n <= 50 for supported scenarios.
+        // Spec preconditions: n > 0, n <= 50, p >= 0. No explicit error handling.
         let n_usize = n as usize;
-        let mut c = vec![0i32; 50];
 
+        let mut c = vec![0i32; 50]; // fixed storage up to 50 participants (as in C)
+        let mut w = p; // pool
         let mut i: i32 = 0;
-        let mut w: i32 = p;
 
         loop {
-            let idx = (i.rem_euclid(n)) as usize;
+            let idx = (i as usize) % n_usize;
 
             if w != 0 {
                 w -= 1;

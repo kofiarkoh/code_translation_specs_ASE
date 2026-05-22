@@ -17,7 +17,7 @@ struct State {
 // Min-heap by distance (BinaryHeap is max-heap by default).
 impl Ord for State {
     fn cmp(&self, other: &Self) -> Ordering {
-        // Reverse ordering on d; tie-break on v for determinism.
+        // Reverse ordering on distance; tie-break on vertex for determinism.
         other
             .d
             .cmp(&self.d)
@@ -31,7 +31,7 @@ impl PartialOrd for State {
 }
 
 fn main() {
-    // Read all input.
+    // Read all input (matches C scanf behavior for whitespace-separated ints).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -40,11 +40,10 @@ fn main() {
     let m: usize = it.next().unwrap().parse().unwrap();
     let k: usize = it.next().unwrap().parse().unwrap();
 
-    // Three per-vertex arrays: p, c, t (all i32 in C).
+    // Read 3n integers: p[0..n), c[0..n), t[0..n)
     let mut p = vec![0i64; n];
     let mut c = vec![0usize; n];
     let mut t = vec![0i64; n];
-
     for i in 0..n {
         p[i] = it.next().unwrap().parse::<i64>().unwrap();
     }
@@ -55,26 +54,26 @@ fn main() {
         t[i] = it.next().unwrap().parse::<i64>().unwrap();
     }
 
-    // Fixed constant from C: 1_000_000_000 + 1
-    let sup: i64 = 1_000_000_001;
+    // Spec: S is a fixed constant > 1e9. C uses 1_000_000_000 + 1.
+    let s: i64 = 1_000_000_001;
 
-    // Build derived graph with 2 layers.
+    // Build directed graph with 2n vertices.
     let vn = 2 * n;
     let mut g: Vec<Vec<Edge>> = vec![Vec::new(); vn];
 
-    // Directed edge from original-layer i to second-layer i+n with weight (sup - p[i]).
+    // Cross-layer edges i -> i+n with weight (S - p[i]).
     for i in 0..n {
         g[i].push(Edge {
             to: i + n,
-            cost: sup - p[i],
+            cost: s - p[i],
         });
     }
 
-    // For each undirected edge (a,b,d), add bidirectional edges within each layer.
+    // Undirected edges in both layers become directed edges both ways.
     for _ in 0..m {
-        let mut a: usize = it.next().unwrap().parse::<usize>().unwrap();
-        let mut b: usize = it.next().unwrap().parse::<usize>().unwrap();
-        let d: i64 = it.next().unwrap().parse::<i64>().unwrap();
+        let mut a: usize = it.next().unwrap().parse().unwrap();
+        let mut b: usize = it.next().unwrap().parse().unwrap();
+        let d: i64 = it.next().unwrap().parse().unwrap();
         a -= 1;
         b -= 1;
 
@@ -87,16 +86,16 @@ fn main() {
         g[b2].push(Edge { to: a2, cost: d });
     }
 
-    // Dijkstra from source vertex 0 in derived graph.
-    // C initializes dp[0]=0 (calloc) and others to sup*2*n.
-    let inf: i64 = sup * 2 * (n as i64);
+    // Dijkstra from source 0.
+    // C initializes dp[0]=0 (via calloc) and dp[1..]= (1_000_000_001 * 2 * n).
+    let inf: i64 = 1_000_000_001i64 * 2i64 * (n as i64);
     let mut dist = vec![inf; vn];
     dist[0] = 0;
 
     let mut heap = BinaryHeap::new();
-    heap.push(State { v: 0, d: 0 });
+    heap.push(State { d: 0, v: 0 });
 
-    while let Some(State { v, d }) = heap.pop() {
+    while let Some(State { d, v }) = heap.pop() {
         if d > dist[v] {
             continue;
         }
@@ -104,31 +103,28 @@ fn main() {
             let nd = d + cost;
             if nd < dist[to] {
                 dist[to] = nd;
-                heap.push(State { v: to, d: nd });
+                heap.push(State { d: nd, v: to });
             }
         }
     }
 
-    // Per-category maximum score; sentinel matches C:
-    // max[i] = 2 - sup*2*n
-    let sentinel: i64 = 2 - sup * 2 * (n as i64);
-    let mut best = vec![sentinel; k + 1];
+    // Per-category maxima. C uses sentinel: 2 - (1_000_000_001 * 2 * n).
+    let sentinel: i64 = 2 - inf;
+    let mut maxv = vec![sentinel; k + 1]; // 1..=k used
 
     for i in 0..n {
-        let score = (sup - dist[i + n]) - dist[i] + t[i];
-        let cat = c[i];
-        if cat <= k {
-            if score > best[cat] {
-                best[cat] = score;
-            }
+        // score(i) = (S - dist(i+n)) - dist(i) + t[i]
+        let score = (s - dist[i + n]) - dist[i] + t[i];
+        let cat = c[i]; // precondition: 1..=k
+        if score > maxv[cat] {
+            maxv[cat] = score;
         }
-        // Per spec, category indices are within 1..=k, so no else needed.
     }
 
-    // Output exactly k lines, 1-based categories.
+    // Output exactly k lines.
     let mut out = String::new();
-    for i in 1..=k {
-        out.push_str(&format!("{}\n", best[i]));
+    for j in 1..=k {
+        out.push_str(&format!("{}\n", maxv[j]));
     }
     print!("{out}");
 }

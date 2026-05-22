@@ -3,86 +3,88 @@ use std::io::{self, Read};
 const MOD: i32 = 10007;
 
 fn main() {
-    // Read all input tokens (N and the string)
+    // Read all input (whitespace-delimited), matching C's scanf behavior.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
     let n: usize = it.next().unwrap().parse().unwrap();
-    let s = it.next().unwrap_or("");
+    let s = it.next().unwrap(); // assumed length == n per spec
 
-    // Spec: if N == 0, output 1 (empty sequence count) mod 10007.
-    if n == 0 {
-        println!("1");
-        return;
-    }
-
-    // Participants encoded as bits: J=1, O=2, I=4.
-    // Spec: day 0 subset must include required participant and fixed initially-required participant (the first participant).
-    // The C code uses J as the initially-required participant.
-    let initial_required: i32 = 1; // J
-
-    // DP over 8 subsets: schedule[mask] = number of valid sequences up to current day ending with subset=mask.
+    // schedule[state] = number of ways ending with subset `state` for current day
+    // state is a 3-bit mask over {J,O,I} mapped to bits {1,2,4}.
     let mut schedule = [0i32; 8];
-    // Initialize as "day -1" having subset {J} with count 1.
-    schedule[initial_required as usize] = 1;
+    let mut schedule_next = [0i32; 8];
 
-    for day in 0..n {
-        let ch = s.as_bytes()[day] as char;
-        let required: i32 = match ch {
-            'J' => 1,
-            'O' => 2,
-            'I' => 4,
-            _ => unreachable!("Precondition violated: unsupported symbol"),
+    // Initialization corresponds to "before day 0" having only subset {J}.
+    schedule[1] = 1;
+
+    // The C code tracks key_prev/key_prev_prev, but only key_prev is relevant to behavior.
+    // We keep it to mirror the intended "designated initial participant J" handling on day 0.
+    let mut key_prev: i32 = 1; // J
+    let mut _key_prev_prev: i32 = 0;
+
+    for (day, ch) in s.bytes().take(n).enumerate() {
+        let key: i32 = match ch {
+            b'J' => 1,
+            b'O' => 2,
+            b'I' => 4,
+            _ => {
+                // Spec: unsupported characters => undefined behavior in C.
+                // In Rust, we choose to panic to avoid silently changing semantics.
+                panic!("invalid character in input");
+            }
         };
 
-        let mut next = [0i32; 8];
+        schedule_next = [0i32; 8];
 
         if day == 0 {
-            // Day 0: any subset that includes both required and initial_required counts as 1.
-            let need = required | initial_required;
-            for mask in 0..=7 {
-                if (mask as i32 & need) == need {
-                    next[mask] = 1;
+            // Day 0: subset must include both required participant and J.
+            let need = key | key_prev; // key_prev is J here
+            for j in 0..=7 {
+                if (j as i32 & need) == need {
+                    schedule_next[j] = 1;
                 }
             }
-            schedule = next;
+            _key_prev_prev = key_prev;
+            key_prev = key;
+            schedule = schedule_next;
             continue;
         }
 
-        // Day >= 1:
-        // - S(day) includes required
-        // - S(day) overlaps with S(day-1)
-        for prev_mask in 0..=7 {
-            let prev_count = schedule[prev_mask];
-            if prev_count == 0 {
-                continue;
-            }
-            for cur_mask in 0..=7 {
-                let pm = prev_mask as i32;
-                let cm = cur_mask as i32;
-                if (cm & required) != 0 && (cm & pm) != 0 {
-                    let v = next[cur_mask] + prev_count;
-                    next[cur_mask] = v % MOD;
+        // Days > 0:
+        // next subset k must include required participant (k & key != 0)
+        // and overlap previous subset j (k & j != 0).
+        // The C code also has an extra filter on j: (j & (key | key_prev)) != 0,
+        // which is redundant given the DP invariants (all reachable j already include
+        // the previous day's required participant), but we preserve it exactly.
+        for j in 0..=7 {
+            if ((j as i32) & (key | key_prev)) != 0 {
+                let ways = schedule[j];
+                if ways == 0 {
+                    continue;
+                }
+                for k in 0..=7 {
+                    if (((k as i32) & (j as i32)) != 0) && (((k as i32) & key) != 0) {
+                        let mut v = schedule_next[k] + ways;
+                        v %= MOD;
+                        schedule_next[k] = v;
+                    }
                 }
             }
         }
 
-        schedule = next;
+        _key_prev_prev = key_prev;
+        key_prev = key;
+        schedule = schedule_next;
     }
 
+    // Sum over all ending subsets modulo MOD.
     let mut ans: i32 = 0;
-    for &v in &schedule {
+    for v in schedule {
         ans += v;
         ans %= MOD;
     }
-    println!("{ans}");
-}
 
-/*
-Note on C vs SPEC:
-- The C code contains an extra condition `if ((j & (key | key_prev)) != 0)` in the transition loop,
-  which is not part of the specification and is redundant for correctness under the spec's rules.
-  This Rust implementation follows the specification directly: only overlap with previous subset
-  and inclusion of the day's required participant are enforced (plus the day-0 special rule).
-*/
+    print!("{ans}\n");
+}

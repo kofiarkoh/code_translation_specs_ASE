@@ -8,16 +8,15 @@ fn main() {
 
     let n: usize = it.next().unwrap().parse().unwrap();
 
-    // Spec notes undefined behavior if n exceeds 100,009; we mirror the fixed-capacity intent.
-    // In Rust we still allocate dynamically; we do not add extra checks to preserve behavior.
-    let mut a: Vec<i32> = Vec::with_capacity(n);
+    // Fixed-capacity storage up to 100009 as per spec.
+    let mut a: Vec<i64> = Vec::with_capacity(100_009);
     for _ in 0..n {
-        let v: i32 = it.next().unwrap().parse().unwrap();
+        let v: i64 = it.next().unwrap().parse().unwrap();
         a.push(v);
     }
 
-    // Right-to-left pass; at most one decrement of the left element per adjacent pair.
-    // Elements to the right are never modified.
+    // Right-to-left pass: for each adjacent pair, decrement left by exactly 1 once if needed,
+    // then reject if still out of order.
     for i in (1..n).rev() {
         if a[i] < a[i - 1] {
             a[i - 1] -= 1;

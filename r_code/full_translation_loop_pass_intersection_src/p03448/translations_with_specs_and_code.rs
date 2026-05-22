@@ -1,24 +1,21 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, parse as integers (no explicit error handling per spec).
+    // Read all input from stdin (whitespace-separated integers).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
+
     let mut it = input.split_whitespace();
 
-    let a: i64 = it.next().unwrap().parse().unwrap();
-    let b: i64 = it.next().unwrap().parse().unwrap();
-    let c: i64 = it.next().unwrap().parse().unwrap();
-    let x: i64 = it.next().unwrap().parse().unwrap();
+    // Per spec: no explicit error handling; unwrap() is acceptable.
+    let a: i32 = it.next().unwrap().parse().unwrap();
+    let b: i32 = it.next().unwrap().parse().unwrap();
+    let c: i32 = it.next().unwrap().parse().unwrap();
+    let x: i32 = it.next().unwrap().parse().unwrap();
 
-    // Spec-defined behavior for negative maxima: no valid triples.
-    if a < 0 || b < 0 || c < 0 {
-        print!("0");
-        return;
-    }
+    let mut count: i32 = 0;
 
-    let mut count: i64 = 0;
-
+    // If any maximum is negative, the loops execute zero times (matching spec intent).
     for i in 0..=a {
         for j in 0..=b {
             for k in 0..=c {
@@ -29,6 +26,6 @@ fn main() {
         }
     }
 
-    // Match C output formatting: no trailing newline.
+    // Preserve I/O formatting: print the integer with no trailing newline (as in C code).
     print!("{}", count);
 }

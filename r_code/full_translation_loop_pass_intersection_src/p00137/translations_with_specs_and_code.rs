@@ -1,32 +1,43 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, parse as whitespace-separated integers (like scanf("%d")).
+    // Read entire stdin, parse as whitespace-separated integers (like scanf).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let counter: i32 = it.next().unwrap().parse().unwrap();
+    let n_opt = it.next().and_then(|s| s.parse::<i32>().ok());
+    let n = match n_opt {
+        Some(v) => v,
+        None => return, // Unspecified behavior if missing; exit quietly.
+    };
 
-    // Spec: if test-case count is negative, no output is produced.
-    if counter <= 0 {
+    if n <= 0 {
+        // Spec: if N <= 0, no output is produced.
         return;
     }
 
     let mut out = String::new();
-    for case_idx in 1..=counter {
-        let mut x: i32 = it.next().unwrap().parse().unwrap();
+
+    for case_idx in 1..=n {
+        let seed_opt = it.next().and_then(|s| s.parse::<i32>().ok());
+        let mut x = match seed_opt {
+            Some(v) => v,
+            None => break, // Unspecified if missing; stop processing.
+        };
 
         out.push_str(&format!("Case {}:\n", case_idx));
+
         for _ in 0..10 {
-            // Preserve C integer semantics (truncating division).
-            // Overflow behavior is undefined in the spec; we use i32 as in typical C int.
-            x = x * x;
-            x /= 100;
+            // Spec: C int arithmetic; overflow is unspecified.
+            // Use wrapping ops to avoid Rust panics in debug; this matches "unspecified"
+            // more closely than checked arithmetic.
+            x = x.wrapping_mul(x);
+            x /= 100; // truncates toward zero, like C for i32
             x %= 10000;
             out.push_str(&format!("{}\n", x));
         }
     }
 
-    print!("{out}");
+    print!("{}", out);
 }

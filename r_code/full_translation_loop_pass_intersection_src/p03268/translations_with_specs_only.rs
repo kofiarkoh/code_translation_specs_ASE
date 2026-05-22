@@ -8,15 +8,20 @@ fn main() {
     let n: i64 = it.next().unwrap().parse().unwrap();
     let k: i64 = it.next().unwrap().parse().unwrap();
 
-    // Preconditions (per spec): N >= 0, K != 0, and all arithmetic fits in i64.
-    // We intentionally do not add extra error handling or overflow checks.
-    let a = n / k;
-    let mut ans = a * a * a;
+    // Per specification: C long long semantics with truncating division.
+    // Under preconditions (N >= 0, K != 0, and no overflow), this matches floor division.
+    let x: i64 = n / k;
 
-    if k % 2 == 0 {
-        let b = (n + k / 2) / k;
-        ans += b * b * b;
-    }
+    let x3: i64 = x * x * x;
 
-    println!("{}", ans);
+    let ans: i64 = if (k & 1) != 0 {
+        x3
+    } else {
+        // K even: y = floor((N + K/2)/K) under stated assumptions.
+        let y: i64 = (n + k / 2) / k;
+        let y3: i64 = y * y * y;
+        x3 + y3
+    };
+
+    println!("{ans}");
 }

@@ -1,67 +1,62 @@
 use std::io::{self, Read};
 
-fn is_decimal_palindrome_u128(mut x: u128) -> bool {
-    // Decimal palindrome check by reversing digits.
-    let orig = x;
-    let mut rev: u128 = 0;
-    while x > 0 {
-        rev = rev * 10 + (x % 10);
-        x /= 10;
+fn reverse_decimal_digits_ignoring_sign(x: i128) -> i128 {
+    // Produces a non-negative integer derived from the input’s decimal digits, ignoring any sign.
+    let mut n = x.abs();
+    let mut rev: i128 = 0;
+    while n > 0 {
+        rev = rev * 10 + (n % 10);
+        n /= 10;
     }
-    orig == rev
+    rev
+}
+
+fn is_decimal_palindrome_non_negative(x: i128) -> bool {
+    // Palindrome testing is based on decimal digit reversal.
+    // For non-negative x, this is equivalent to x == reverse(x).
+    x >= 0 && x == reverse_decimal_digits_ignoring_sign(x)
 }
 
 fn main() {
-    // No explicit error handling per spec: assume valid integer input exists.
+    // No explicit handling for invalid/missing input; behavior unspecified in that case.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
-    let s = input.split_whitespace().next().unwrap();
-    let n: i128 = s.parse().unwrap();
+    let n: i128 = input.split_whitespace().next().unwrap().parse().unwrap();
 
-    // Search outward with non-decreasing distance; tie breaks toward smaller value.
-    // We restrict candidates to non-negative integers.
-    let mut d: u128 = 0;
+    // Search for the nearest palindromic non-negative integer.
+    // Tie-breaking: smaller value at equal distance.
+    //
+    // To preserve the spec's "undefined if range exceeded", we do not attempt to guard against
+    // overflow beyond i128; we use checked arithmetic and stop only when it would overflow,
+    // but the spec says behavior is undefined in that scenario anyway.
+    //
+    // For negative input, the spec allows output but does not guarantee "closest" relative to n.
+    // We still run the same search logic, constrained to non-negative candidates.
+    let mut d: i128 = 0;
     loop {
-        // Check smaller candidate first to satisfy tie-breaking toward smaller.
-        if n >= 0 {
-            let nn = n as u128;
-            if d <= nn {
-                let down = nn - d;
-                if is_decimal_palindrome_u128(down) {
-                    println!("{}", down);
-                    return;
+        // Prefer smaller candidate at equal distance: check n - d before n + d.
+        let mut best: Option<i128> = None;
+
+        if let Some(a) = n.checked_sub(d) {
+            if a >= 0 && is_decimal_palindrome_non_negative(a) {
+                best = Some(a);
+            }
+        }
+
+        if best.is_none() {
+            if let Some(b) = n.checked_add(d) {
+                if b >= 0 && is_decimal_palindrome_non_negative(b) {
+                    best = Some(b);
                 }
             }
-        } else {
-            // For negative n, the "down" side is always negative, so no non-negative candidate.
         }
 
-        // Check larger candidate.
-        // Per spec, behavior is undefined if required arithmetic overflows; we use checked add
-        // and, if it overflows, we loop forever (non-termination is allowed by spec).
-        let up_opt: Option<u128> = if n >= 0 {
-            let nn = n as u128;
-            nn.checked_add(d)
-        } else {
-            // n < 0: up = d - (-n) when d >= -n, else negative (not allowed).
-            let neg = (-n) as u128;
-            if d >= neg {
-                Some(d - neg)
-            } else {
-                None
-            }
-        };
-
-        if let Some(up) = up_opt {
-            if is_decimal_palindrome_u128(up) {
-                println!("{}", up);
-                return;
-            }
-        } else {
-            // If we cannot form a non-negative "up" candidate yet, keep increasing d.
+        if let Some(p) = best {
+            println!("{p}");
+            return;
         }
 
-        d = d.wrapping_add(1);
-        // If d wraps, behavior is not defined by spec; wrapping keeps code total.
+        // Increase distance; if this overflows, the spec says behavior is undefined.
+        d = d.checked_add(1).unwrap();
     }
 }

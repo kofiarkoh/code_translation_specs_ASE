@@ -1,30 +1,26 @@
 use std::cmp::Reverse;
-use std::collections::BinaryHeap;
+use std::collections::{BinaryHeap, VecDeque};
 use std::io::{self, Read};
 
-#[derive(Clone, Copy)]
+const INF: u64 = u64::MAX / 4;
+
+#[derive(Clone)]
 struct Edge {
     to: usize,
     w: u64,
 }
 
-fn dijkstra(n: usize, adj: &[Vec<Edge>], src: usize) -> Vec<u64> {
-    let inf = u64::MAX / 4;
-    let mut dist = vec![inf; n];
+fn dijkstra(n: usize, g: &[Vec<Edge>], src: usize) -> Vec<u64> {
+    let mut dist = vec![INF; n];
     let mut pq: BinaryHeap<(Reverse<u64>, usize)> = BinaryHeap::new();
-
-    if src >= n {
-        return dist;
-    }
-
     dist[src] = 0;
     pq.push((Reverse(0), src));
 
-    while let Some((Reverse(d), v)) = pq.pop() {
-        if d != dist[v] {
+    while let Some((Reverse(d), u)) = pq.pop() {
+        if d != dist[u] {
             continue;
         }
-        for &e in &adj[v] {
+        for e in &g[u] {
             let nd = d.saturating_add(e.w);
             if nd < dist[e.to] {
                 dist[e.to] = nd;
@@ -36,166 +32,148 @@ fn dijkstra(n: usize, adj: &[Vec<Edge>], src: usize) -> Vec<u64> {
 }
 
 fn main() {
+    // Input format is treated as whitespace-separated tokens.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let n_in: usize = match it.next() {
-        Some(x) => x.parse().unwrap(),
+    let s: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
         None => return,
     };
-    let m: usize = match it.next() {
-        Some(x) => x.parse().unwrap(),
-        None => return,
-    };
+    let r: usize = it.next().unwrap().parse().unwrap();
 
-    // The original problem this spec comes from commonly uses 1-based vertex indices.
-    // The spec only says "within range" but does not state the base.
-    // To avoid panics and match typical judge inputs, detect 1-based indexing and normalize to 0-based.
-    let mut raw_edges: Vec<(usize, usize, u64)> = Vec::with_capacity(m);
-    let mut max_vid: usize = 0;
-    for _ in 0..m {
-        let a: usize = it.next().unwrap().parse().unwrap();
-        let b: usize = it.next().unwrap().parse().unwrap();
+    let mut g: Vec<Vec<Edge>> = vec![Vec::new(); s];
+    for _ in 0..r {
+        let u1: usize = it.next().unwrap().parse().unwrap();
+        let v1: usize = it.next().unwrap().parse().unwrap();
         let w: u64 = it.next().unwrap().parse().unwrap();
-        max_vid = max_vid.max(a).max(b);
-        raw_edges.push((a, b, w));
+        let u = u1 - 1;
+        let v = v1 - 1;
+        g[u].push(Edge { to: v, w });
+        g[v].push(Edge { to: u, w });
     }
 
-    let start_raw: usize = it.next().unwrap().parse().unwrap();
-    let goal_raw: usize = it.next().unwrap().parse().unwrap();
-    max_vid = max_vid.max(start_raw).max(goal_raw);
+    let a1: usize = it.next().unwrap().parse().unwrap();
+    let b1: usize = it.next().unwrap().parse().unwrap();
+    let a = a1 - 1;
+    let b = b1 - 1;
 
     let q: usize = it.next().unwrap().parse().unwrap();
-    let mut raw_queries: Vec<(usize, usize)> = Vec::with_capacity(q);
+    let mut qs: Vec<(usize, usize)> = Vec::with_capacity(q);
     for _ in 0..q {
-        let s: usize = it.next().unwrap().parse().unwrap();
-        let t: usize = it.next().unwrap().parse().unwrap();
-        max_vid = max_vid.max(s).max(t);
-        raw_queries.push((s, t));
+        let x1: usize = it.next().unwrap().parse().unwrap();
+        let y1: usize = it.next().unwrap().parse().unwrap();
+        qs.push((x1 - 1, y1 - 1));
     }
 
-    // Decide whether input is 0-based or 1-based.
-    // Narrowest robust rule:
-    // - If any vertex id equals n_in, it's almost certainly 1-based (valid ids 1..=n).
-    // - Else if max id == n_in - 1, it's likely 0-based.
-    // - Else if max id == n_in, treat as 1-based; otherwise default to 0-based.
-    let one_based = max_vid == n_in;
+    // 1) dist[] from a
+    let dist = dijkstra(s, &g, a);
 
-    let n = n_in;
-    let norm = |x: usize| -> usize {
-        if one_based {
-            x.saturating_sub(1)
-        } else {
-            x
+    // 2) Build relevant shortest-path-consistent directed graph by reverse exploration from b.
+    // We mark nodes that can lie on at least one shortest a->b path.
+    let mut relevant = vec![false; s];
+    let mut dir: Vec<Vec<usize>> = vec![Vec::new(); s]; // directed edges u -> v
+    let mut indeg: Vec<usize> = vec![0; s];
+
+    let mut dq: VecDeque<usize> = VecDeque::new();
+    relevant[b] = true;
+    dq.push_back(b);
+
+    while let Some(cur) = dq.pop_front() {
+        // Explore undirected neighbors; if neighbor can precede cur on a shortest path, add edge neighbor -> cur.
+        for e in &g[cur] {
+            let prev = e.to;
+            // Condition: dist[cur] == dist[prev] + w(prev,cur)
+            if dist[prev] != INF && dist[cur] == dist[prev].saturating_add(e.w) {
+                // Record directed edge prev -> cur (forward in dist).
+                dir[prev].push(cur);
+                indeg[cur] += 1;
+
+                if !relevant[prev] {
+                    relevant[prev] = true;
+                    dq.push_back(prev);
+                }
+            }
         }
-    };
+    }
 
-    let mut undirected: Vec<(usize, usize, u64)> = Vec::with_capacity(m);
-    let mut adj: Vec<Vec<Edge>> = vec![Vec::new(); n];
+    // 3) Topological order via Kahn-style queue, restricted to relevant nodes, starting from a.
+    // Only nodes reachable from a within the relevant directed graph are included.
+    let mut indeg_work = indeg.clone();
+    let mut topo: Vec<usize> = Vec::new();
+    let mut qk: VecDeque<usize> = VecDeque::new();
 
-    for (a, b, w) in raw_edges {
-        let u = norm(a);
-        let v = norm(b);
-        // Preconditions say indices are in range; if violated, behavior is undefined.
-        // Still, avoid panics by skipping out-of-range edges.
-        if u >= n || v >= n {
+    if relevant[a] && indeg_work[a] == 0 {
+        qk.push_back(a);
+    }
+
+    let mut in_topo = vec![false; s];
+    while let Some(u) = qk.pop_front() {
+        if in_topo[u] {
             continue;
         }
-        undirected.push((u, v, w));
-        adj[u].push(Edge { to: v, w });
-        adj[v].push(Edge { to: u, w });
-    }
-
-    let start = norm(start_raw);
-    let goal = norm(goal_raw);
-
-    let mut queries: Vec<(usize, usize)> = Vec::with_capacity(q);
-    for (s, t) in raw_queries {
-        let ss = norm(s);
-        let tt = norm(t);
-        queries.push((ss, tt));
-    }
-
-    let dist_s = dijkstra(n, &adj, start);
-    let dist_g = dijkstra(n, &adj, goal);
-    let inf = u64::MAX / 4;
-    let d_total = if goal < n { dist_s[goal] } else { inf };
-
-    let mut dag: Vec<Vec<usize>> = vec![Vec::new(); n];
-
-    if d_total < inf {
-        for &(u, v, w) in &undirected {
-            let du = dist_s[u];
-            let dv = dist_s[v];
-            let gu = dist_g[u];
-            let gv = dist_g[v];
-
-            // u -> v
-            if du < inf && gv < inf {
-                let duw = du.saturating_add(w);
-                if duw == dv && duw.saturating_add(gv) == d_total {
-                    dag[u].push(v);
-                }
+        in_topo[u] = true;
+        topo.push(u);
+        for &v in &dir[u] {
+            if !relevant[v] {
+                continue;
             }
-            // v -> u
-            if dv < inf && gu < inf {
-                let dvw = dv.saturating_add(w);
-                if dvw == du && dvw.saturating_add(gu) == d_total {
-                    dag[v].push(u);
+            if indeg_work[v] > 0 {
+                indeg_work[v] -= 1;
+                if indeg_work[v] == 0 {
+                    qk.push_back(v);
                 }
             }
         }
     }
 
+    // 4) Answer queries in batches of up to 64 using bitsets.
     let mut out = String::new();
-    let mut seen = vec![0u32; n];
-    let mut stamp: u32 = 0;
+    let mut node_bits: Vec<u64> = vec![0; s];
 
-    for (src, tgt) in queries {
-        if src >= n || tgt >= n {
-            out.push_str("No\n");
-            continue;
+    let mut i = 0usize;
+    while i < q {
+        let batch = (q - i).min(64);
+
+        // Reset per-node bitsets for this batch.
+        // Narrowest faithful approach: clear all nodes (O(S) per batch), as spec does not define optimizations.
+        for v in &mut node_bits {
+            *v = 0;
         }
 
-        stamp = stamp.wrapping_add(1);
-        if stamp == 0 {
-            seen.fill(0);
-            stamp = 1;
+        // Initialize start bits at x nodes.
+        for j in 0..batch {
+            let (x, _) = qs[i + j];
+            node_bits[x] |= 1u64 << j;
         }
 
-        if src == tgt {
-            out.push_str("Yes\n");
-            continue;
-        }
-
-        let mut stack: Vec<usize> = Vec::new();
-        seen[src] = stamp;
-        stack.push(src);
-
-        let mut ok = false;
-        while let Some(v) = stack.pop() {
-            for &nx in &dag[v] {
-                if seen[nx] == stamp {
+        // Propagate along topo order.
+        for &u in &topo {
+            let bits_u = node_bits[u];
+            if bits_u == 0 {
+                continue;
+            }
+            for &v in &dir[u] {
+                if !relevant[v] {
                     continue;
                 }
-                if nx == tgt {
-                    ok = true;
-                    break;
-                }
-                seen[nx] = stamp;
-                stack.push(nx);
-            }
-            if ok {
-                break;
+                node_bits[v] |= bits_u;
             }
         }
 
-        if ok {
-            out.push_str("Yes\n");
-        } else {
-            out.push_str("No\n");
+        // Emit answers for this batch.
+        for j in 0..batch {
+            let (_, y) = qs[i + j];
+            let yes = (node_bits[y] >> j) & 1 == 1;
+            if yes {
+                out.push_str("Yes\n");
+            } else {
+                out.push_str("No\n");
+            }
         }
+
+        i += batch;
     }
 
     print!("{out}");

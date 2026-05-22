@@ -2,7 +2,7 @@ use std::io::{self, Read};
 
 const MAX: usize = 100001;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Default)]
 struct Rect {
     height: i64,
     pos: i64,
@@ -13,10 +13,9 @@ static mut TABLE: [i64; MAX] = [0; MAX];
 fn large_histogram(w: i64) -> i64 {
     let mut sp: usize = 0;
     let mut max_area: i64 = 0;
-    let mut stack: [Rect; MAX] = [Rect { height: 0, pos: 0 }; MAX];
+    let mut stack: [Rect; MAX] = [Rect::default(); MAX];
 
-    // The C code writes table[w] = 0 as a sentinel.
-    // This assumes 0 <= w < MAX; we preserve that behavior.
+    // Matches C: table[w] = 0; (sentinel)
     unsafe {
         TABLE[w as usize] = 0;
     }
@@ -35,8 +34,8 @@ fn large_histogram(w: i64) -> i64 {
             while sp != 0 && stack[sp - 1].height >= r.height {
                 sp -= 1;
                 let pre = stack[sp];
-                // Use wrapping arithmetic to emulate C signed overflow behavior as closely as possible.
-                let width = (i - pre.pos).wrapping_mul(1);
+                // Use wrapping ops to emulate C signed overflow behavior as closely as possible.
+                let width = i.wrapping_sub(pre.pos);
                 let area = pre.height.wrapping_mul(width);
                 if max_area < area {
                     max_area = area;
@@ -59,27 +58,22 @@ fn main() {
     let mut it = input.split_whitespace();
 
     let w: i64 = match it.next() {
-        Some(x) => x.parse().unwrap(),
-        None => return, // If no input, C would have undefined behavior; we just exit.
+        Some(s) => s.parse().unwrap(),
+        None => return,
     };
 
-    // Fill TABLE[0..w)
+    // The original C code assumes w <= MAX-1; we preserve that assumption.
     for i in 0..w {
-        if let Some(x) = it.next() {
-            let v: i64 = x.parse().unwrap();
-            unsafe {
-                TABLE[i as usize] = v;
-            }
-        } else {
-            // Missing inputs: C would leave uninitialized; we keep default 0.
-            break;
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        unsafe {
+            TABLE[i as usize] = v;
         }
     }
 
     let temp = large_histogram(w);
-    let mut maxv: i64 = 0;
-    if maxv < temp {
-        maxv = temp;
+    let mut max_val: i64 = 0;
+    if max_val < temp {
+        max_val = temp;
     }
-    print!("{maxv}\n");
+    print!("{max_val}\n");
 }

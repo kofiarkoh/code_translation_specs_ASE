@@ -1,78 +1,63 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin; if unreadable, produce no output.
+    // Read all input as whitespace-separated integers.
     let mut input = String::new();
-    if io::stdin().read_to_string(&mut input).is_err() {
-        return;
-    }
+    io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
     let mut out = String::new();
 
     loop {
-        // If we cannot read a new test case length, stop with no further output.
         let n_opt = it.next();
         if n_opt.is_none() {
-            break;
+            break; // No more datasets.
         }
-        let n: usize = match n_opt.unwrap().parse() {
-            Ok(v) => v,
-            Err(_) => break, // unreadable length => stop
-        };
-
+        let n: usize = n_opt.unwrap().parse().unwrap();
         if n == 0 {
-            break; // terminator, no output
+            break; // Terminator, not a dataset.
         }
 
-        // Specification says behavior is undefined if n > 13; we do not add extra handling.
-        let mut seq: Vec<u32> = Vec::with_capacity(n);
+        let mut seq: Vec<usize> = Vec::with_capacity(n);
         for _ in 0..n {
-            let tok = match it.next() {
-                Some(t) => t,
-                None => return, // input ended before declared number of integers; stop with no further output
-            };
-            let v: u32 = match tok.parse() {
-                Ok(v) => v,
-                Err(_) => return, // unreadable element; stop with no further output
-            };
-            // Specification says behavior is undefined if outside 0..100; we do not add extra handling.
+            let v: usize = it.next().unwrap().parse().unwrap();
             seq.push(v);
         }
 
-        let mut steps: u32 = 0;
+        let mut steps: usize = 0;
 
         loop {
-            // Count occurrences of each value in 0..=100 in the current sequence.
-            // Values are assumed to be within range per preconditions.
-            let mut freq = [0u32; 101];
+            // Compute next sequence: at each position i, next[i] = frequency of seq[i] in seq.
+            // Value range is assumed small (0..=100), but we implement counting via a map-like
+            // array sized to max observed value (bounded by preconditions).
+            let mut freq = vec![0usize; 101];
             for &v in &seq {
-                freq[v as usize] += 1;
+                // Preconditions say v in 0..=100; otherwise behavior is undefined.
+                freq[v] += 1;
             }
 
-            // Build next sequence by replacing each element with its frequency in the current sequence.
             let mut next = Vec::with_capacity(n);
             for &v in &seq {
-                next.push(freq[v as usize]);
+                next.push(freq[v]);
             }
 
             if next == seq {
-                // Fixed point reached; output steps and sequence.
-                out.push_str(&format!("{}\n", steps));
-                for (i, v) in seq.iter().enumerate() {
-                    if i != 0 {
-                        out.push(' ');
-                    }
-                    out.push_str(&v.to_string());
-                }
-                out.push('\n');
-                break;
-            } else {
-                seq = next;
-                steps += 1;
+                break; // Fixed point reached; do not count this non-changing application.
             }
+
+            seq = next;
+            steps += 1;
         }
+
+        out.push_str(&format!("{}\n", steps));
+        for (i, v) in seq.iter().enumerate() {
+            if i != 0 {
+                out.push(' ');
+            }
+            out.push_str(&v.to_string());
+        }
+        out.push('\n');
     }
 
-    print!("{}", out);
+    print!("{out}");
 }

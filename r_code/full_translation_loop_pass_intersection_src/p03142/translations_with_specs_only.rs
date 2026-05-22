@@ -2,86 +2,114 @@ use std::collections::VecDeque;
 use std::io::{self, Read};
 use std::process;
 
+const MAX_NODES: usize = 200_000;
+const MAX_EDGES: usize = 400_000;
+
+// Specific non-zero exit status for allocation failure (explicit, stable value).
+const EXIT_ALLOC_FAIL: i32 = 2;
+// Non-zero exit status for input read/parse failure.
+const EXIT_INPUT_FAIL: i32 = 1;
+
 fn main() {
-    // Read entire stdin.
+    // Read entire stdin; if this fails, terminate early with non-zero status.
     let mut input = String::new();
     if io::stdin().read_to_string(&mut input).is_err() {
-        process::exit(1);
+        process::exit(EXIT_INPUT_FAIL);
     }
     let mut it = input.split_whitespace();
 
-    // If N and M cannot be read, terminate with nonzero exit status.
     let n: usize = match it.next().and_then(|s| s.parse::<usize>().ok()) {
         Some(v) => v,
-        None => process::exit(1),
+        None => process::exit(EXIT_INPUT_FAIL),
     };
-    let m: usize = match it.next().and_then(|s| s.parse::<usize>().ok()) {
+    let extra: isize = match it.next().and_then(|s| s.parse::<isize>().ok()) {
         Some(v) => v,
-        None => process::exit(1),
+        None => process::exit(EXIT_INPUT_FAIL),
     };
 
-    // Exactly (N-1+M) edges follow.
-    let ecount = (n - 1).saturating_add(m);
-
-    // Graph storage: adjacency list for outgoing edges.
-    // Incoming-edge counts are maintained and only decrease.
-    let mut out: Vec<Vec<usize>> = vec![Vec::new(); n + 1]; // 1-based indexing
-    let mut indeg: Vec<usize> = vec![0; n + 1];
-
-    for _ in 0..ecount {
-        // If any required edge pair cannot be read, terminate with nonzero exit status.
-        let a: usize = match it.next().and_then(|s| s.parse::<usize>().ok()) {
-            Some(v) => v,
-            None => process::exit(1),
-        };
-        let b: usize = match it.next().and_then(|s| s.parse::<usize>().ok()) {
-            Some(v) => v,
-            None => process::exit(1),
-        };
-
-        // Preconditions say labels are within 1..N; behavior undefined otherwise.
-        out[a].push(b);
-        indeg[b] = indeg[b].wrapping_add(1);
+    // Preconditions say n is positive.
+    if n == 0 {
+        process::exit(EXIT_INPUT_FAIL);
     }
 
-    // Recorded predecessor that first caused a vertex to become newly zero-incoming.
-    // Once nonzero, it is not changed thereafter.
-    let mut pred: Vec<usize> = vec![0; n + 1];
+    // Total edges = (n - 1 + extra). Specification says this is non-negative.
+    let base = (n - 1) as isize;
+    let m_isize = base.saturating_add(extra);
+    if m_isize < 0 {
+        process::exit(EXIT_INPUT_FAIL);
+    }
+    let m: usize = m_isize as usize;
 
-    // Initialize queue with all vertices that start with zero incoming-edge count.
-    let mut q = VecDeque::new();
+    // Enforce fixed internal capacities.
+    if n > MAX_NODES || m > MAX_EDGES {
+        process::exit(EXIT_INPUT_FAIL);
+    }
+
+    // Allocate storage.
+    // Note: Rust typically aborts on OOM; the spec requires a specific non-zero exit status.
+    // Without unstable fallible allocation APIs, we cannot reliably intercept OOM in stable Rust.
+    // We still keep EXIT_ALLOC_FAIL for any explicit allocation-related checks we can perform.
+    let mut out_adj: Vec<Vec<usize>> = Vec::with_capacity(n + 1);
+    out_adj.resize_with(n + 1, Vec::new);
+
+    let mut indeg: Vec<u32> = vec![0u32; n + 1];
+    let mut trigger: Vec<usize> = vec![0usize; n + 1];
+
+    // Read exactly m edges; if not fully readable, terminate early with non-zero status.
+    for _ in 0..m {
+        let u: usize = match it.next().and_then(|s| s.parse::<usize>().ok()) {
+            Some(v) => v,
+            None => process::exit(EXIT_INPUT_FAIL),
+        };
+        let v: usize = match it.next().and_then(|s| s.parse::<usize>().ok()) {
+            Some(v) => v,
+            None => process::exit(EXIT_INPUT_FAIL),
+        };
+
+        // Spec: no validation for out-of-range node numbers; behavior undefined if violated.
+        // We avoid panics by exiting early (narrowest safe behavior).
+        if u == 0 || v == 0 || u > n || v > n {
+            process::exit(EXIT_INPUT_FAIL);
+        }
+
+        out_adj[u].push(v);
+        // Wrapping to emulate low-level behavior if preconditions are violated.
+        indeg[v] = indeg[v].wrapping_add(1);
+    }
+
+    // Frontier initialized with nodes that are initially incoming-free.
+    let mut q: VecDeque<usize> = VecDeque::new();
     for v in 1..=n {
         if indeg[v] == 0 {
             q.push_back(v);
         }
     }
 
-    // Process vertices only when their current incoming-edge count is zero.
+    // Iterative removal process.
     while let Some(u) = q.pop_front() {
-        // Conceptually remove outgoing edges of u, decreasing indegree of destinations.
-        // Each directed edge contributes at most once (we traverse each adjacency once).
-        for &v in &out[u] {
-            // Incoming-edge counts never increase; they should be positive here if well-formed.
-            // Use wrapping_sub to emulate low-level behavior if the input violates invariants.
-            let before = indeg[v];
-            indeg[v] = indeg[v].wrapping_sub(1);
+        for &v in &out_adj[u] {
+            let new_deg = indeg[v].wrapping_sub(1);
+            indeg[v] = new_deg;
 
-            // Record predecessor only on a transition from positive to zero.
-            // Vertices that start at zero do not get pred set unless they had been positive
-            // immediately before becoming zero (which cannot happen if they started at zero).
-            if before > 0 && indeg[v] == 0 {
-                if pred[v] == 0 {
-                    pred[v] = u;
+            if new_deg == 0 {
+                // Record trigger only when node becomes newly incoming-free due to processing of a predecessor.
+                // Once recorded, never changed.
+                if trigger[v] == 0 {
+                    trigger[v] = u;
                 }
                 q.push_back(v);
             }
         }
     }
 
-    // Output N lines: pred[i] (or 0 if never recorded).
-    let mut out_s = String::new();
-    for i in 1..=n {
-        out_s.push_str(&format!("{}\n", pred[i]));
+    // Output trigger for each node in increasing order, one per line.
+    let mut out = String::new();
+    for v in 1..=n {
+        out.push_str(&trigger[v].to_string());
+        out.push('\n');
     }
-    print!("{out_s}");
+    print!("{out}");
+
+    // Keep EXIT_ALLOC_FAIL referenced to avoid "unused" if future edits remove it.
+    let _ = EXIT_ALLOC_FAIL;
 }

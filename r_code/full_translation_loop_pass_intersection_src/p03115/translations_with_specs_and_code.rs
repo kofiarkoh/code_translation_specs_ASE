@@ -3,8 +3,8 @@ use std::io::{self, Read};
 const CVAL: i64 = 200_000_000_000_000_000;
 
 fn ncr_bit(n: i64, r: i64) -> i64 {
-    // nCr mod 2 via Lucas theorem bit condition:
-    // returns 1 iff (n|r)==n and n,r valid with n>=r>=0
+    // SPEC predicate: 1 iff every bit set in r is also set in n (i.e., (n|r)==n),
+    // with standard domain guards.
     if n < 0 || r < 0 {
         return 0;
     }
@@ -17,13 +17,13 @@ fn ncr_bit(n: i64, r: i64) -> i64 {
     1
 }
 
-fn findcol(a: i64, b: i64, xs: &[i64], ys: &[i64]) -> i64 {
+fn find_col(a: i64, b: i64, xs: &[i64], ys: &[i64]) -> i64 {
     let mut r: i64 = 0;
     for (&x, &y) in xs.iter().zip(ys.iter()) {
         let da = a - x;
         let db = b - y;
         if da < 0 || db < 0 {
-            continue; // non-contributing per spec
+            continue;
         }
         let p = da + db;
         let q = db;
@@ -33,16 +33,13 @@ fn findcol(a: i64, b: i64, xs: &[i64], ys: &[i64]) -> i64 {
 }
 
 fn main() {
-    // Read all input
+    // Read all input (no explicit error handling per spec).
     let mut s = String::new();
     io::stdin().read_to_string(&mut s).unwrap();
     let mut it = s.split_whitespace();
 
-    let n: usize = match it.next() {
-        Some(v) => v.parse().unwrap(),
-        None => return, // unspecified behavior in C; just exit if no input
-    };
-
+    let n: usize = it.next().unwrap().parse().unwrap();
+    // Spec precondition: n <= 131072; we rely on it (no explicit checks).
     let mut xs = Vec::with_capacity(n);
     let mut ys = Vec::with_capacity(n);
     for _ in 0..n {
@@ -52,17 +49,18 @@ fn main() {
         ys.push(y);
     }
 
-    // Bitwise construction of maximum r in [0, 2^61-1] such that P(C-r, r)=1
+    // Greedy bitwise maximization of R in [0, 2^61-1], from bit 60 down to 0.
     let mut r: i64 = 0;
     for k in (0..=60).rev() {
         let w: i64 = 1_i64 << k;
         let cand_r = r + w;
         let a = CVAL - cand_r;
-        if findcol(a, cand_r, &xs, &ys) == 1 {
+        let b = cand_r;
+        if find_col(a, b, &xs, &ys) == 1 {
             r = cand_r;
         }
     }
 
-    let out = format!("{}\n", CVAL - r);
-    print!("{out}");
+    let ans = CVAL - r;
+    print!("{ans}\n");
 }

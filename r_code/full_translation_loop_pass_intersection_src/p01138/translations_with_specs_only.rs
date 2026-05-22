@@ -1,68 +1,58 @@
 use std::io::{self, Read};
 
-fn time_to_sec(h: i32, m: i32, s: i32) -> usize {
-    (h as usize) * 3600 + (m as usize) * 60 + (s as usize)
+fn parse_time_token(tok: &str) -> Option<usize> {
+    // Specification assumes well-formed H:M:S with literal ':' separators.
+    let mut it = tok.split(':');
+    let h = it.next()?.parse::<usize>().ok()?;
+    let m = it.next()?.parse::<usize>().ok()?;
+    let s = it.next()?.parse::<usize>().ok()?;
+    Some(h * 3600 + m * 60 + s)
 }
 
 fn main() {
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
 
-    // The sample likely uses timestamps like "HH:MM:SS". split_whitespace() alone
-    // leaves "HH:MM:SS" intact, causing parse() to fail. Normalize separators.
-    let normalized: String = input
-        .chars()
-        .map(|c| if c == ':' { ' ' } else { c })
-        .collect();
+    let mut it = input.split_whitespace();
 
-    let mut it = normalized.split_whitespace();
-    let mut outputs: Vec<String> = Vec::new();
-
+    let mut out = String::new();
     loop {
-        let Some(tok) = it.next() else { break };
-        let n: usize = match tok.parse() {
-            Ok(v) => v,
-            Err(_) => break, // Unspecified malformed input; stop deterministically.
+        let n_tok = match it.next() {
+            Some(t) => t,
+            None => break, // No more datasets.
         };
+        let n: usize = n_tok.parse().unwrap();
+
         if n == 0 {
-            break;
+            break; // Termination marker; no output for this dataset.
         }
 
-        // Difference array for half-open intervals [start, end) over seconds in a day.
-        // Use 86401 to allow end == 86400 as a sentinel boundary.
-        let mut diff = vec![0i32; 86401];
+        // Fixed memory proportional to seconds in a day.
+        let mut counts = vec![0u32; 24 * 3600];
 
         for _ in 0..n {
-            let sh: i32 = it.next().unwrap().parse().unwrap();
-            let sm: i32 = it.next().unwrap().parse().unwrap();
-            let ss: i32 = it.next().unwrap().parse().unwrap();
-            let eh: i32 = it.next().unwrap().parse().unwrap();
-            let em: i32 = it.next().unwrap().parse().unwrap();
-            let es: i32 = it.next().unwrap().parse().unwrap();
+            let start_tok = it.next().unwrap();
+            let end_tok = it.next().unwrap();
 
-            let start = time_to_sec(sh, sm, ss);
-            let end = time_to_sec(eh, em, es);
+            let start = parse_time_token(start_tok).unwrap();
+            let end = parse_time_token(end_tok).unwrap();
 
-            if start < end {
-                // Preconditions guarantee bounds; keep direct indexing.
-                diff[start] += 1;
-                diff[end] -= 1;
+            // Semantics: increment for every whole second t with start <= t < end.
+            // Assumptions guarantee 0 <= start <= end <= 86400 and no wrap across midnight.
+            for t in start..end {
+                counts[t] += 1;
             }
         }
 
-        let mut cur = 0i32;
-        let mut maxv = 0i32;
-        for t in 0..86400 {
-            cur += diff[t];
-            if cur > maxv {
-                maxv = cur;
+        let mut maxv: u32 = 0;
+        for &c in &counts {
+            if c > maxv {
+                maxv = c;
             }
         }
 
-        outputs.push(maxv.to_string());
+        out.push_str(&format!("{maxv}\n"));
     }
 
-    if !outputs.is_empty() {
-        print!("{}", outputs.join("\n"));
-    }
+    print!("{out}");
 }

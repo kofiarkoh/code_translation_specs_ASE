@@ -4,10 +4,11 @@ use std::io::{self, Read};
 struct Team {
     name: String,
     score: i32,
+    idx: usize, // original input order for stable tie handling
 }
 
 fn main() {
-    // Read entire stdin and tokenize by whitespace (matches scanf behavior for %d and %s).
+    // Read entire stdin as whitespace-separated tokens (matches scanf behavior for this input).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -17,9 +18,7 @@ fn main() {
     loop {
         let n_opt = it.next();
         if n_opt.is_none() {
-            // Spec doesn't define malformed/short input; C would have undefined behavior.
-            // We stop if input ends unexpectedly.
-            break;
+            break; // input exhausted (undefined by spec, but no explicit error handling)
         }
         let n: usize = n_opt.unwrap().parse().unwrap();
 
@@ -27,29 +26,25 @@ fn main() {
             break;
         }
 
-        // Spec: dataset size does not exceed 10.
         let mut teams: Vec<Team> = Vec::with_capacity(n);
-
-        for _ in 0..n {
+        for idx in 0..n {
             let name = it.next().unwrap().to_string();
             let win: i32 = it.next().unwrap().parse().unwrap();
-            let _lose: i32 = it.next().unwrap().parse().unwrap(); // read but unused, as in C
+            let _lose: i32 = it.next().unwrap().parse().unwrap(); // losses do not affect points
             let draw: i32 = it.next().unwrap().parse().unwrap();
-
             let score = win * 3 + draw;
-            teams.push(Team { name, score });
+            teams.push(Team { name, score, idx });
         }
 
-        // Sort by descending score. Ties: unspecified; stable order not required.
-        teams.sort_by(|a, b| b.score.cmp(&a.score));
+        // Stable ordering by descending score; ties keep input order.
+        teams.sort_by(|a, b| b.score.cmp(&a.score).then_with(|| a.idx.cmp(&b.idx)));
 
         if printed_any_dataset {
-            // Single blank line between datasets, not before the first.
-            println!();
+            // Exactly one blank line between datasets.
+            print!("\n");
         }
 
-        for t in &teams {
-            // Preserve exact output formatting: "name,score\n"
+        for t in teams {
             println!("{},{}", t.name, t.score);
         }
 

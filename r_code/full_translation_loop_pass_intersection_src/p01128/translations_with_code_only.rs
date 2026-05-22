@@ -3,7 +3,7 @@ use std::io::{self, Read};
 
 const EPS: f64 = 1e-10;
 
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Debug)]
 struct P {
     x: f64,
     y: f64,
@@ -11,27 +11,20 @@ struct P {
     l: i32,
 }
 
-// Emulate the (buggy/odd) C comparator as closely as possible.
-// In the C code:
-//   if(abs(A->x-B->x)<0) { ... }
-// is always false (abs(...) is non-negative), so y is never used.
-// Then it compares x using (A->x - B->x < 0) and (B->x - A->x < 0).
-// We'll implement: sort by x only; treat NaN as equal (C comparisons with NaN are false).
+// Emulate the (buggy) C comparator as closely as possible.
+// Note: The C code uses `abs(A->x-B->x)<0` which is always false, so the y-tie-break
+// branch is never taken. Thus it effectively sorts only by x using comparisons
+// against 0, and returns 0 when x is "equal" (including NaN cases).
 fn cmp_p(a: &P, b: &P) -> Ordering {
-    let ax = a.x;
-    let bx = b.x;
-
-    // If either is NaN, all < comparisons are false in C; comparator returns 0.
-    if ax.is_nan() || bx.is_nan() {
-        return Ordering::Equal;
+    let dx1 = a.x - b.x;
+    if dx1 < 0.0 {
+        return Ordering::Less;
     }
-    if ax - bx < 0.0 {
-        Ordering::Less
-    } else if bx - ax < 0.0 {
-        Ordering::Greater
-    } else {
-        Ordering::Equal
+    let dx2 = b.x - a.x;
+    if dx2 < 0.0 {
+        return Ordering::Greater;
     }
+    Ordering::Equal
 }
 
 fn main() {
@@ -48,14 +41,13 @@ fn main() {
     let mut out = String::new();
 
     for _ in 0..c_cases {
-        // C code: memset(ST,0,sizeof(ST)); but only first c entries used.
-        let mut st: Vec<P> = Vec::with_capacity(105);
-
         let xa: i32 = it.next().unwrap().parse().unwrap();
         let ya: i32 = it.next().unwrap().parse().unwrap();
         let xb: i32 = it.next().unwrap().parse().unwrap();
         let yb: i32 = it.next().unwrap().parse().unwrap();
         let n: i32 = it.next().unwrap().parse().unwrap();
+
+        let mut st: Vec<P> = Vec::with_capacity(105);
 
         for _ in 0..n {
             let xs: i32 = it.next().unwrap().parse().unwrap();
@@ -65,8 +57,7 @@ fn main() {
             let o: i32 = it.next().unwrap().parse().unwrap();
             let l: i32 = it.next().unwrap().parse().unwrap();
 
-            // All arithmetic here is in C 'int' (typically 32-bit) with possible overflow (UB in C).
-            // We emulate typical 32-bit two's-complement wraparound using i32 wrapping ops.
+            // Preserve C's signed int overflow/wraparound behavior by using wrapping ops.
             let tx = xs.wrapping_sub(xa);
             let ty = ys.wrapping_sub(ya);
 
@@ -78,6 +69,7 @@ fn main() {
                 continue;
             }
 
+            // Numerators also computed with wrapping to emulate C int overflow.
             let num_r = (yt.wrapping_sub(ys))
                 .wrapping_mul(tx)
                 .wrapping_sub((xt.wrapping_sub(xs)).wrapping_mul(ty));
@@ -92,23 +84,25 @@ fn main() {
                 continue;
             }
 
-            if r > EPS && (1.0 - r) > EPS {
-                let ins = P {
-                    x: (xa as f64) + r * ((xb - xa) as f64),
-                    y: (ya as f64) + r * ((yb - ya) as f64),
+            // The else branch is unreachable given the continue above, but keep it
+            // to preserve structure/intent.
+            let ins = if r > EPS && (1.0 - r) > EPS {
+                P {
+                    x: (xa as f64) + r * ((xb.wrapping_sub(xa)) as f64),
+                    y: (ya as f64) + r * ((yb.wrapping_sub(ya)) as f64),
                     o,
                     l,
-                };
-                st.push(ins);
+                }
             } else {
-                let ins = P {
-                    x: (xs as f64) + s * ((xt - xs) as f64),
-                    y: (ys as f64) + s * ((yt - ys) as f64),
+                P {
+                    x: (xs as f64) + s * ((xt.wrapping_sub(xs)) as f64),
+                    y: (ys as f64) + s * ((yt.wrapping_sub(ys)) as f64),
                     o,
                     l,
-                };
-                st.push(ins);
-            }
+                }
+            };
+
+            st.push(ins);
         }
 
         st.sort_by(cmp_p);
@@ -132,8 +126,8 @@ fn main() {
             }
         }
 
-        out.push_str(&format!("{}\n", r_best));
+        out.push_str(&format!("{r_best}\n"));
     }
 
-    print!("{}", out);
+    print!("{out}");
 }

@@ -1,43 +1,45 @@
 use std::cmp::max;
 use std::io::{self, Read};
 
-const LLSQRT_HI: i64 = 1_000_000_000;
-const PRIME_SIEVE_LIMIT: usize = 2222;
-const RESIDUAL_LIMIT: i64 = 100_000;
-const COMP_LIMIT: i64 = 10_000_000_000;
-const LLS_INF: i64 = 4_154_118_101_919_364_364;
+const LIM_PRIME: i64 = 2221;
+const THRESH: i64 = 10_000_000_000;
+const LLINF: i64 = 4_154_118_101_919_364_364;
+
+#[derive(Clone, Copy)]
+struct Sd {
+    val: i64,
+    node: i64,
+}
 
 fn make_primes() -> (Vec<i64>, Vec<i64>, Vec<i64>) {
-    // Matches C: sieve primes < 2222, and precompute p^2, p^3.
-    let mut is_comp = vec![false; PRIME_SIEVE_LIMIT];
+    let mut fl = vec![false; (LIM_PRIME as usize) + 1];
     let mut pl = Vec::new();
     let mut dpl = Vec::new();
     let mut trpl = Vec::new();
-
-    for i in 2..PRIME_SIEVE_LIMIT {
-        if is_comp[i] {
+    for i in 2..=LIM_PRIME {
+        if fl[i as usize] {
             continue;
         }
-        let p = i as i64;
-        pl.push(p);
-        dpl.push(p * p);
-        trpl.push(p * p * p);
-        let mut j = i * 2;
-        while j < PRIME_SIEVE_LIMIT {
-            is_comp[j] = true;
+        pl.push(i);
+        dpl.push(i * i);
+        trpl.push(i * i * i);
+        let mut j = 2 * i;
+        while j <= LIM_PRIME {
+            fl[j as usize] = true;
             j += i;
         }
     }
     (pl, dpl, trpl)
 }
 
+// Integer sqrt via binary search, matching the C routine's behavior.
+// Returns the smallest st such that st*st >= x, with st in [1, 1e9] for x>=1.
 fn llsqr(x: i64) -> i64 {
-    // Smallest integer st such that st*st >= x (as in C).
     let mut st: i64 = 1;
-    let mut fi: i64 = LLSQRT_HI;
+    let mut fi: i64 = 1_000_000_000;
     while st <= fi {
         let te = (st + fi) / 2;
-        // Spec notes overflow is undefined; C uses te*te in i64.
+        // te*te fits in i64 because te <= 1e9 => te^2 <= 1e18
         if te * te < x {
             st = te + 1;
         } else {
@@ -47,48 +49,42 @@ fn llsqr(x: i64) -> i64 {
     st
 }
 
-#[derive(Clone, Copy)]
-struct Sd {
-    val: i64,
-    node: i64,
-}
-
 fn main() {
-    let mut input = String::new();
-    io::stdin().read_to_string(&mut input).unwrap();
-    let mut it = input.split_whitespace();
+    // Read all input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
     let n: usize = match it.next() {
-        Some(s) => s.parse().unwrap(),
+        Some(v) => v.parse().unwrap(),
         None => return,
     };
 
     let (pl, dpl, trpl) = make_primes();
-    let ls = pl.len();
 
-    let mut reduced: Vec<i64> = Vec::with_capacity(n);
+    let mut a: Vec<i64> = Vec::with_capacity(n);
     let mut r: i64 = 0;
 
     for _ in 0..n {
-        let t0: i64 = it.next().unwrap().parse().unwrap();
-        let mut t = t0;
-        let mut w = t0;
+        let mut t: i64 = it.next().unwrap().parse().unwrap();
+        let mut w: i64 = t;
 
-        // Remove all occurrences of small primes from t (for residual test),
-        // and remove all prime-cube factors from w (cube-free reduction).
-        for j in 0..ls {
+        // Remove all factors of primes <= 2221 from t (completely),
+        // and remove all cube factors p^3 from w.
+        for j in 0..pl.len() {
             let p = pl[j];
+            let p3 = trpl[j];
+
             while t % p == 0 {
                 t /= p;
             }
-            let p3 = trpl[j];
             while w % p3 == 0 {
                 w /= p3;
             }
         }
 
-        // Unprocessable-large-residual rule.
-        if t > RESIDUAL_LIMIT {
+        // Classification failure rule (SPEC 5A): if remaining t > 100000 and not a perfect square
+        if t > 100_000 {
             let l = llsqr(t);
             if l * l != t {
                 r += 1;
@@ -96,27 +92,27 @@ fn main() {
             }
         }
 
-        reduced.push(w);
+        a.push(w);
     }
 
-    if reduced.is_empty() {
+    if a.is_empty() {
         print!("{r}\n");
         return;
     }
 
-    reduced.sort_unstable();
+    a.sort_unstable();
 
-    // Build grouped (value, count) array like C's dat[].
+    // Compress into (value, count)
     let mut dat: Vec<Sd> = Vec::new();
-    let mut cur_val = reduced[0];
+    let mut cur_val = a[0];
     let mut cur_cnt: i64 = 1;
-    for &x in reduced.iter().skip(1) {
-        if x != cur_val {
+    for &v in a.iter().skip(1) {
+        if v != cur_val {
             dat.push(Sd {
                 val: cur_val,
                 node: cur_cnt,
             });
-            cur_val = x;
+            cur_val = v;
             cur_cnt = 1;
         } else {
             cur_cnt += 1;
@@ -126,114 +122,126 @@ fn main() {
         val: cur_val,
         node: cur_cnt,
     });
-    dat.push(Sd {
-        val: LLS_INF,
-        node: 0,
-    }); // sentinel, as in C
+    dat.push(Sd { val: LLINF, node: 0 }); // sentinel, as in C
 
-    let t = dat.len() - 1; // number of real groups
-    let mut used = vec![false; dat.len()];
+    let tlen = dat.len() - 1; // exclude sentinel from processing range
+    let mut processed = vec![false; dat.len()];
 
-    for i in 0..t {
-        if used[i] {
+    for i in 0..tlen {
+        if processed[i] {
             continue;
         }
-        used[i] = true;
+        processed[i] = true;
 
         if dat[i].val == 1 {
-            // SPEC says: add exactly 1 for v=1 regardless of multiplicity.
-            // This matches the C code behavior.
+            // Special case: contributes exactly 1 regardless of multiplicity
             r += 1;
             continue;
         }
 
-        // Compute complementary value w for dat[i].val.
-        let mut w: i64 = 1;
-        let mut h: i64 = dat[i].val;
+        // Construct complement w for v = dat[i].val
+        let v = dat[i].val;
+        let mut comp: i64 = 1;
+        let mut h: i64 = v;
 
-        for j in 0..ls {
+        for j in 0..pl.len() {
             let p = pl[j];
+            let p2 = dpl[j];
 
-            // Remove all occurrences from h (residual tracking).
             while h % p == 0 {
                 h /= p;
             }
 
-            // For the original value, decide exponent mod 3 via divisibility by p and p^2.
-            if dat[i].val % p == 0 {
-                if dat[i].val % dpl[j] == 0 {
-                    // exponent mod 3 == 2 => need one more p
-                    w *= p;
-                    if w > COMP_LIMIT {
-                        w = -1;
+            if v % p == 0 {
+                // exponent mod 3 is either 1 or 2 (since v is cube-reduced for these primes)
+                if v % p2 == 0 {
+                    // exponent 2 -> need p^1
+                    comp = match comp.checked_mul(p) {
+                        Some(x) => x,
+                        None => -1,
+                    };
+                    if comp == -1 || comp > THRESH {
+                        comp = -1;
                         break;
                     }
                 } else {
-                    // exponent mod 3 == 1 => need p^2
-                    w *= p;
-                    if w > COMP_LIMIT {
-                        w = -1;
+                    // exponent 1 -> need p^2
+                    comp = match comp.checked_mul(p) {
+                        Some(x) => x,
+                        None => -1,
+                    };
+                    if comp == -1 || comp > THRESH {
+                        comp = -1;
                         break;
                     }
-                    w *= p;
-                    if w > COMP_LIMIT {
-                        w = -1;
+                    comp = match comp.checked_mul(p) {
+                        Some(x) => x,
+                        None => -1,
+                    };
+                    if comp == -1 || comp > THRESH {
+                        comp = -1;
                         break;
                     }
                 }
             }
         }
 
-        if w == -1 {
+        if comp == -1 {
             r += dat[i].node;
             continue;
         }
 
-        // Handle remaining factor h (after removing small primes).
-        if h > RESIDUAL_LIMIT {
-            // h is a perfect square (otherwise it would have been discarded earlier).
+        // Handle remaining factor h using the same >100000 perfect-square logic as in C.
+        if h > 100_000 {
             let l = llsqr(h);
-            w *= l;
-            if w > COMP_LIMIT {
-                w = -1;
+            comp = match comp.checked_mul(l) {
+                Some(x) => x,
+                None => -1,
+            };
+            if comp == -1 || comp > THRESH {
+                comp = -1;
             }
         } else {
-            // Treat h as a prime with exponent 1 => need h^2.
-            w *= h;
-            if w > COMP_LIMIT {
-                w = -1;
-            }
-            if w != -1 {
-                w *= h;
-                if w > COMP_LIMIT {
-                    w = -1;
+            comp = match comp.checked_mul(h) {
+                Some(x) => x,
+                None => -1,
+            };
+            if comp == -1 || comp > THRESH {
+                comp = -1;
+            } else {
+                comp = match comp.checked_mul(h) {
+                    Some(x) => x,
+                    None => -1,
+                };
+                if comp == -1 || comp > THRESH {
+                    comp = -1;
                 }
             }
         }
 
-        if w == -1 {
+        if comp == -1 {
             r += dat[i].node;
             continue;
         }
 
-        // Binary search for group with value w.
+        // Binary search for comp in dat[0..tlen)
         let mut st: usize = 0;
-        let mut fi: i64 = (t as i64) - 1;
+        let mut fi: i64 = (tlen as i64) - 1;
         while (st as i64) <= fi {
             let te = ((st as i64 + fi) / 2) as usize;
-            if dat[te].val < w {
+            if dat[te].val < comp {
                 st = te + 1;
             } else {
                 fi = te as i64 - 1;
             }
         }
 
-        if dat[st].val != w {
+        if st >= tlen || dat[st].val != comp {
             r += dat[i].node;
             continue;
         }
 
-        used[st] = true;
+        processed[st] = true;
         r += max(dat[i].node, dat[st].node);
     }
 

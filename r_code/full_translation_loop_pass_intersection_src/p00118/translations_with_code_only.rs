@@ -4,7 +4,7 @@ fn dfs(i: usize, j: usize, h: usize, w: usize, grid: &Vec<Vec<u8>>, area_id: &mu
     // Down
     if i + 1 < h {
         let ni = i + 1;
-        if grid[i][j] == grid[ni][j] && area_id[ni][j] == (ni * w + j) as i32 {
+        if grid[i][j] == grid[ni][j] && area_id[ni][j] == (ni as i32) * (w as i32) + (j as i32) {
             area_id[ni][j] = area_id[i][j];
             dfs(ni, j, h, w, grid, area_id);
         }
@@ -12,7 +12,7 @@ fn dfs(i: usize, j: usize, h: usize, w: usize, grid: &Vec<Vec<u8>>, area_id: &mu
     // Up
     if i >= 1 {
         let ni = i - 1;
-        if grid[i][j] == grid[ni][j] && area_id[ni][j] == (ni * w + j) as i32 {
+        if grid[i][j] == grid[ni][j] && area_id[ni][j] == (ni as i32) * (w as i32) + (j as i32) {
             area_id[ni][j] = area_id[i][j];
             dfs(ni, j, h, w, grid, area_id);
         }
@@ -20,7 +20,7 @@ fn dfs(i: usize, j: usize, h: usize, w: usize, grid: &Vec<Vec<u8>>, area_id: &mu
     // Right
     if j + 1 < w {
         let nj = j + 1;
-        if grid[i][j] == grid[i][nj] && area_id[i][nj] == (i * w + nj) as i32 {
+        if grid[i][j] == grid[i][nj] && area_id[i][nj] == (i as i32) * (w as i32) + (nj as i32) {
             area_id[i][nj] = area_id[i][j];
             dfs(i, nj, h, w, grid, area_id);
         }
@@ -28,7 +28,7 @@ fn dfs(i: usize, j: usize, h: usize, w: usize, grid: &Vec<Vec<u8>>, area_id: &mu
     // Left
     if j >= 1 {
         let nj = j - 1;
-        if grid[i][j] == grid[i][nj] && area_id[i][nj] == (i * w + nj) as i32 {
+        if grid[i][j] == grid[i][nj] && area_id[i][nj] == (i as i32) * (w as i32) + (nj as i32) {
             area_id[i][nj] = area_id[i][j];
             dfs(i, nj, h, w, grid, area_id);
         }
@@ -36,7 +36,7 @@ fn dfs(i: usize, j: usize, h: usize, w: usize, grid: &Vec<Vec<u8>>, area_id: &mu
 }
 
 fn main() {
-    // Tokenize stdin like repeated scanf calls.
+    // Token-based input to emulate scanf("%d %d") and scanf("%s")
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -55,34 +55,38 @@ fn main() {
             break;
         }
 
-        // area_id initialized to i*W+j for i<H, j<W
+        // area_id initialization: area_id[i][j] = i * W + j
         let mut area_id = vec![vec![0i32; w]; h];
         for i in 0..h {
             for j in 0..w {
-                area_id[i][j] = (i * w + j) as i32;
+                area_id[i][j] = (i as i32) * (w as i32) + (j as i32);
             }
         }
 
         // area_num[128*128] = 0
         let mut area_num = vec![0u8; 128 * 128];
-        let mut cnt: i32 = 0;
 
-        // Read H strings (like scanf("%s", str[i])).
-        // C code assumes each row has at least W chars; we preserve behavior by indexing bytes.
+        // Read grid rows (scanf("%s", str[i]))
+        // In C, rows are NUL-terminated strings; we only need first W chars for comparisons.
         let mut grid: Vec<Vec<u8>> = Vec::with_capacity(h);
         for _ in 0..h {
             let s = it.next().unwrap_or("");
-            grid.push(s.as_bytes().to_vec());
+            let bytes = s.as_bytes();
+            let mut row = vec![0u8; w];
+            for j in 0..w {
+                row[j] = if j < bytes.len() { bytes[j] } else { 0u8 };
+            }
+            grid.push(row);
         }
 
-        // Run DFS from every cell
+        // Run DFS from every cell (as in the C code)
         for i in 0..h {
             for j in 0..w {
                 dfs(i, j, h, w, &grid, &mut area_id);
             }
         }
 
-        // Mark seen component ids
+        // Mark used area ids
         for i in 0..h {
             for j in 0..w {
                 let idx = area_id[i][j] as usize;
@@ -92,10 +96,12 @@ fn main() {
             }
         }
 
-        // Count unique ids among i*W+j positions
+        // Count unique areas among indices i*W+j for i<H, j<W
+        let mut cnt: i32 = 0;
         for i in 0..h {
             for j in 0..w {
-                if area_num[i * w + j] == 1 {
+                let idx = i * w + j;
+                if area_num[idx] == 1 {
                     cnt += 1;
                 }
             }

@@ -10,15 +10,14 @@ fn main() {
     let mut k: i64 = it.next().unwrap().parse().unwrap();
     let d: i64 = it.next().unwrap().parse().unwrap();
 
-    // C uses llabs(x). Note: llabs(LLONG_MIN) is undefined in C; in Rust we emulate
-    // two's-complement wrapping behavior via wrapping_abs().
+    // C uses llabs; in Rust, i64::abs() would overflow on i64::MIN (panic in debug).
+    // Use wrapping_abs to emulate two's-complement behavior as closely as possible.
     x = x.wrapping_abs();
 
-    let mut now: i64 = x;
+    let mut now = x;
 
-    // Preserve C's signed division semantics (trunc toward zero).
-    // If d == 0, C would have UB (division by zero); Rust would panic.
-    // We do not attempt to define behavior beyond the C code.
+    // Preserve C's integer division behavior (trunc toward zero).
+    // Note: if d == 0, C has UB; Rust would panic. We do not special-case it.
     if x / d <= k {
         let q = x / d;
         now = now.wrapping_sub(d.wrapping_mul(q));
@@ -30,7 +29,6 @@ fn main() {
         now = now.wrapping_sub(d.wrapping_mul(k));
     }
 
-    // C prints llabs(now). Again, emulate wrapping behavior for LLONG_MIN.
-    let out = now.wrapping_abs();
-    print!("{}", out);
+    // Print absolute value like llabs, with wrapping behavior on i64::MIN.
+    print!("{}", now.wrapping_abs());
 }

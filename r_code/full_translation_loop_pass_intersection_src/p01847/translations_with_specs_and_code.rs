@@ -1,40 +1,5 @@
 use std::io::{self, Read};
 
-struct Scanner {
-    buf: Vec<u8>,
-    idx: usize,
-}
-
-impl Scanner {
-    fn new() -> Self {
-        let mut input = String::new();
-        io::stdin().read_to_string(&mut input).unwrap();
-        Self { buf: input.into_bytes(), idx: 0 }
-    }
-
-    fn next_i32(&mut self) -> i32 {
-        // No explicit error handling per spec; assume well-formed input.
-        while self.idx < self.buf.len() && self.buf[self.idx].is_ascii_whitespace() {
-            self.idx += 1;
-        }
-        let mut sign = 1i32;
-        if self.idx < self.buf.len() && self.buf[self.idx] == b'-' {
-            sign = -1;
-            self.idx += 1;
-        }
-        let mut n: i32 = 0;
-        while self.idx < self.buf.len() {
-            let c = self.buf[self.idx];
-            if !c.is_ascii_digit() {
-                break;
-            }
-            n = n * 10 + (c - b'0') as i32;
-            self.idx += 1;
-        }
-        sign * n
-    }
-}
-
 fn clamp(v: i32, lo: i32, hi: i32) -> i32 {
     if v < lo {
         lo
@@ -46,38 +11,47 @@ fn clamp(v: i32, lo: i32, hi: i32) -> i32 {
 }
 
 fn main() {
-    const INF: i32 = 20002;
+    // Read entire stdin, parse as whitespace-separated integers.
+    // This matches the C program's behavior for well-formed inputs.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let mut sc = Scanner::new();
     let mut out = String::new();
 
     loop {
-        let n = sc.next_i32();
-        if n == 0 {
-            break;
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // malformed/empty input: unspecified by spec; just stop
         }
-        let n_usize = n as usize;
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        if n == 0 {
+            break; // terminating case: no output
+        }
 
-        // Fixed-size storage per spec (<= 101 vertices); we still allocate dynamically but bounded.
-        let mut x = vec![0i32; n_usize + 1];
-        let mut y = vec![0i32; n_usize + 1];
+        // Spec says at most 101 vertices supported; we follow semantics without extra checks.
+        let mut x: Vec<i32> = Vec::with_capacity(n + 1);
+        let mut y: Vec<i32> = Vec::with_capacity(n + 1);
 
-        for i in 0..n_usize {
-            x[i] = sc.next_i32();
-            y[i] = sc.next_i32();
+        for _ in 0..n {
+            let xi: i32 = it.next().unwrap().parse().unwrap();
+            let yi: i32 = it.next().unwrap().parse().unwrap();
+            x.push(xi);
+            y.push(yi);
         }
         // Close polygon
-        x[n_usize] = x[0];
-        y[n_usize] = y[0];
+        x.push(x[0]);
+        y.push(y[0]);
 
-        let mut xmin = INF;
-        let mut ymin = INF;
-        let mut xmax = -INF;
-        let mut ymax = -INF;
+        // Rectangle bounds from 4 points (axis-aligned bounding box)
+        let mut xmin: i32 = 20002;
+        let mut ymin: i32 = 20002;
+        let mut xmax: i32 = -20002;
+        let mut ymax: i32 = -20002;
 
         for _ in 0..4 {
-            let a = sc.next_i32();
-            let b = sc.next_i32();
+            let a: i32 = it.next().unwrap().parse().unwrap();
+            let b: i32 = it.next().unwrap().parse().unwrap();
             if a < xmin {
                 xmin = a;
             }
@@ -92,11 +66,10 @@ fn main() {
             }
         }
 
-        let mut win: i64 = 0;
         let mut cur: i64 = 0;
+        let mut win: i64 = 0;
 
-        // Only vertical edges contribute (x[i] == x[i+1])
-        for i in 0..n_usize {
+        for i in 0..n {
             if x[i] == x[i + 1] {
                 cur += (x[i] as i64) * ((y[i] - y[i + 1]) as i64);
 

@@ -1,7 +1,7 @@
 use std::io::{self, Read};
 
 const INF: i32 = 1001001001;
-const QSIZE: usize = 1_001_001;
+const QSIZE: usize = 1001001;
 
 fn main() {
     // Read entire stdin, tokenize by whitespace (matches scanf behavior for %d and %s here).
@@ -9,10 +9,7 @@ fn main() {
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let h: usize = match it.next() {
-        Some(v) => v.parse().unwrap(),
-        None => return,
-    };
+    let h: usize = it.next().unwrap().parse().unwrap();
     let w: usize = it.next().unwrap().parse().unwrap();
     let k: i32 = it.next().unwrap().parse().unwrap();
 
@@ -20,38 +17,35 @@ fn main() {
     let mut s1: i32 = it.next().unwrap().parse().unwrap();
     let mut g0: i32 = it.next().unwrap().parse().unwrap();
     let mut g1: i32 = it.next().unwrap().parse().unwrap();
-
-    // Convert to 0-based like the C code.
     s0 -= 1;
     s1 -= 1;
     g0 -= 1;
     g1 -= 1;
 
-    // Grid: read h strings, each length w (as in C: scanf("%s", c[i])).
     let mut grid: Vec<Vec<u8>> = Vec::with_capacity(h);
+    let mut d: Vec<Vec<i32>> = vec![vec![INF; w]; h];
+
     for _ in 0..h {
-        let row = it.next().unwrap_or("");
-        grid.push(row.as_bytes().to_vec());
+        let row = it.next().unwrap().as_bytes().to_vec();
+        // C code assumes row length >= w; we preserve that assumption.
+        grid.push(row);
     }
-
-    // Distances.
-    let mut d = vec![vec![INF; w]; h];
-
-    // Ring queue of fixed size, emulating the C array and modulo arithmetic.
-    let mut que = vec![(0i32, 0i32); QSIZE];
-    let mut r: usize = 0;
-    let mut l: usize = 0;
-
-    // Initialize.
-    que[r] = (s0, s1);
-    r = (r + 1) % QSIZE;
-    d[s0 as usize][s1 as usize] = 0;
 
     let dx: [i32; 4] = [1, 0, -1, 0];
     let dy: [i32; 4] = [0, 1, 0, -1];
 
+    // Fixed-size ring buffer queue, like the C code.
+    let mut que: Vec<[i32; 2]> = vec![[0, 0]; QSIZE];
+    let mut r: usize = 0;
+    let mut l: usize = 0;
+
+    que[r] = [s0, s1];
+    r = (r + 1) % QSIZE;
+    d[s0 as usize][s1 as usize] = 0;
+
     while r != l {
-        let (x, y) = que[l];
+        let x = que[l][0];
+        let y = que[l][1];
         l = (l + 1) % QSIZE;
 
         let curd = d[x as usize][y as usize];
@@ -61,9 +55,9 @@ fn main() {
                 let nx = x + step * dx[dir];
                 let ny = y + step * dy[dir];
 
-                if nx >= 0
+                if 0 <= nx
                     && (nx as usize) < h
-                    && ny >= 0
+                    && 0 <= ny
                     && (ny as usize) < w
                     && grid[nx as usize][ny as usize] == b'.'
                     && d[nx as usize][ny as usize] >= curd + 1
@@ -72,7 +66,7 @@ fn main() {
                         continue;
                     }
                     d[nx as usize][ny as usize] = curd + 1;
-                    que[r] = (nx, ny);
+                    que[r] = [nx, ny];
                     r = (r + 1) % QSIZE;
                 } else {
                     break;
@@ -81,9 +75,11 @@ fn main() {
         }
     }
 
-    let mut ans = d[g0 as usize][g1 as usize];
-    if ans == INF {
-        ans = -1;
-    }
+    let ans = if d[g0 as usize][g1 as usize] == INF {
+        -1
+    } else {
+        d[g0 as usize][g1 as usize]
+    };
+
     print!("{ans}\n");
 }

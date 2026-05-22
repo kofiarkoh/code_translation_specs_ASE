@@ -6,16 +6,15 @@ fn main() {
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    // dp has fixed size in C: dp[20001][256], initialized to -1 each test case.
-    // We'll allocate once and reuse.
-    const MAX_N: usize = 20001;
-    const W: usize = 256;
-    let mut dp = vec![vec![-1i32; W]; MAX_N];
+    // dp has fixed size in C: dp[20001][256]
+    // We'll allocate the same to preserve behavior and indexing.
+    let mut dp = vec![[ -1i32; 256 ]; 20001];
+    let mut c = [0i32; 16];
 
     loop {
         let n_opt = it.next();
         if n_opt.is_none() {
-            break;
+            break; // no more input
         }
         let n: usize = n_opt.unwrap().parse().unwrap();
         let m: usize = it.next().unwrap().parse().unwrap();
@@ -24,7 +23,6 @@ fn main() {
             break;
         }
 
-        let mut c = vec![0i32; m];
         for i in 0..m {
             c[i] = it.next().unwrap().parse().unwrap();
         }
@@ -33,27 +31,22 @@ fn main() {
         for row in dp.iter_mut() {
             row.fill(-1);
         }
-
         dp[0][128] = 0;
 
         for i in 0..n {
             let x: i32 = it.next().unwrap().parse().unwrap();
+            let prev = dp[i]; // copy of the row (256 ints)
+            let curr = &mut dp[i + 1];
 
-            // In the C code, curr points to dp[i+1] and is NOT cleared per i.
-            // This is preserved because dp was memset(-1) once per test case.
-            // Each dp[i+1][t] is updated potentially multiple times from dp[i][*].
-            let (prev, curr) = {
-                // Borrow-splitting without unsafe.
-                let (left, right) = dp.split_at_mut(i + 1);
-                (&left[i], &mut right[0])
-            };
+            // Note: C code does NOT clear curr each iteration; it relies on dp being
+            // memset to -1 initially and each dp[i+1] being written only in iteration i.
+            // Since we memset all dp rows to -1 above, this matches.
 
-            for j in 0..W {
-                let pj = prev[j];
-                if pj >= 0 {
-                    for &ck in &c {
-                        // t = min(255, max(0, j + C[k]))
-                        let mut t = j as i32 + ck;
+            for j in 0..256usize {
+                let prevj = prev[j];
+                if prevj >= 0 {
+                    for k in 0..m {
+                        let mut t = j as i32 + c[k];
                         if t < 0 {
                             t = 0;
                         } else if t > 255 {
@@ -61,31 +54,28 @@ fn main() {
                         }
                         let t_usize = t as usize;
 
-                        // f(x, t) = (x - t) * (x - t)
-                        // Use wrapping ops to emulate C signed overflow behavior as closely as possible.
-                        let d = x.wrapping_sub(t);
-                        let cost = d.wrapping_mul(d);
-                        let y = pj.wrapping_add(cost);
+                        // f(x, t) = (x - t)^2, computed in int in C.
+                        // Use wrapping ops to emulate potential signed overflow behavior.
+                        let diff = x.wrapping_sub(t);
+                        let sq = diff.wrapping_mul(diff);
+                        let y = prevj.wrapping_add(sq);
 
-                        let cell = &mut curr[t_usize];
-                        if *cell < 0 {
-                            *cell = y;
-                        } else if y < *cell {
-                            *cell = y;
-                        }
+                        let curv = curr[t_usize];
+                        curr[t_usize] = if curv < 0 { y } else { curv.min(y) };
                     }
                 }
             }
         }
 
-        // After the loop, C uses `curr` from the last iteration, i.e., dp[n].
+        let curr = &dp[n];
         let mut res: i32 = 1 << 30;
-        for &v in &dp[n] {
-            if v >= 0 && v < res {
-                res = v;
+        for &v in curr.iter() {
+            if v >= 0 {
+                res = res.min(v);
             }
         }
 
+        // Exact output formatting: one integer and newline.
         print!("{res}\n");
     }
 }

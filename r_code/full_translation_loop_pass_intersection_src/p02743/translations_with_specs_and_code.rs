@@ -1,17 +1,18 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, parse three floating-point numbers.
+    // Read entire stdin, parse three real numbers.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
-
     let mut it = input.split_whitespace();
+
     let a: f64 = it.next().unwrap().parse().unwrap();
     let b: f64 = it.next().unwrap().parse().unwrap();
     let c: f64 = it.next().unwrap().parse().unwrap();
 
-    // Spec: output "Yes" iff (c-a-b) > 0 and (c-a-b)^2 > 4ab.
+    // Spec: let d = c - a - b; output "Yes" iff (d > 0) && (d*d > 4*a*b)
     let d = c - a - b;
+
     if d > 0.0 && d * d > 4.0 * a * b {
         println!("Yes");
     } else {

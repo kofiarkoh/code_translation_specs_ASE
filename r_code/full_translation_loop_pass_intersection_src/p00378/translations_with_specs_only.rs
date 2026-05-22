@@ -5,31 +5,28 @@ fn main() {
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let a: i32 = it.next().unwrap().parse().unwrap(); // 1000-unit cost
-    let b: i32 = it.next().unwrap().parse().unwrap(); // 500-unit cost
-    let x: i32 = it.next().unwrap().parse().unwrap(); // required quantity (positive)
+    let a: i64 = it.next().unwrap().parse().unwrap();
+    let b: i64 = it.next().unwrap().parse().unwrap();
+    let x: i64 = it.next().unwrap().parse().unwrap();
 
-    let ans: i32;
+    let ans: i64;
 
     if a >= 2 * b {
-        // ceil(x / 500) * b, with integer arithmetic
-        let packs_500 = (x + 500 - 1) / 500;
-        ans = packs_500 * b;
+        // B * ceil(X / 500)
+        let n = (x + 500 - 1) / 500;
+        ans = b * n;
     } else {
-        let thousands = x / 1000;
-        let rem = x % 1000;
+        let q = x / 1000;
+        let r = x % 1000;
 
-        let mut total = thousands * a;
-
-        if rem != 0 {
-            // If remainder in 1..=500 and b < a, add b; otherwise add a.
-            if rem <= 500 && b < a {
+        let mut total = q * a;
+        if r != 0 {
+            if r <= 500 && b < a {
                 total += b;
             } else {
                 total += a;
             }
         }
-
         ans = total;
     }
 

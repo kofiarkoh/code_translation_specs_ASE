@@ -1,86 +1,78 @@
-use std::cmp::min;
 use std::io::{self, Read};
 
-fn clamp_u8_from_i32(x: i32) -> usize {
+fn clamp_u8_from_i32(x: i32) -> u8 {
     if x < 0 {
         0
     } else if x > 255 {
         255
     } else {
-        x as usize
+        x as u8
     }
 }
 
 fn main() {
+    // Read entire stdin; behavior on malformed input is unspecified by the spec.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let inf: i64 = i64::MAX / 4;
-
     loop {
         let n_opt = it.next();
         if n_opt.is_none() {
-            break;
+            break; // No more instances.
         }
         let n: usize = n_opt.unwrap().parse().unwrap();
-        let _m: usize = match it.next() {
-            Some(v) => v.parse().unwrap(),
-            None => break,
-        };
-
         if n == 0 {
-            break;
+            break; // Termination condition.
         }
 
-        // Read increments
-        let mut incs: Vec<i32> = Vec::with_capacity(_m);
-        for _ in 0.._m {
-            let a: i32 = it.next().unwrap().parse().unwrap();
-            incs.push(a);
+        let m: usize = it.next().unwrap().parse().unwrap();
+        let mut incs: Vec<i32> = Vec::with_capacity(m);
+        for _ in 0..m {
+            incs.push(it.next().unwrap().parse().unwrap());
         }
 
-        // Read targets
         let mut targets: Vec<i32> = Vec::with_capacity(n);
         for _ in 0..n {
-            let t: i32 = it.next().unwrap().parse().unwrap();
-            targets.push(t);
+            targets.push(it.next().unwrap().parse().unwrap());
         }
 
-        // DP over 256 clamped states.
-        // dp[s] = minimum cost to be at state s after processing current number of targets.
-        let mut dp = vec![inf; 256];
+        // DP over states 0..255.
+        // Invariant: dp[s] is the minimum cost to end at state s after processing current step.
+        // Use i32 as per spec's contract that the minimum total cost fits in signed 32-bit.
+        const INF: i32 = i32::MAX / 4;
+
+        let mut dp = vec![INF; 256];
         dp[128] = 0;
 
-        for &t in &targets {
-            let mut next = vec![inf; 256];
+        let mut next = vec![INF; 256];
 
-            for s in 0..256 {
+        for &t in &targets {
+            next.fill(INF);
+
+            for s in 0..256usize {
                 let base = dp[s];
-                if base == inf {
+                if base == INF {
                     continue;
                 }
                 let s_i32 = s as i32;
 
-                for &a in &incs {
-                    let sp = clamp_u8_from_i32(s_i32 + a);
-                    let diff = (t - sp as i32) as i64;
-                    let cost = diff * diff;
-                    let cand = base + cost;
-                    if cand < next[sp] {
-                        next[sp] = cand;
+                for &inc in &incs {
+                    let ns = clamp_u8_from_i32(s_i32 + inc) as usize;
+                    let diff = t - (ns as i32);
+                    // Intermediate overflow is unspecified by the spec if it occurs.
+                    let step_cost = diff * diff;
+                    let cand = base + step_cost;
+                    if cand < next[ns] {
+                        next[ns] = cand;
                     }
                 }
             }
 
-            dp = next;
+            std::mem::swap(&mut dp, &mut next);
         }
 
-        let mut ans = inf;
-        for &v in &dp {
-            ans = min(ans, v);
-        }
-
+        let ans = dp.into_iter().min().unwrap_or(INF);
         println!("{}", ans);
     }
 }

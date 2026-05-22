@@ -1,126 +1,113 @@
 use std::io::{self, Read};
 
 fn segment_intersection(
-    ax: i64,
-    ay: i64,
-    bx: i64,
-    by: i64,
-    cx: i64,
-    cy: i64,
-    dx: i64,
-    dy: i64,
+    ax: i32,
+    ay: i32,
+    bx: i32,
+    by: i32,
+    cx: i32,
+    cy: i32,
+    dx: i32,
+    dy: i32,
 ) -> Option<(f64, f64)> {
-    // Mirrors the C logic:
-    // bunbo = (bx-ax)*(dy-cy) - (by-ay)*(dx-cx)
-    // r = (dy-cy)*(cx-ax) - (dx-cx)*(cy-ay)
-    // s = (by-ay)*(cx-ax) - (bx-ax)*(cy-ay)
-    // If bunbo < 0, negate r,s,bunbo; then require 0<=r,s<=bunbo.
-    let acx = cx - ax;
-    let acy = cy - ay;
+    // Mirrors the C routine L():
+    // - Treats parallel/collinear (denominator == 0) as no unique intersection.
+    // - Uses integer arithmetic for r, s, bunbo comparisons, then computes intersection point.
+    let acx: i64 = (cx as i64) - (ax as i64);
+    let acy: i64 = (cy as i64) - (ay as i64);
 
-    let abx = bx - ax;
-    let aby = by - ay;
-    let cdx = dx - cx;
-    let cdy = dy - cy;
+    let mut bunbo: i64 = ((bx as i64) - (ax as i64)) * ((dy as i64) - (cy as i64))
+        - ((by as i64) - (ay as i64)) * ((dx as i64) - (cx as i64));
 
-    let mut bunbo = abx * cdy - aby * cdx;
     if bunbo == 0 {
-        // Parallel or collinear treated as no valid intersection.
         return None;
     }
 
-    let mut r = cdy * acx - cdx * acy;
-    let mut s = aby * acx - abx * acy;
+    let mut r: i64 = ((dy as i64) - (cy as i64)) * acx - ((dx as i64) - (cx as i64)) * acy;
+    let mut s: i64 = ((by as i64) - (ay as i64)) * acx - ((bx as i64) - (ax as i64)) * acy;
 
     if bunbo < 0 {
-        bunbo = -bunbo;
         r = -r;
         s = -s;
+        bunbo = -bunbo;
     }
 
     if r >= 0 && r <= bunbo && s >= 0 && s <= bunbo {
         let t = (r as f64) / (bunbo as f64);
-        let x = (ax as f64) + t * (abx as f64);
-        let y = (ay as f64) + t * (aby as f64);
+        let x = (ax as f64) + t * ((bx - ax) as f64);
+        let y = (ay as f64) + t * ((by - ay) as f64);
         Some((x, y))
     } else {
         None
     }
 }
 
+fn classify_triangle_area(area: f64) -> &'static str {
+    // Thresholds per spec/C with epsilon margins.
+    if area < 1e-6 {
+        "kyo"
+    } else if area < 100000.0 - 1e-6 {
+        "syo-kichi"
+    } else if area < 1000000.0 - 1e-6 {
+        "kichi"
+    } else if area < 1900000.0 - 1e-6 {
+        "chu-kichi"
+    } else {
+        "dai-kichi"
+    }
+}
+
 fn main() {
-    // Read all input; stop on incomplete final batch (spec).
+    // Read all input, parse as i32 integers.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
-    let mut it = input.split_whitespace();
+    let nums: Vec<i32> = input
+        .split_whitespace()
+        .filter_map(|s| s.parse::<i32>().ok())
+        .collect();
 
-    let mut x1 = [0i64; 3];
-    let mut y1 = [0i64; 3];
-    let mut x2 = [0i64; 3];
-    let mut y2 = [0i64; 3];
-
-    let mut i = 0usize;
     let mut out = String::new();
 
-    loop {
-        let a = it.next();
-        if a.is_none() {
-            break;
+    // Consume in groups of 3 segments = 12 integers.
+    let mut idx = 0usize;
+    while idx + 12 <= nums.len() {
+        let mut x1 = [0i32; 3];
+        let mut y1 = [0i32; 3];
+        let mut x2 = [0i32; 3];
+        let mut y2 = [0i32; 3];
+
+        for i in 0..3 {
+            x1[i] = nums[idx + 4 * i + 0];
+            y1[i] = nums[idx + 4 * i + 1];
+            x2[i] = nums[idx + 4 * i + 2];
+            y2[i] = nums[idx + 4 * i + 3];
         }
-        let b = it.next();
-        let c = it.next();
-        let d = it.next();
-        if b.is_none() || c.is_none() || d.is_none() {
-            // Incomplete quadruple: ignore trailing incomplete batch.
-            break;
-        }
+        idx += 12;
 
-        let ax: i64 = a.unwrap().parse().unwrap();
-        let ay: i64 = b.unwrap().parse().unwrap();
-        let bx: i64 = c.unwrap().parse().unwrap();
-        let by: i64 = d.unwrap().parse().unwrap();
+        let p0 = segment_intersection(x1[0], y1[0], x2[0], y2[0], x1[1], y1[1], x2[1], y2[1]);
+        let p1 = segment_intersection(x1[1], y1[1], x2[1], y2[1], x1[2], y1[2], x2[2], y2[2]);
+        let p2 = segment_intersection(x1[2], y1[2], x2[2], y2[2], x1[0], y1[0], x2[0], y2[0]);
 
-        x1[i] = ax;
-        y1[i] = ay;
-        x2[i] = bx;
-        y2[i] = by;
+        let line = if let (Some((x0, y0)), Some((x1p, y1p)), Some((x2p, y2p))) = (p0, p1, p2) {
+            let xs = [x0, x1p, x2p];
+            let ys = [y0, y1p, y2p];
 
-        i += 1;
-        if i == 3 {
-            let p0 = segment_intersection(x1[0], y1[0], x2[0], y2[0], x1[1], y1[1], x2[1], y2[1]);
-            let p1 = segment_intersection(x1[1], y1[1], x2[1], y2[1], x1[2], y1[2], x2[2], y2[2]);
-            let p2 = segment_intersection(x1[2], y1[2], x2[2], y2[2], x1[0], y1[0], x2[0], y2[0]);
-
-            if let (Some((x0, y0)), Some((x1p, y1p)), Some((x2p, y2p))) = (p0, p1, p2) {
-                let xs = [x0, x1p, x2p];
-                let ys = [y0, y1p, y2p];
-
-                // Same area computation as C:
-                // S += (X[i]-X[i+1])*(Y[i]+Y[i+1])/2; then fabs.
-                let mut s_area = 0.0f64;
-                for j in 0..3 {
-                    let k = (j + 1) % 3;
-                    s_area += (xs[j] - xs[k]) * (ys[j] + ys[k]) / 2.0;
-                }
-                let s_area = s_area.abs();
-
-                if s_area < 1e-6 {
-                    out.push_str("kyo\n");
-                } else if s_area < 100000.0 - 1e-6 {
-                    out.push_str("syo-kichi\n");
-                } else if s_area < 1000000.0 - 1e-6 {
-                    out.push_str("kichi\n");
-                } else if s_area < 1900000.0 - 1e-6 {
-                    out.push_str("chu-kichi\n");
-                } else {
-                    out.push_str("dai-kichi\n");
-                }
-            } else {
-                out.push_str("kyo\n");
+            // Same area computation as C:
+            // S += (X[i]-X[i+1])*(Y[i]+Y[i+1])/2; then fabs.
+            let mut s = 0.0f64;
+            for i in 0..3 {
+                let j = (i + 1) % 3;
+                s += (xs[i] - xs[j]) * (ys[i] + ys[j]) / 2.0;
             }
+            let area = s.abs();
+            classify_triangle_area(area)
+        } else {
+            // If any intersection doesn't exist, output lowest category.
+            "kyo"
+        };
 
-            i = 0;
-        }
+        out.push_str(line);
+        out.push('\n');
     }
 
     print!("{out}");

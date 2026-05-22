@@ -2,27 +2,23 @@ use std::io::{self, Read};
 
 fn main() {
     let mut input = String::new();
-    io::stdin().read_to_string(&mut input).ok();
+    io::stdin().read_to_string(&mut input).unwrap();
+
     let mut it = input.split_whitespace();
+    let a: i64 = it.next().unwrap().parse().unwrap();
+    let b: i64 = it.next().unwrap().parse().unwrap();
+    let c: i64 = it.next().unwrap().parse().unwrap();
 
-    // If fewer than three integers are read, behavior is unspecified; choose to do nothing.
-    let a: i64 = match it.next().and_then(|s| s.parse().ok()) {
-        Some(v) => v,
-        None => return,
-    };
-    let b: i64 = match it.next().and_then(|s| s.parse().ok()) {
-        Some(v) => v,
-        None => return,
-    };
-    let c: i64 = match it.next().and_then(|s| s.parse().ok()) {
-        Some(v) => v,
-        None => return,
+    let out = match (a, b, c) {
+        (1, 0, 0) => Some("Close\n"),
+        (0, 1, 0) => Some("Close\n"),
+        (1, 1, 0) => Some("Open\n"),
+        (0, 0, 1) => Some("Open\n"),
+        (0, 0, 0) => Some("Close\n"),
+        _ => None,
     };
 
-    // The specification references "specified combinations in Section 6" but does not list them.
-    // Based on observed test: (1, 0, 0) => "Close".
-    // Narrowest repair: implement only this confirmed combination; all others produce no output.
-    if a == 1 && b == 0 && c == 0 {
-        print!("Close\n");
+    if let Some(s) = out {
+        print!("{s}");
     }
 }

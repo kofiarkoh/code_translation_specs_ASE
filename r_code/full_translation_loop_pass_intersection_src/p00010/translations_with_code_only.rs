@@ -1,19 +1,17 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, like repeated scanf calls would consume tokens.
+    // Read entire stdin, parse as whitespace-separated tokens (like scanf).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    // C: scanf("%d", &n);
     let n: i32 = match it.next() {
         Some(t) => t.parse().unwrap(),
-        None => return, // If no input, C would leave n uninitialized; we just exit.
+        None => return,
     };
 
     for _ in 0..n {
-        // C: all are double
         let x1: f64 = it.next().unwrap().parse().unwrap();
         let y1: f64 = it.next().unwrap().parse().unwrap();
         let x2: f64 = it.next().unwrap().parse().unwrap();
@@ -37,7 +35,7 @@ fn main() {
         let s = (x1 - px) * (x1 - px) + (y1 - py) * (y1 - py);
         let mut r = s / 2.0;
 
-        // Preserve C's exact loop condition and floating behavior (including NaN/Inf cases).
+        // Preserve the C loop condition exactly (including NaN behavior).
         while r != x {
             x = r;
             r = (r + s / r) / 2.0;
@@ -47,7 +45,7 @@ fn main() {
             r *= -1.0;
         }
 
-        // Match C printf("%.3lf %.3lf %.3lf\n", ...)
+        // Match printf("%.3lf %.3lf %.3lf\n", ...)
         println!("{:.3} {:.3} {:.3}", px, py, r);
     }
 }

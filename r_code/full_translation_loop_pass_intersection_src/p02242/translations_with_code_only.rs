@@ -45,9 +45,8 @@ impl Scanner {
     }
 
     // Mirrors the C get_uint() exactly:
-    // - reads one char
-    // - if not '0'..'9', returns that char code (or -1 for EOF)
-    // - otherwise parses consecutive digits into an int (with wrapping like C int)
+    // - returns the first non-digit byte value (or EOF) if the first char isn't a digit
+    // - otherwise parses consecutive digits into an int
     fn get_uint(&mut self) -> i32 {
         let mut n: i32 = 0;
         let mut c: i32 = self.getchar_unlocked();
@@ -55,7 +54,7 @@ impl Scanner {
             return c;
         }
         while 47 < c && c < 58 {
-            // (c & 0xf) is used in C; keep it.
+            // Use wrapping to emulate C signed overflow behavior as closely as possible.
             n = n.wrapping_mul(10).wrapping_add(c & 0xf);
             c = self.getchar_unlocked();
         }
@@ -68,69 +67,57 @@ fn put_uint(out: &mut Vec<u8>, mut n: i32) {
         out.push(b'0');
         return;
     }
-    // C uses char buf[11]; and prints digits of n%10 while n != 0.
-    // For negative n, C's % and / keep n moving toward 0; it will print
-    // non-digit bytes (e.g., '/' for -1). We preserve that behavior.
+    // C code assumes non-negative; if negative occurs, C would print garbage-ish due to %/div.
+    // We preserve behavior as best as possible by mimicking the same loop on i32.
     let mut buf = [0u8; 11];
     let mut i: usize = 0;
     while n != 0 {
-        let digit = (n % 10).wrapping_add(b'0' as i32) as u8;
-        if i < buf.len() {
-            buf[i] = digit;
-        }
+        let digit = (n % 10) + ('0' as i32);
+        buf[i] = digit as u8;
         i += 1;
         n /= 10;
     }
     while i != 0 {
         i -= 1;
-        // If i exceeded 11 due to unexpected behavior, C would overflow the buffer (UB).
-        // Here we clamp to preserve output as best as possible without UB.
-        let ch = if i < buf.len() { buf[i] } else { b'?' };
-        out.push(ch);
+        out.push(buf[i]);
     }
 }
 
-fn dijkstra_noheap(nodes: &mut [Node], n: usize) {
-    for i in 0..n {
+fn dijkstra_noheap(nodes: &mut [Node], n: i32) {
+    for i in 0..(n as usize) {
         nodes[i].cost = -1;
         nodes[i].visited = 0;
     }
-    if n > 0 {
-        nodes[0].cost = 0;
-    }
+    nodes[0].cost = 0;
 
     loop {
         let mut next_idx: Option<usize> = None;
-        for i in 0..n {
-            if nodes[i].visited != 0 || nodes[i].cost < 0 {
+        for i in 0..(n as usize) {
+            let it = &nodes[i];
+            if it.visited != 0 || it.cost < 0 {
                 continue;
             }
             match next_idx {
                 None => next_idx = Some(i),
                 Some(j) => {
-                    if nodes[i].cost < nodes[j].cost {
+                    if it.cost < nodes[j].cost {
                         next_idx = Some(i);
                     }
                 }
             }
         }
+
         let Some(ni) = next_idx else { break };
         nodes[ni].visited = 1;
 
         // C copies the whole struct: Node u = *next;
         let u = nodes[ni];
 
-        let esz = u.edge_size;
-        for i in 0..(esz as usize) {
+        for i in 0..(u.edge_size as usize) {
             let to = u.edge_to[i] as usize;
-            let cost = u.cost.wrapping_add(u.edge_cost[i]);
-            if to < n {
-                if nodes[to].cost < 0 || cost < nodes[to].cost {
-                    nodes[to].cost = cost;
-                }
-            } else {
-                // In C, out-of-bounds would be UB; we avoid crashing.
-                // No external spec is given, so best-effort: ignore.
+            let cost = u.cost.wrapping_add(u.edge_cost[i]); // wrap like C int
+            if nodes[to].cost < 0 || cost < nodes[to].cost {
+                nodes[to].cost = cost;
             }
         }
     }
@@ -138,45 +125,26 @@ fn dijkstra_noheap(nodes: &mut [Node], n: usize) {
 
 fn main() {
     let mut sc = Scanner::new();
-    let n_i32 = sc.get_uint();
-    let n = if n_i32 < 0 { 0usize } else { n_i32 as usize };
+    let n = sc.get_uint();
 
-    // C uses VLA Node node[n]; uninitialized. We must initialize in Rust.
-    // This may differ if C relied on uninitialized fields, but the code assigns
-    // edge_size for each u read; other nodes would be UB in C if accessed.
-    let mut nodes = vec![Node::default(); n];
+    // C uses VLA: Node node[n]; uninitialized. We use zeroed nodes; edge_size is set for each u.
+    // This is the closest safe Rust equivalent; relying on uninitialized memory would be UB in Rust.
+    let mut nodes = vec![Node::default(); n.max(0) as usize];
 
-    for _ in 0..n {
+    for _ in 0..(n.max(0) as usize) {
         let u = sc.get_uint() as usize;
-        if u >= n {
-            // Would be UB in C; ignore to avoid panic.
-            // Still consume input similarly.
-            let k = sc.get_uint();
-            for _ in 0..(k.max(0) as usize) {
-                let _ = sc.get_uint();
-                let _ = sc.get_uint();
-            }
-            continue;
-        }
         let k = sc.get_uint();
         nodes[u].edge_size = k;
-        let kk = k.max(0) as usize;
-        for j in 0..kk {
-            let to = sc.get_uint();
-            let cost = sc.get_uint();
-            if j < 100 {
-                nodes[u].edge_to[j] = to;
-                nodes[u].edge_cost[j] = cost;
-            } else {
-                // C would overflow fixed arrays (UB); ignore extras.
-            }
+        for j in 0..(k as usize) {
+            nodes[u].edge_to[j] = sc.get_uint();
+            nodes[u].edge_cost[j] = sc.get_uint();
         }
     }
 
     dijkstra_noheap(&mut nodes, n);
 
     let mut out: Vec<u8> = Vec::new();
-    for i in 0..n {
+    for i in 0..(n.max(0) as usize) {
         put_uint(&mut out, i as i32);
         out.push(b' ');
         put_uint(&mut out, nodes[i].cost);

@@ -1,52 +1,40 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin; behavior on malformed/missing input is not defined by the spec.
-    let mut input = String::new();
-    io::stdin().read_to_string(&mut input).unwrap();
-    let mut it = input.split_whitespace();
+    // Read all input; malformed/insufficient input => unspecified behavior per spec.
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
     let n: usize = it.next().unwrap().parse().unwrap();
 
-    // A has length N+1: positions 1..=N+1 in the spec.
+    // Spec implies fixed storage bounds in the original; here we allocate dynamically.
+    // Preconditions guarantee n <= 199999 and values fit in signed 64-bit.
     let mut a: Vec<i64> = Vec::with_capacity(n + 1);
     for _ in 0..(n + 1) {
         a.push(it.next().unwrap().parse().unwrap());
     }
 
-    // B has length N: positions 1..=N in the spec.
-    let mut b: Vec<i64> = Vec::with_capacity(n);
-    for _ in 0..n {
-        b.push(it.next().unwrap().parse().unwrap());
+    let mut total: i64 = 0;
+
+    for i in 0..n {
+        let b: i64 = it.next().unwrap().parse().unwrap();
+
+        // Consume from A_i first.
+        let take_from_current = if a[i] < b { a[i] } else { b };
+        a[i] -= take_from_current;
+        let mut rem = b - take_from_current;
+
+        // Then consume remaining from A_{i+1}.
+        let take_from_next = if a[i + 1] < rem { a[i + 1] } else { rem };
+        a[i + 1] -= take_from_next;
+
+        // Accumulate total consumed for this demand.
+        // Note: In the original C-like spec, signed overflow would be UB; Rust would panic in debug.
+        // We keep normal i64 arithmetic to match the intended contract under the precondition
+        // that overflow does not occur.
+        total += take_from_current + take_from_next;
     }
 
-    // Greedy per spec equivalence:
-    // For i = 1..=N+1:
-    //   use B_{i-1} on A_i as much as possible, then B_i on remaining as much as possible.
-    // With 0-based indexing:
-    //   i in 0..=N corresponds to position i+1.
-    //   B_{i-1} corresponds to b[i-1] when i>=1.
-    //   B_i corresponds to b[i] when i<=N-1.
-    let mut s: i64 = 0;
-
-    for i in 0..=n {
-        // Use left capacity b[i-1] on a[i]
-        if i >= 1 {
-            let take_left = a[i].min(b[i - 1]);
-            a[i] -= take_left;
-            b[i - 1] -= take_left;
-            s += take_left;
-        }
-
-        // Use right capacity b[i] on remaining a[i]
-        if i < n {
-            let take_right = a[i].min(b[i]);
-            a[i] -= take_right;
-            b[i] -= take_right;
-            s += take_right;
-        }
-    }
-
-    // Output total taken with newline.
-    println!("{s}");
+    println!("{}", total);
 }

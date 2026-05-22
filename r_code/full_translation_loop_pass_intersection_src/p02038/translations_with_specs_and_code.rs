@@ -6,34 +6,30 @@ fn souti(a: char, b: char) -> char {
 }
 
 fn main() {
-    // Match C's fixed internal storage capacity.
+    // Fixed-size internal storage, matching the C program's capacity.
     const CAP: usize = 114_514;
+    let mut p: [char; CAP] = ['\0'; CAP];
 
-    // Read entire stdin, then token-scan like scanf("%d") and scanf("%3s").
+    // Read entire stdin, then parse whitespace-separated tokens (scanf-like).
     let mut input = String::new();
     if io::stdin().read_to_string(&mut input).is_err() {
         process::exit(1);
     }
     let mut it = input.split_whitespace();
 
-    let n: usize = match it.next().and_then(|t| t.parse::<usize>().ok()) {
+    let n: usize = match it.next().and_then(|s| s.parse::<usize>().ok()) {
         Some(v) => v,
-        None => process::exit(1), // If count cannot be read: non-zero, no output.
+        None => process::exit(1), // count read failure => non-zero exit, no guaranteed output
     };
 
-    // Per spec/C: behavior is undefined if N < 2 or N exceeds capacity.
-    // We do not add extra checks to avoid changing defined behavior.
-    let mut p: Vec<char> = vec!['\0'; CAP];
-
+    // Per spec: if n < 2 or n > CAP, behavior is undefined; we do not add explicit handling.
     for i in 0..n {
         let tok = match it.next() {
             Some(t) => t,
-            None => process::exit(1), // If any symbol token cannot be read: non-zero, no output.
+            None => process::exit(1), // token read failure => non-zero exit, no guaranteed output
         };
-        // C uses "%3s" into a 4-byte buffer and then takes hoge[0].
-        // We only need the first character of the token.
-        let ch = tok.chars().next().unwrap_or('\0');
-        // If i >= CAP, this will panic (undefined behavior in C as well).
+        // Only the first character of each token is used.
+        let ch = tok.chars().next().unwrap(); // tokens provide at least one character (precondition)
         p[i] = ch;
     }
 

@@ -3,81 +3,14 @@ use std::io::{self, Read};
 
 const QMAX: usize = 1000;
 const EPS: f64 = 1e-8;
-const INF_I32: i32 = 0x01010101;
+const INF: f64 = 0x01010101 as f64;
 const MAX: usize = 105;
 const N: usize = 105;
 
 #[derive(Clone, Copy)]
-struct QueItem {
+struct Que {
     s: usize,
     t: f64,
-}
-
-struct MinHeap {
-    a: [QueItem; QMAX],
-    size: usize,
-}
-impl MinHeap {
-    fn new() -> Self {
-        Self {
-            a: [QueItem { s: 0, t: 0.0 }; QMAX],
-            size: 0,
-        }
-    }
-    #[inline]
-    fn parent(i: usize) -> usize {
-        i >> 1
-    }
-    #[inline]
-    fn left(i: usize) -> usize {
-        i << 1
-    }
-    #[inline]
-    fn right(i: usize) -> usize {
-        (i << 1) + 1
-    }
-    fn min_heapify(&mut self, i: usize) {
-        let l = Self::left(i);
-        let r = Self::right(i);
-        let mut min = i;
-        if l < self.size && self.a[l].t < self.a[i].t {
-            min = l;
-        }
-        if r < self.size && self.a[r].t < self.a[min].t {
-            min = r;
-        }
-        if min != i {
-            self.a.swap(i, min);
-            self.min_heapify(min);
-        }
-    }
-    fn deq(&mut self) {
-        self.size -= 1;
-        self.a[0] = self.a[self.size];
-        if self.size > 0 {
-            self.min_heapify(0);
-        }
-    }
-    fn enq(&mut self, s: usize, t: f64) {
-        let mut i = self.size;
-        self.size += 1;
-        self.a[i] = QueItem { s, t };
-        while i > 0 {
-            let p = Self::parent(i);
-            if self.a[p].t > self.a[i].t {
-                self.a.swap(i, p);
-                i = p;
-            } else {
-                break;
-            }
-        }
-    }
-    fn is_empty(&self) -> bool {
-        self.size == 0
-    }
-    fn top(&self) -> QueItem {
-        self.a[0]
-    }
 }
 
 #[derive(Clone)]
@@ -88,121 +21,172 @@ struct Edge {
     cost: f64,
 }
 
-struct MCMF {
-    g: Vec<Vec<Edge>>,
-    v: usize,
-    potential: [f64; MAX],
-    min_cost: [f64; MAX],
-    prevv: [usize; MAX],
-    preve: [usize; MAX],
-    pq: MinHeap,
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
 }
-impl MCMF {
-    fn new(v: usize) -> Self {
-        Self {
-            g: vec![Vec::new(); v],
-            v,
-            potential: [0.0; MAX],
-            min_cost: [0.0; MAX],
-            prevv: [0; MAX],
-            preve: [0; MAX],
-            pq: MinHeap::new(),
+impl Scanner {
+    fn new() -> Self {
+        let mut input = String::new();
+        io::stdin().read_to_string(&mut input).unwrap();
+        Self { buf: input.into_bytes(), idx: 0 }
+    }
+    fn next_i32(&mut self) -> i32 {
+        // Emulates the C in() behavior: assumes valid input, handles optional '-'.
+        while self.idx < self.buf.len() && self.buf[self.idx].is_ascii_whitespace() {
+            self.idx += 1;
         }
-    }
-
-    fn add_edge(&mut self, from: usize, to: usize, cap: i32, cost: f64) {
-        let f_rev = self.g[to].len();
-        let t_rev = self.g[from].len();
-        self.g[from].push(Edge {
-            to,
-            rev: f_rev,
-            cap,
-            cost,
-        });
-        self.g[to].push(Edge {
-            to: from,
-            rev: t_rev,
-            cap: 0,
-            cost: -cost,
-        });
-    }
-
-    fn min_cost_flow(&mut self, s: usize, t: usize, mut f: i32) -> f64 {
-        let mut ret = 0.0;
-        self.potential.fill(0.0);
-
-        while f > 0 {
-            for i in 0..self.v {
-                self.min_cost[i] = INF_I32 as f64;
+        let mut neg = false;
+        if self.idx < self.buf.len() && self.buf[self.idx] == b'-' {
+            neg = true;
+            self.idx += 1;
+        }
+        let mut n: i32 = 0;
+        while self.idx < self.buf.len() {
+            let c = self.buf[self.idx];
+            if c < b'0' || c > b'9' {
+                break;
             }
-            self.pq.size = 0;
-            self.pq.enq(s, 0.0);
-            self.min_cost[s] = 0.0;
+            n = n * 10 + ((c & 0x0f) as i32);
+            self.idx += 1;
+        }
+        if neg { -n } else { n }
+    }
+}
 
-            while !self.pq.is_empty() {
-                let QueItem { s: vtx, t: dist } = self.pq.top();
-                self.pq.deq();
-                if self.min_cost[vtx] < dist {
+fn min_heapify(que: &mut [Que; QMAX], qsize: usize, mut i: usize) {
+    loop {
+        let l = i * 2;
+        let r = i * 2 + 1;
+        let mut min = i;
+        if l < qsize && que[l].t < que[i].t {
+            min = l;
+        }
+        if r < qsize && que[r].t < que[min].t {
+            min = r;
+        }
+        if min == i {
+            break;
+        }
+        que.swap(i, min);
+        i = min;
+    }
+}
+
+fn deq(que: &mut [Que; QMAX], qsize: &mut usize) {
+    *qsize -= 1;
+    que[0] = que[*qsize];
+    min_heapify(que, *qsize, 0);
+}
+
+fn enq(que: &mut [Que; QMAX], qsize: &mut usize, s: usize, t: f64) {
+    let mut i = *qsize;
+    *qsize += 1;
+    que[i] = Que { s, t };
+    while i > 0 {
+        let p = i >> 1;
+        if que[p].t <= que[i].t {
+            break;
+        }
+        que.swap(i, p);
+        i = p;
+    }
+}
+
+fn add_edge(g: &mut Vec<Vec<Edge>>, from: usize, to: usize, cap: i32, cost: f64) {
+    let f_rev = g[to].len();
+    let t_rev = g[from].len();
+    g[from].push(Edge { to, rev: f_rev, cap, cost });
+    g[to].push(Edge { to: from, rev: t_rev, cap: 0, cost: -cost });
+}
+
+fn min_cost_flow(g: &mut Vec<Vec<Edge>>, s: usize, t: usize, mut f: i32) -> f64 {
+    let v = g.len();
+    let mut potential = vec![0.0f64; v];
+    let mut min_cost = vec![INF; v];
+    let mut prevv = vec![0usize; v];
+    let mut preve = vec![0usize; v];
+
+    let mut que = [Que { s: 0, t: 0.0 }; QMAX];
+    let mut qsize: usize = 0;
+
+    let mut ret = 0.0f64;
+
+    while f > 0 {
+        for mc in &mut min_cost {
+            *mc = INF;
+        }
+        qsize = 0;
+        enq(&mut que, &mut qsize, s, 0.0);
+        min_cost[s] = 0.0;
+
+        while qsize != 0 {
+            let cur = que[0];
+            deq(&mut que, &mut qsize);
+            let vtx = cur.s;
+            let dist = cur.t;
+            if min_cost[vtx] < dist {
+                continue;
+            }
+            for (i, e) in g[vtx].iter().enumerate() {
+                if e.cap <= 0 {
                     continue;
                 }
-                // Iterate edges
-                for ei in 0..self.g[vtx].len() {
-                    let (to, cap, cost) = {
-                        let e = &self.g[vtx][ei];
-                        (e.to, e.cap, e.cost)
-                    };
-                    let nd = dist + cost + self.potential[vtx] - self.potential[to];
-                    if cap > 0 && self.min_cost[to] > nd + EPS {
-                        self.min_cost[to] = nd;
-                        self.prevv[to] = vtx;
-                        self.preve[to] = ei;
-                        self.pq.enq(to, nd);
-                    }
+                let nv = e.to;
+                let nd = dist + e.cost + potential[vtx] - potential[nv];
+                if min_cost[nv] > nd + EPS {
+                    min_cost[nv] = nd;
+                    prevv[nv] = vtx;
+                    preve[nv] = i;
+                    enq(&mut que, &mut qsize, nv, nd);
                 }
-            }
-
-            if (self.min_cost[t] - (INF_I32 as f64)).abs() < f64::EPSILON {
-                return -1.0;
-            }
-            for i in 0..self.v {
-                self.potential[i] += self.min_cost[i];
-            }
-
-            let mut k = f;
-            let mut vtx = t;
-            while vtx != s {
-                let pv = self.prevv[vtx];
-                let pe = self.preve[vtx];
-                let cap = self.g[pv][pe].cap;
-                if k > cap {
-                    k = cap;
-                }
-                vtx = pv;
-            }
-            f -= k;
-
-            ret += (k as f64) * self.potential[t];
-
-            let mut vtx2 = t;
-            while vtx2 != s {
-                let pv = self.prevv[vtx2];
-                let pe = self.preve[vtx2];
-                let rev = self.g[pv][pe].rev;
-
-                // Update forward
-                self.g[pv][pe].cap -= k;
-                // Update reverse
-                self.g[vtx2][rev].cap += k;
-
-                vtx2 = pv;
             }
         }
-        ret
+
+        if (min_cost[t] - INF).abs() < f64::EPSILON {
+            return -1.0;
+        }
+
+        for i in 0..v {
+            potential[i] += min_cost[i];
+        }
+
+        let mut k = f;
+        let mut vtx = t;
+        while vtx != s {
+            let pv = prevv[vtx];
+            let pe = preve[vtx];
+            let cap = g[pv][pe].cap;
+            if k > cap {
+                k = cap;
+            }
+            vtx = pv;
+        }
+        f -= k;
+
+        ret += (k as f64) * potential[t];
+
+        let mut vtx2 = t;
+        while vtx2 != s {
+            let pv = prevv[vtx2];
+            let pe = preve[vtx2];
+            let rev = g[pv][pe].rev;
+
+            // Update forward edge
+            g[pv][pe].cap -= k;
+            // Update reverse edge
+            g[vtx2][rev].cap += k;
+
+            vtx2 = pv;
+        }
     }
+
+    ret
 }
 
 fn gauss_jordan(n: usize, a: &[[i32; N]; N], c: &[i32; N], x: &mut [f64; N]) -> bool {
     let mut b = [[0.0f64; N + 1]; N];
+
     for i in 0..n {
         for j in 0..n {
             b[i][j] = a[i][j] as f64;
@@ -233,68 +217,34 @@ fn gauss_jordan(n: usize, a: &[[i32; N]; N], c: &[i32; N], x: &mut [f64; N]) -> 
             if i == j {
                 continue;
             }
+            let bij = b[j][i];
             for k in (i + 1)..=n {
-                b[j][k] -= b[j][i] * b[i][k];
+                b[j][k] -= bij * b[i][k];
             }
         }
     }
+
     for i in 0..n {
         x[i] = b[i][n];
     }
     true
 }
 
-struct Scanner {
-    buf: Vec<u8>,
-    idx: usize,
-}
-impl Scanner {
-    fn new() -> Self {
-        let mut input = String::new();
-        io::stdin().read_to_string(&mut input).unwrap();
-        Self {
-            buf: input.into_bytes(),
-            idx: 0,
-        }
-    }
-    fn next_i32(&mut self) -> i32 {
-        while self.idx < self.buf.len() && self.buf[self.idx].is_ascii_whitespace() {
-            self.idx += 1;
-        }
-        let mut neg = false;
-        if self.idx < self.buf.len() && self.buf[self.idx] == b'-' {
-            neg = true;
-            self.idx += 1;
-        }
-        let mut n: i32 = 0;
-        while self.idx < self.buf.len() {
-            let c = self.buf[self.idx];
-            if c < b'0' || c > b'9' {
-                break;
-            }
-            n = n * 10 + ((c & 0x0f) as i32);
-            self.idx += 1;
-        }
-        if neg { -n } else { n }
-    }
-}
-
 fn main() {
     let mut sc = Scanner::new();
+
     let tcase = sc.next_i32() as usize;
-
     let mut out = String::new();
-
-    let mut a = [[0i32; N]; N];
-    let mut c = [0i32; N];
-    let mut x = [0.0f64; N];
-    let mut d = [0usize; 105];
 
     for _ in 0..tcase {
         let n = sc.next_i32() as usize;
         let s = sc.next_i32() as usize;
         let t = sc.next_i32() as usize;
         let f = sc.next_i32() as i32;
+
+        let mut a = [[0i32; N]; N];
+        let mut c = [0i32; N];
+        let mut x = [0.0f64; N];
 
         for i in 0..n {
             for j in 0..n {
@@ -303,10 +253,11 @@ fn main() {
             c[i] = sc.next_i32();
         }
 
-        // C code ignores return value; we do the same.
+        // C code ignores the return value; we do the same (but still compute x if possible).
         let _ = gauss_jordan(n, &a, &c, &mut x);
 
-        let mut mcmf = MCMF::new(n);
+        let mut g: Vec<Vec<Edge>> = vec![Vec::new(); n];
+        let mut d = [0usize; 105];
 
         for i in 0..n {
             let m = sc.next_i32() as usize;
@@ -317,15 +268,14 @@ fn main() {
                 let cap = sc.next_i32();
                 let to = d[j];
                 let cost = (x[i] - x[to]).abs();
-                mcmf.add_edge(i, to, cap, cost);
+                add_edge(&mut g, i, to, cap, cost);
             }
         }
 
-        let ans = mcmf.min_cost_flow(s, t, f);
+        let ans = min_cost_flow(&mut g, s, t, f);
         if ans < 0.0 {
             out.push_str("impossible\n");
         } else {
-            // Match printf("%.10lf\n", ans);
             out.push_str(&format!("{:.10}\n", ans));
         }
     }

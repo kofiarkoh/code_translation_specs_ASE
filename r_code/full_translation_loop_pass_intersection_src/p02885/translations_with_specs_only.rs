@@ -8,12 +8,10 @@ fn main() {
     let a: i64 = it.next().unwrap().parse().unwrap();
     let b: i64 = it.next().unwrap().parse().unwrap();
 
-    // Specification: behavior is undefined on overflow.
-    // In Rust, debug builds panic on overflow; release builds wrap.
-    // We use wrapping ops to avoid introducing panics and keep behavior
-    // as close as possible to "not defined" without adding error handling.
-    let diff = a.wrapping_sub(b.wrapping_mul(2));
+    // Specification precondition states no overflow/underflow occurs for:
+    // a - 2*b, so normal i64 arithmetic is sufficient.
+    let expr = a - 2 * b;
+    let out = if expr > 0 { expr } else { 0 };
 
-    let out = if diff < 0 { 0 } else { diff };
-    print!("{out}");
+    print!("{}", out);
 }

@@ -1,7 +1,7 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin
+    // Fast input
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -10,9 +10,7 @@ fn main() {
     let w: usize = it.next().unwrap().parse().unwrap();
     let k_limit: i32 = it.next().unwrap().parse().unwrap();
 
-    // C uses 1-based indexing for both rows and columns:
-    // char S[12][1002]; and reads into &(S[i][1]) for i=1..H.
-    // We'll store as bytes with an extra leading dummy column at index 0.
+    // 1-based grid storage: s[row][col], with dummy 0th row/col.
     let mut s: Vec<Vec<u8>> = vec![vec![b'0'; w + 2]; h + 2];
     for i in 1..=h {
         let row = it.next().unwrap().as_bytes();
@@ -21,108 +19,84 @@ fn main() {
         }
     }
 
-    // Arrays sized to cover indices up to H+1 (C uses flag[H+1] as sentinel check).
-    // In the original constraints H<=10, but we follow the C fixed sizes conceptually.
-    let mut t: Vec<usize> = vec![0; h + 3];
-    let mut b: Vec<usize> = vec![0; h + 3];
-    let mut flag: Vec<i32> = vec![0; h + 3];
-    let mut count: Vec<i32> = vec![0; h + 3];
-
-    let mut ans: i32 = 1 << 30;
-
-    flag[h] = 1;
-    while flag[h + 1] == 0 {
-        t[0] = 1;
-
-        // Build horizontal groups based on flag[] cut positions.
-        let mut i: usize = 0;
-        while t[i] <= h {
-            count[i] = 0;
-            b[i] = t[i];
-            while flag[b[i]] == 0 {
-                b[i] += 1;
-            }
-            t[i + 1] = b[i] + 1;
-            i += 1;
+    // Precompute prefix sums per row to speed up segment-column sums:
+    // pref[r][c] = number of '1' in row r in columns 1..=c
+    let mut pref: Vec<Vec<i32>> = vec![vec![0; w + 1]; h + 1];
+    for r in 1..=h {
+        for c in 1..=w {
+            pref[r][c] = pref[r][c - 1] + if s[r][c] == b'1' { 1 } else { 0 };
         }
+    }
 
-        // tmp starts as number of horizontal cuts: (number of groups - 1)
-        let mut tmp: i32 = i as i32 - 1;
+    // Enumerate all horizontal cut patterns via bitmask over (h-1) boundaries.
+    // This is semantically equivalent to the C code's flag[] iteration, but avoids
+    // the previous buggy/slow flag update that could loop forever.
+    let mut ans: i32 = 1 << 30;
+    let max_mask: usize = 1usize << (h.saturating_sub(1));
 
-        // Scan columns, adding vertical cuts when needed.
-        let mut j: usize = 1;
-        while j <= w {
-            // Add this column to current segment counts.
-            let mut ii: usize = 0;
-            while t[ii] <= h {
-                let mut kk = t[ii];
-                while kk <= b[ii] {
-                    if s[kk][j] == b'1' {
-                        count[ii] += 1;
-                    }
-                    kk += 1;
+    for mask in 0..max_mask {
+        // Build segments [t[i], b[i]] (inclusive), 1-based rows.
+        let mut t: Vec<usize> = Vec::with_capacity(h + 1);
+        let mut b: Vec<usize> = Vec::with_capacity(h + 1);
+
+        let mut start = 1usize;
+        for r in 1..h {
+            if (mask >> (r - 1)) & 1 == 1 {
+                t.push(start);
+                b.push(r);
+                start = r + 1;
+            }
+        }
+        t.push(start);
+        b.push(h);
+
+        let segs = t.len();
+        let mut count = vec![0i32; segs];
+
+        // tmp starts as number of horizontal cuts = segs - 1
+        let mut tmp: i32 = (segs as i32) - 1;
+
+        // Process columns with greedy vertical cuts, matching the C logic.
+        let mut ok = true;
+        for col in 1..=w {
+            // Add this column to current vertical block
+            let mut bad = false;
+            for si in 0..segs {
+                let mut add = 0i32;
+                for r in t[si]..=b[si] {
+                    add += pref[r][col] - pref[r][col - 1];
                 }
-                if count[ii] > k_limit {
-                    break;
+                count[si] += add;
+                if count[si] > k_limit {
+                    bad = true;
                 }
-                ii += 1;
             }
 
-            if t[ii] <= h {
-                // Need to cut before this column: reset counts and try this column alone.
-                let mut iii: usize = 0;
-                while t[iii] <= h {
-                    count[iii] = 0;
-                    let mut kk = t[iii];
-                    while kk <= b[iii] {
-                        if s[kk][j] == b'1' {
-                            count[iii] += 1;
-                        }
-                        kk += 1;
+            if bad {
+                // Start a new vertical block before this column:
+                // reset counts and try this column alone.
+                for si in 0..segs {
+                    let mut v = 0i32;
+                    for r in t[si]..=b[si] {
+                        v += pref[r][col] - pref[r][col - 1];
                     }
-                    if count[iii] > k_limit {
+                    count[si] = v;
+                    if count[si] > k_limit {
+                        ok = false;
                         break;
                     }
-                    iii += 1;
                 }
-
-                if t[iii] <= h {
-                    // Even a single column violates K => this partitioning is impossible.
+                if !ok {
                     break;
-                } else {
-                    // Place a vertical cut (increment tmp) and continue with this column as first.
-                    tmp += 1;
                 }
+                tmp += 1; // one vertical cut
             }
-
-            j += 1;
         }
 
-        if j > w && tmp < ans {
+        if ok && tmp < ans {
             ans = tmp;
-        }
-
-        // Next flag pattern generation (mimics the C code exactly).
-        // for (i = 1; i <= H && flag[i] == 1; i++);
-        let mut idx: usize = 1;
-        while idx <= h && flag[idx] == 1 {
-            idx += 1;
-        }
-        // for (flag[i--] = 1; i >= 1; flag[i--] = 0);
-        // Careful with usize underflow; emulate the C loop structure.
-        if idx <= h {
-            flag[idx] = 1;
-            let mut p: isize = idx as isize - 1;
-            while p >= 1 {
-                flag[p as usize] = 0;
-                p -= 1;
-            }
-        } else {
-            // If idx == h+1, the C code would write flag[h+1]=1 and terminate next check.
-            flag[h + 1] = 1;
         }
     }
 
     print!("{ans}\n");
-    // stdout flush is implicit on program exit; C calls fflush(stdout) but not required here.
 }

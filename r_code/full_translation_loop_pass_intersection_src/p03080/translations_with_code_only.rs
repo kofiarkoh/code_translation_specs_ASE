@@ -1,7 +1,7 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin (scanf-style tokenization).
+    // Read entire stdin (matches typical scanf tokenization behavior for this program).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
 
@@ -17,29 +17,28 @@ fn main() {
         None => std::process::exit(1),
     };
 
-    // C: char s[128]; scanf("%127s", s) => at most 127 bytes + '\0'.
-    // We'll emulate by truncating to 127 bytes (ASCII expected for 'R' checks).
-    let s_bytes = s_token.as_bytes();
-    let s_trunc = if s_bytes.len() > 127 { &s_bytes[..127] } else { s_bytes };
+    // C uses `char s[128]` and `scanf("%127s", s)` which truncates to 127 bytes.
+    // Also, the loop reads s[i] for i in [0, N), which is UB in C if N exceeds
+    // the available bytes. We emulate the intended behavior for in-bounds cases.
+    let bytes = s_token.as_bytes();
+    let len = bytes.len().min(127);
+    let s = &bytes[..len];
 
     let mut kitaeri: i32 = 0;
-
-    // C loop: for (i = 0; i < N; i++) { if (s[i] == 'R') ... }
-    // If N exceeds the string length, C reads beyond the terminator (UB).
-    // We cannot reproduce UB in safe Rust; we clamp to available bytes.
-    let limit = if n <= 0 {
-        0usize
-    } else {
-        let nu = n as usize;
-        if nu > s_trunc.len() { s_trunc.len() } else { nu }
-    };
-
-    for i in 0..limit {
-        if s_trunc[i] == b'R' {
+    let mut i: i32 = 0;
+    while i < n {
+        // If N exceeds available bytes, C would have undefined behavior.
+        // Here we stop indexing to avoid panic; this is the closest safe approximation.
+        let idx = i as usize;
+        if idx >= s.len() {
+            break;
+        }
+        if s[idx] == b'R' {
             kitaeri += 1;
         } else {
             kitaeri -= 1;
         }
+        i += 1;
     }
 
     if kitaeri > 0 {

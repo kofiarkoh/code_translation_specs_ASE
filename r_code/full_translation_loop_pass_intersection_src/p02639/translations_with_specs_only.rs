@@ -6,21 +6,24 @@ fn main() {
 
     let mut it = input.split_whitespace();
 
-    // Specification precondition: at least five integer values are provided.
-    // If fewer than five are present or parsing fails, behavior is unspecified by the spec;
-    // we choose to do nothing in that case (narrow, non-inventive behavior).
-    let mut vals = [0i64; 5];
-    for i in 0..5 {
-        match it.next().and_then(|s| s.parse::<i64>().ok()) {
-            Some(v) => vals[i] = v,
-            None => return,
-        }
-    }
+    // Preconditions say exactly five integers are available and readable.
+    // If not, behavior is unspecified; we keep it simple and unwrap.
+    let a: i64 = it.next().unwrap().parse().unwrap();
+    let b: i64 = it.next().unwrap().parse().unwrap();
+    let c: i64 = it.next().unwrap().parse().unwrap();
+    let d: i64 = it.next().unwrap().parse().unwrap();
+    let e: i64 = it.next().unwrap().parse().unwrap();
 
-    for (idx, &v) in vals.iter().enumerate() {
-        if v == 0 {
-            print!("{}", idx + 1);
-            return;
-        }
+    if a == 0 {
+        print!("1");
+    } else if b == 0 {
+        print!("2");
+    } else if c == 0 {
+        print!("3");
+    } else if d == 0 {
+        print!("4");
+    } else if e == 0 {
+        print!("5");
     }
+    // If none are zero: produce no output.
 }

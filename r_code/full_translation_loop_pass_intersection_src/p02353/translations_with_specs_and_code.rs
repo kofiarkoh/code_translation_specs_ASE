@@ -1,21 +1,19 @@
 use std::io::{self, Read};
 
-const COMMAND_UPDATE: i32 = 0;
-const COMMAND_GET_SUM: i32 = 1;
-
-// Sentinel for "no pending lazy". Matches C's (2e+9) used as int64_t.
-const INIT_LAZY: i64 = 2_000_000_000;
-
-#[derive(Clone, Copy)]
-struct Node {
-    lazy: i64, // when set: stores "assigned_value * segment_length" for this node
-    val: i64,  // sum over the segment
-}
+const INIT_VAL: i64 = 2_000_000_000; // sentinel for "no pending update"
+const ROOT_NODE: usize = 1;
 
 #[derive(Clone, Copy)]
 struct Range {
+    // Half-open interval [start, end)
     start: i32,
-    end: i32, // half-open [start, end)
+    end: i32,
+}
+
+#[derive(Clone, Copy)]
+struct Pair {
+    lazy: i64, // pending segment-sum assignment; INIT_VAL means none
+    val: i64,  // segment sum
 }
 
 fn is_overlap(r1: Range, r2: Range) -> bool {
@@ -26,29 +24,29 @@ fn is_contain(this: Range, box_: Range) -> bool {
     box_.start <= this.start && this.end <= box_.end
 }
 
-fn unlazy(seg: &mut [Node], node: usize, nr: Range) {
+fn unlazy(seg: &mut [Pair], node: usize, nr: Range) {
     let lazy = seg[node].lazy;
-    if lazy == INIT_LAZY {
+    if lazy == INIT_VAL {
         return;
     }
     seg[node].val = lazy;
-    seg[node].lazy = INIT_LAZY;
+    seg[node].lazy = INIT_VAL;
 
     if (nr.end - nr.start) > 1 {
-        let half = lazy / 2;
-        seg[node * 2].lazy = half;
-        seg[node * 2 + 1].lazy = half;
+        let child_lazy = lazy / 2;
+        seg[node * 2].lazy = child_lazy;
+        seg[node * 2 + 1].lazy = child_lazy;
     }
 }
 
-fn update_range(seg: &mut [Node], x: i64, r: Range, node: usize, nr: Range) {
+fn update_range(seg: &mut [Pair], x: i32, r: Range, node: usize, nr: Range) {
     unlazy(seg, node, nr);
     if !is_overlap(r, nr) {
         return;
     }
     if is_contain(nr, r) {
         let len = (nr.end - nr.start) as i64;
-        seg[node].lazy = x * len;
+        seg[node].lazy = (x as i64) * len;
         unlazy(seg, node, nr);
         return;
     }
@@ -65,7 +63,7 @@ fn update_range(seg: &mut [Node], x: i64, r: Range, node: usize, nr: Range) {
     seg[node].val = seg[node * 2].val + seg[node * 2 + 1].val;
 }
 
-fn get_sum(seg: &mut [Node], r: Range, node: usize, nr: Range) -> i64 {
+fn get_sum(seg: &mut [Pair], r: Range, node: usize, nr: Range) -> i64 {
     unlazy(seg, node, nr);
     if !is_overlap(r, nr) {
         return 0;
@@ -85,79 +83,68 @@ fn get_sum(seg: &mut [Node], r: Range, node: usize, nr: Range) -> i64 {
 }
 
 fn main() {
-    // No explicit error handling per spec; however, we must not panic on trailing whitespace
-    // or missing tokens in judge inputs. We'll stop processing if tokens run out.
+    // Robust tokenization: avoid panics on trailing whitespace / missing tokens.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let num: i32 = match it.next() {
-        Some(v) => v.parse().unwrap(),
-        None => return,
-    };
-    let queries: i32 = match it.next() {
-        Some(v) => v.parse().unwrap(),
-        None => return,
-    };
+    let Some(num_s) = it.next() else { return };
+    let Some(queries_s) = it.next() else { return };
+    let num: i32 = num_s.parse().unwrap();
+    let queries: i32 = queries_s.parse().unwrap();
 
     let mut num2: i32 = 1;
     while num > num2 {
         num2 *= 2;
     }
 
+    // Need indices up to (2*num2 - 1) inclusive; allocate 2*num2.
     let size = (num2 as usize) * 2;
     let mut seg = vec![
-        Node {
-            lazy: INIT_LAZY,
-            val: 0
+        Pair {
+            lazy: INIT_VAL,
+            val: 0,
         };
         size
     ];
 
     let whole = Range { start: 0, end: num2 };
-    let mut answers: Vec<i64> = Vec::new();
+
+    let mut outputs: Vec<i64> = Vec::new();
 
     for _ in 0..queries {
-        let type_: i32 = match it.next() {
-            Some(v) => v.parse().unwrap(),
-            None => break,
-        };
-        let start: i32 = match it.next() {
-            Some(v) => v.parse().unwrap(),
-            None => break,
-        };
-        let end: i32 = match it.next() {
-            Some(v) => v.parse().unwrap(),
-            None => break,
-        };
+        let Some(type_s) = it.next() else { break };
+        let Some(start_s) = it.next() else { break };
+        let Some(end_s) = it.next() else { break };
+
+        let type_: i32 = type_s.parse().unwrap();
+        let start: i32 = start_s.parse().unwrap();
+        let end: i32 = end_s.parse().unwrap();
 
         let r = Range {
             start,
-            end: end + 1,
+            end: end + 1, // inclusive -> half-open
         };
 
         match type_ {
-            COMMAND_UPDATE => {
-                let x: i64 = match it.next() {
-                    Some(v) => v.parse::<i64>().unwrap(),
-                    None => break,
-                };
-                update_range(&mut seg, x, r, 1, whole);
+            0 => {
+                // Update: requires one more integer; if missing, stop (well-formed per spec).
+                let Some(x_s) = it.next() else { break };
+                let x: i32 = x_s.parse().unwrap();
+                update_range(&mut seg, x, r, ROOT_NODE, whole);
             }
-            COMMAND_GET_SUM => {
-                let s = get_sum(&mut seg, r, 1, whole);
-                answers.push(s);
+            1 => {
+                let s = get_sum(&mut seg, r, ROOT_NODE, whole);
+                outputs.push(s);
             }
             _ => {
-                // Unsupported type: no output, no modification (spec).
-                // Note: if such a type had extra integers on the line, we intentionally
-                // do not consume them, matching the C behavior (which also wouldn't).
+                // ignored
             }
         }
     }
 
     let mut out = String::new();
-    for v in answers {
+    for v in outputs {
         out.push_str(&v.to_string());
         out.push('\n');
     }

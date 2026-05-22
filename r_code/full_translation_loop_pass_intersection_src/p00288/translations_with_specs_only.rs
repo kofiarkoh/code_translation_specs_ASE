@@ -1,34 +1,35 @@
-use std::cmp::{min, Reverse};
-use std::collections::BinaryHeap;
+use std::cmp::{max, min};
 use std::io::{self, Read};
+
+const MAX_N: usize = 101;
+const MAX_M: usize = 5;
 
 #[derive(Clone, Copy)]
 struct Point {
-    x: i64,
-    y: i64,
+    x: i32,
+    y: i32,
 }
 
 #[derive(Clone, Copy)]
 struct Facility {
     p: Point,
     cap: usize,
-    fixed: i64,
+    open_cost: i32,
 }
 
-fn manhattan(a: Point, b: Point) -> i64 {
+fn manhattan(a: Point, b: Point) -> i32 {
     (a.x - b.x).abs() + (a.y - b.y).abs()
 }
 
-// Min-cost max-flow with successive shortest augmenting paths using potentials.
-// Costs are i64; capacities are i64 (small). Assumes no negative cycles.
-// This is used to compute the minimum assignment cost for a fixed facility subset
-// and a fixed offset.
+// Min-cost max-flow with potentials (successive shortest augmenting path).
+// Costs are i32; internal distances use i64 to avoid accidental overflow in sums.
+// The specification assumes 32-bit fits; we do not add extra checks.
 #[derive(Clone)]
 struct Edge {
     to: usize,
     rev: usize,
-    cap: i64,
-    cost: i64,
+    cap: i32,
+    cost: i32,
 }
 
 struct MinCostFlow {
@@ -40,80 +41,86 @@ impl MinCostFlow {
         Self { g: vec![Vec::new(); n] }
     }
 
-    fn add_edge(&mut self, fr: usize, to: usize, cap: i64, cost: i64) {
+    fn add_edge(&mut self, fr: usize, to: usize, cap: i32, cost: i32) {
         let rev_to = self.g[to].len();
         let rev_fr = self.g[fr].len();
         self.g[fr].push(Edge { to, rev: rev_to, cap, cost });
         self.g[to].push(Edge { to: fr, rev: rev_fr, cap: 0, cost: -cost });
     }
 
-    fn min_cost_flow(&mut self, s: usize, t: usize, mut f: i64) -> Option<i64> {
+    fn min_cost_flow(&mut self, s: usize, t: usize, mut f: i32) -> Option<i64> {
         let n = self.g.len();
-        let mut pot = vec![0i64; n];
-        let mut prev_v = vec![0usize; n];
-        let mut prev_e = vec![0usize; n];
-        let inf = i64::MAX / 4;
-        let mut res = 0i64;
+        let mut h = vec![0i64; n]; // potentials
+        let mut prevv = vec![0usize; n];
+        let mut preve = vec![0usize; n];
+        let mut res: i64 = 0;
 
+        // Dijkstra with potentials; graph is small, use O(n^2) implementation.
         while f > 0 {
-            let mut dist = vec![inf; n];
+            let mut dist = vec![i64::MAX / 4; n];
+            let mut used = vec![false; n];
             dist[s] = 0;
-            let mut pq = BinaryHeap::<(Reverse<i64>, usize)>::new();
-            pq.push((Reverse(0), s));
 
-            while let Some((Reverse(d), v)) = pq.pop() {
-                if d != dist[v] {
-                    continue;
+            for _ in 0..n {
+                let mut v = None;
+                let mut best = i64::MAX / 4;
+                for i in 0..n {
+                    if !used[i] && dist[i] < best {
+                        best = dist[i];
+                        v = Some(i);
+                    }
                 }
+                let v = match v {
+                    Some(v) => v,
+                    None => break,
+                };
+                used[v] = true;
                 for (i, e) in self.g[v].iter().enumerate() {
                     if e.cap <= 0 {
                         continue;
                     }
-                    let nd = d
-                        .saturating_add(e.cost)
-                        .saturating_add(pot[v])
-                        .saturating_sub(pot[e.to]);
+                    let nd = dist[v] + (e.cost as i64) + h[v] - h[e.to];
                     if nd < dist[e.to] {
                         dist[e.to] = nd;
-                        prev_v[e.to] = v;
-                        prev_e[e.to] = i;
-                        pq.push((Reverse(nd), e.to));
+                        prevv[e.to] = v;
+                        preve[e.to] = i;
                     }
                 }
             }
 
-            if dist[t] == inf {
-                return None;
+            if dist[t] >= i64::MAX / 8 {
+                return None; // cannot send remaining flow
             }
 
             for v in 0..n {
-                if dist[v] < inf {
-                    pot[v] = pot[v].saturating_add(dist[v]);
+                if dist[v] < i64::MAX / 8 {
+                    h[v] += dist[v];
                 }
             }
 
-            let mut addf = f;
+            let mut d = f;
             let mut v = t;
             while v != s {
-                let pv = prev_v[v];
-                let pe = prev_e[v];
-                addf = min(addf, self.g[pv][pe].cap);
+                let pv = prevv[v];
+                let pe = preve[v];
+                d = min(d, self.g[pv][pe].cap);
                 v = pv;
             }
+
+            f -= d;
+            res += (d as i64) * h[t];
 
             v = t;
             while v != s {
-                let pv = prev_v[v];
-                let pe = prev_e[v];
+                let pv = prevv[v];
+                let pe = preve[v];
                 let rev = self.g[pv][pe].rev;
-                let cost = self.g[pv][pe].cost;
-                self.g[pv][pe].cap -= addf;
-                self.g[v][rev].cap += addf;
-                res = res.saturating_add(addf.saturating_mul(cost));
+                // update forward
+                self.g[pv][pe].cap -= d;
+                // update reverse
+                self.g[v][rev].cap += d;
                 v = pv;
             }
-
-            f -= addf;
         }
 
         Some(res)
@@ -125,7 +132,7 @@ fn main() {
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let mut outputs = Vec::<String>::new();
+    let mut out = String::new();
 
     loop {
         let n_opt = it.next();
@@ -136,127 +143,119 @@ fn main() {
         if n == 0 {
             break;
         }
+        // Preconditions say n <= 101; we do not enforce beyond fixed storage assumptions.
         let m: usize = it.next().unwrap().parse().unwrap();
-        let mult: i64 = it.next().unwrap().parse().unwrap();
+        let k: i32 = it.next().unwrap().parse().unwrap();
 
         let mut demands = Vec::with_capacity(n);
         for _ in 0..n {
-            let x: i64 = it.next().unwrap().parse().unwrap();
-            let y: i64 = it.next().unwrap().parse().unwrap();
+            let x: i32 = it.next().unwrap().parse().unwrap();
+            let y: i32 = it.next().unwrap().parse().unwrap();
             demands.push(Point { x, y });
         }
 
-        let mut facilities = Vec::with_capacity(m);
+        let mut facs = Vec::with_capacity(m);
         for _ in 0..m {
-            let x: i64 = it.next().unwrap().parse().unwrap();
-            let y: i64 = it.next().unwrap().parse().unwrap();
-            let cap_i: i64 = it.next().unwrap().parse().unwrap();
-            let fixed: i64 = it.next().unwrap().parse().unwrap();
-            let cap = if cap_i <= 0 { 0 } else { cap_i as usize };
-            facilities.push(Facility { p: Point { x, y }, cap, fixed });
+            let x: i32 = it.next().unwrap().parse().unwrap();
+            let y: i32 = it.next().unwrap().parse().unwrap();
+            let cap_i32: i32 = it.next().unwrap().parse().unwrap();
+            let open_cost: i32 = it.next().unwrap().parse().unwrap();
+            facs.push(Facility {
+                p: Point { x, y },
+                cap: max(0, cap_i32) as usize,
+                open_cost,
+            });
         }
 
-        // Precompute distances demand->facility.
-        let mut dist = vec![vec![0i64; m]; n];
-        let mut max_d = 0i64;
+        // Precompute all Manhattan distances.
+        let mut dist = vec![vec![0i32; m]; n];
+        let mut maxd: i32 = 0;
         for i in 0..n {
             for j in 0..m {
-                let d = manhattan(demands[i], facilities[j].p);
+                let d = manhattan(demands[i], facs[j].p);
                 dist[i][j] = d;
-                if d > max_d {
-                    max_d = d;
+                if d > maxd {
+                    maxd = d;
                 }
             }
         }
 
-        // Sentinel behavior: if all subsets infeasible, we print this sentinel.
+        // The optimized integer offset parameter is not explicitly bounded in the spec.
+        // Narrowest reasonable interpretation: only offsets that can change any term,
+        // i.e., 0..=max Manhattan distance, since for p > maxd all assignment costs are 0
+        // and the additional term grows with p (k assumed nonnegative scaling factor).
+        let p_min: i32 = 0;
+        let p_max: i32 = maxd;
+
         let mut best: i64 = i64::MAX / 4;
 
-        // Enumerate all non-empty subsets; empty subset cannot serve any demand.
-        // (If n==0 we'd terminate earlier.)
-        let total_masks = 1u64 << m;
-        for mask in 1u64..total_masks {
-            // Collect selected facilities and check total capacity.
-            let mut sel = Vec::<usize>::new();
+        // Enumerate all non-empty subsets; empty subset cannot assign any demand.
+        let total_masks = 1usize << m;
+        for mask in 1..total_masks {
+            let mut open_sum: i64 = 0;
+            let mut chosen = Vec::new();
             let mut cap_sum: usize = 0;
-            let mut fixed_sum: i64 = 0;
             for j in 0..m {
                 if (mask >> j) & 1 == 1 {
-                    sel.push(j);
-                    cap_sum = cap_sum.saturating_add(facilities[j].cap);
-                    fixed_sum = fixed_sum.saturating_add(facilities[j].fixed);
+                    open_sum += facs[j].open_cost as i64;
+                    chosen.push(j);
+                    cap_sum += facs[j].cap;
                 }
             }
             if cap_sum < n {
-                continue;
+                continue; // infeasible by capacity count
             }
 
-            // Offset is an integer chosen to minimize:
-            // fixed_sum + min_assignment_cost(offset) + offset * mult * |sel|
-            //
-            // The assignment cost uses max(0, dist - offset). For offset > max_d,
-            // all assignment costs become 0, so objective becomes fixed_sum + offset*mult*|sel|.
-            // If mult >= 0, searching offsets in [0..=max_d] is sufficient.
-            // If mult < 0, the objective is unbounded below as offset increases; the spec
-            // does not define behavior. We choose the narrowest reasonable interpretation:
-            // still search [0..=max_d] (the only range implied by distances).
-            let k = sel.len() as i64;
-            let mut best_for_subset: Option<i64> = None;
+            let s_count = chosen.len() as i64;
 
-            for offset in 0..=max_d {
+            // For each offset p, compute min assignment cost with nonnegative part,
+            // then add opening costs and additional term k * (#facilities) * p.
+            for p in p_min..=p_max {
                 // Build flow network:
                 // source -> each demand (cap 1, cost 0)
-                // demand -> each selected facility (cap 1, cost max(0, dist - offset))
+                // demand -> facility (cap 1, cost max(0, dist - p))
                 // facility -> sink (cap facility.cap, cost 0)
-                let s = 0usize;
+                let nd = n;
+                let nf = chosen.len();
+                let src = 0usize;
                 let demand_base = 1usize;
-                let fac_base = demand_base + n;
-                let t = fac_base + sel.len();
-                let nodes = t + 1;
+                let fac_base = demand_base + nd;
+                let sink = fac_base + nf;
+                let nodes = sink + 1;
 
                 let mut mcf = MinCostFlow::new(nodes);
 
-                for i in 0..n {
-                    mcf.add_edge(s, demand_base + i, 1, 0);
+                for i in 0..nd {
+                    mcf.add_edge(src, demand_base + i, 1, 0);
                 }
-                for (idx, &fj) in sel.iter().enumerate() {
-                    let cap = facilities[fj].cap as i64;
-                    mcf.add_edge(fac_base + idx, t, cap, 0);
+                for (fi, &fj) in chosen.iter().enumerate() {
+                    let cap = facs[fj].cap as i32;
+                    mcf.add_edge(fac_base + fi, sink, cap, 0);
                 }
-                for i in 0..n {
-                    let di = demand_base + i;
-                    for (idx, &fj) in sel.iter().enumerate() {
-                        let raw = dist[i][fj].saturating_sub(offset);
-                        let c = if raw < 0 { 0 } else { raw };
-                        mcf.add_edge(di, fac_base + idx, 1, c);
+                for i in 0..nd {
+                    for (fi, &fj) in chosen.iter().enumerate() {
+                        let c = max(0, dist[i][fj] - p);
+                        mcf.add_edge(demand_base + i, fac_base + fi, 1, c);
                     }
                 }
 
-                let flow_cost = match mcf.min_cost_flow(s, t, n as i64) {
-                    Some(c) => c,
-                    None => continue, // infeasible for this offset (shouldn't happen if cap_sum>=n)
+                let flow_cost = match mcf.min_cost_flow(src, sink, n as i32) {
+                    Some(v) => v,
+                    None => continue, // infeasible for this subset (shouldn't happen if cap_sum>=n)
                 };
 
-                let linear = offset
-                    .saturating_mul(mult)
-                    .saturating_mul(k);
-                let total = fixed_sum.saturating_add(flow_cost).saturating_add(linear);
-
-                best_for_subset = Some(match best_for_subset {
-                    None => total,
-                    Some(prev) => prev.min(total),
-                });
-            }
-
-            if let Some(v) = best_for_subset {
-                if v < best {
-                    best = v;
+                let extra = (k as i64) * s_count * (p as i64);
+                let total = open_sum + flow_cost + extra;
+                if total < best {
+                    best = total;
                 }
             }
         }
 
-        outputs.push(best.to_string());
+        // Spec: if no subset feasible, output internal initialization-derived value.
+        // We keep that behavior by printing best even if it stayed at MAX/4.
+        out.push_str(&format!("{}\n", best));
     }
 
-    print!("{}", outputs.join("\n"));
+    print!("{out}");
 }

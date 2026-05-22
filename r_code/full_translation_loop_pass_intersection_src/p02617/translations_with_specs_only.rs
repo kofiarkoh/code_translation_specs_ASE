@@ -1,29 +1,29 @@
 use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin; malformed/insufficient input => unspecified per spec.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
     let n: i64 = it.next().unwrap().parse().unwrap();
 
-    // Baseline B = Σ_{t=1..N} t(t+1)/2
-    // Compute in i64; specification assumes no overflow occurs.
-    let mut baseline: i64 = 0;
-    for t in 1..=n {
-        baseline += t * (t + 1) / 2;
+    // Baseline:
+    // B = sum_{k=1..N} k(k+1)/2
+    // Compute in i64; overflow behavior is unspecified by spec, so we do not guard.
+    let mut ans: i64 = 0;
+    for k in 1..=n {
+        ans += k * (k + 1) / 2;
     }
 
-    let mut sub: i64 = 0;
-    // Read exactly (N - 1) pairs.
+    // Process exactly N-1 pairs, subtracting x * (N - y + 1) where x=min(a,b), y=max(a,b).
     for _ in 0..(n - 1) {
         let a: i64 = it.next().unwrap().parse().unwrap();
         let b: i64 = it.next().unwrap().parse().unwrap();
-
-        let (u, w) = if a <= b { (a, b) } else { (b, a) };
-        sub += u * (n - w + 1);
+        let x = a.min(b);
+        let y = a.max(b);
+        ans -= x * (n - y + 1);
     }
 
-    let result = baseline - sub;
-    println!("{result}");
+    println!("{ans}");
 }

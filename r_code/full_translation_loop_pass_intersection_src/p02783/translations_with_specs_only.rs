@@ -5,16 +5,23 @@ fn main() {
     io::stdin().read_to_string(&mut input).unwrap();
 
     let mut it = input.split_whitespace();
-    let a: i128 = it.next().unwrap().parse().unwrap();
-    let b: i128 = it.next().unwrap().parse().unwrap();
+    let dividend: i128 = it.next().unwrap().parse().unwrap();
+    let divisor: i128 = it.next().unwrap().parse().unwrap();
 
-    // Specification assumes b > 0 and b != 0; no explicit error handling.
-    // Use the standard integer-division identity for positive divisors:
-    // ceil(a / b) = a / b + (a % b != 0 ? 1 : 0)
-    // This matches the described behavior for positive b, including negative a.
-    let q = a / b;
-    let r = a % b;
-    let ans = if r == 0 { q } else { q + 1 };
+    // Preconditions per specification:
+    // - divisor != 0 (otherwise division by zero is undefined)
+    // - dividend, divisor are assumed non-negative for "ceiling" meaning
+    //
+    // Overflow behavior: specification says overflow is undefined.
+    // Use checked arithmetic and panic on overflow to avoid silently changing semantics.
+    let q = dividend / divisor;
+    let r = dividend % divisor;
 
-    println!("{ans}");
+    let result = if r == 0 {
+        q
+    } else {
+        q.checked_add(1).unwrap()
+    };
+
+    println!("{result}");
 }

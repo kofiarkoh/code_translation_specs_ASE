@@ -1,42 +1,60 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read all stdin, then take the first whitespace-delimited token.
-    // Specification: no explicit error handling; missing input is undefined.
+    // Read entire stdin, then take the first whitespace-delimited token.
+    // Per spec: if missing token, behavior is undefined; we simply do nothing.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
-    let token = input.split_whitespace().next().unwrap();
+    let token = match input.split_whitespace().next() {
+        Some(t) => t,
+        None => return,
+    };
 
-    // Fixed 256-value domain. Specification assumes all characters map into [0,255].
-    // We interpret "character values" as raw bytes of the token.
-    let bytes = token.as_bytes();
+    // Frequency table for character values 0..=255.
+    // Spec assumes all characters map into this range; otherwise behavior is undefined.
+    let mut freq = [0u32; 256];
+    let mut remaining: u32 = 0;
 
-    // Count frequencies.
-    let mut freq = [0usize; 256];
-    for &b in bytes {
-        freq[b as usize] += 1;
+    // Interpret the token as raw bytes; this matches the 0..255 indexing assumption.
+    for &b in token.as_bytes() {
+        freq[b as usize] = freq[b as usize].wrapping_add(1);
+        remaining = remaining.wrapping_add(1);
     }
 
-    // Build run contributions without materializing the expanded sequence.
-    // A run is over consecutive character values (v, v+1, ...) with no gaps,
-    // and repeats of the same value extend the run by their frequency.
-    let mut total: usize = 0;
-    let mut current_run_len: usize = 0;
+    let mut score: u32 = 0;
 
-    for v in 0..256usize {
-        let f = freq[v];
-        if f == 0 {
-            if current_run_len != 0 {
-                total += current_run_len.min(3);
-                current_run_len = 0;
+    // Repeat sweeps until all occurrences are consumed.
+    while remaining != 0 {
+        let mut in_run = false;
+        let mut run_len: u32 = 0;
+
+        for v in 0..256usize {
+            if freq[v] != 0 {
+                // Consume one occurrence of this value in this sweep.
+                freq[v] = freq[v].wrapping_sub(1);
+                remaining = remaining.wrapping_sub(1);
+
+                if !in_run {
+                    in_run = true;
+                    run_len = 1;
+                } else {
+                    run_len = run_len.wrapping_add(1);
+                }
+            } else {
+                // End of a maximal contiguous run of present values.
+                if in_run {
+                    score = score.wrapping_add(run_len.min(3));
+                    in_run = false;
+                    run_len = 0;
+                }
             }
-        } else {
-            current_run_len += f;
+        }
+
+        // Close a run that reaches the end of the value range.
+        if in_run {
+            score = score.wrapping_add(run_len.min(3));
         }
     }
-    if current_run_len != 0 {
-        total += current_run_len.min(3);
-    }
 
-    println!("{}", total);
+    println!("{}", score);
 }

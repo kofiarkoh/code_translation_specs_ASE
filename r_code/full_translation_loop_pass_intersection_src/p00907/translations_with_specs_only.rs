@@ -1,97 +1,74 @@
 use std::io::{self, Read};
 
-const EPS: f64 = 0.1;
-
-fn lagrange_predict(xs: &[f64], ys: &[f64], x: f64) -> f64 {
-    // Predict y(x) for the unique polynomial of degree <= (n-1) passing through (xs[k], ys[k]).
-    // Uses straightforward Lagrange interpolation; n is small (<= 9 by constraints).
-    let n = xs.len();
+fn lagrange_predict(x: f64, xs: &[f64], ys: &[f64]) -> f64 {
+    // Unique polynomial of degree <= d through (xs[t], ys[t]) for t=0..d
+    // Evaluate at x using Lagrange form.
+    let m = xs.len();
     let mut sum = 0.0f64;
-    for i in 0..n {
-        let mut li = 1.0f64;
-        for j in 0..n {
-            if i == j {
+    for a in 0..m {
+        let mut term = ys[a];
+        for b in 0..m {
+            if a == b {
                 continue;
             }
-            li *= (x - xs[j]) / (xs[i] - xs[j]);
+            term *= (x - xs[b]) / (xs[a] - xs[b]);
         }
-        sum += ys[i] * li;
+        sum += term;
     }
     sum
 }
 
 fn main() {
-    // Read all input; no explicit error handling required by spec.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let mut outputs = String::new();
-
     loop {
-        let deg_opt = it.next();
-        if deg_opt.is_none() {
+        let d_opt = it.next();
+        if d_opt.is_none() {
             break;
         }
-        let degree: usize = match deg_opt.unwrap().parse() {
-            Ok(v) => v,
-            Err(_) => break,
-        };
-        if degree == 0 {
+        let d: usize = d_opt.unwrap().parse().unwrap();
+        if d == 0 {
             break;
         }
 
-        let n = degree + 3;
-        let mut a = vec![0.0f64; n];
-        for i in 0..n {
-            if let Some(tok) = it.next() {
-                a[i] = tok.parse::<f64>().unwrap_or(0.0);
-            } else {
-                // Malformed/missing input: behavior not specified; stop.
-                return;
-            }
+        let n = d + 3;
+        let mut v = vec![0.0f64; n];
+        for k in 0..n {
+            v[k] = it.next().unwrap().parse::<f64>().unwrap();
         }
 
-        // Search order: first i in increasing order that satisfies the condition.
-        let mut chosen_i: usize = 0;
+        let tol = 0.1f64;
+        let mut answer: usize = 0;
 
         'outer: for i in 0..n {
-            // Condition: for every j != i, build polynomial from all indices except i and j
-            // (so exactly degree+1 points), then check prediction at j within EPS.
-            let mut ok_for_i = true;
-
             for j in 0..n {
                 if j == i {
                     continue;
                 }
 
-                let mut xs: Vec<f64> = Vec::with_capacity(degree + 1);
-                let mut ys: Vec<f64> = Vec::with_capacity(degree + 1);
-
+                // Build the d+1 points excluding i and j.
+                let mut xs: Vec<f64> = Vec::with_capacity(d + 1);
+                let mut ys: Vec<f64> = Vec::with_capacity(d + 1);
                 for k in 0..n {
                     if k == i || k == j {
                         continue;
                     }
                     xs.push(k as f64);
-                    ys.push(a[k]);
+                    ys.push(v[k]);
                 }
 
-                // xs/ys length should be degree+1 by construction.
-                let pred = lagrange_predict(&xs, &ys, j as f64);
-                if (pred - a[j]).abs() > EPS {
-                    ok_for_i = false;
-                    break;
+                // Predict at index j.
+                let pred = lagrange_predict(j as f64, &xs, &ys);
+                if (pred - v[j]).abs() > tol {
+                    continue 'outer;
                 }
             }
-
-            if ok_for_i {
-                chosen_i = i;
-                break 'outer;
-            }
+            answer = i;
+            break;
         }
 
-        outputs.push_str(&format!("{chosen_i}\n"));
+        println!("{answer}");
     }
-
-    print!("{outputs}");
 }

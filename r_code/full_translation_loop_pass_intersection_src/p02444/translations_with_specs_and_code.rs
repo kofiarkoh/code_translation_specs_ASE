@@ -14,7 +14,7 @@ fn main() {
 
     let q: usize = it.next().unwrap().parse().unwrap();
 
-    // Temporary buffer sized to n (matches C's fixed 1000, but uses n as needed).
+    // Temporary buffer sized to n (spec allows up to 1000; C uses fixed 1000).
     let mut tmp: Vec<i32> = vec![0; n];
 
     for _ in 0..q {
@@ -22,22 +22,19 @@ fn main() {
         let m: usize = it.next().unwrap().parse().unwrap();
         let e: usize = it.next().unwrap().parse().unwrap();
 
-        // Copy subrange [b, e) into tmp at the same indices (as in C).
+        // Copy affected subrange into tmp at the same indices (matches C behavior).
         for i in b..e {
             tmp[i] = a[i];
         }
 
-        // Rotate left by (m - b) within the subrange length (e - b).
-        // Per spec, e > b is assumed; otherwise behavior is undefined (C would mod by 0).
-        let len = e - b;
-        let shift = m - b;
-
+        let len = e - b;      // L
+        let k = m - b;        // rotation offset within [0, L]
         for i in 0..len {
-            a[b + i] = tmp[b + (i + shift) % len];
+            a[b + i] = tmp[b + (i + k) % len];
         }
     }
 
-    // Output: n integers separated by spaces, ending with newline.
+    // Output: space-separated, newline at end.
     let mut out = String::new();
     for i in 0..n {
         if i + 1 == n {

@@ -1,29 +1,25 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin (matches C behavior: no explicit error handling).
+    // Read entire stdin, then parse as whitespace-delimited tokens (like scanf).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
-
     let mut it = input.split_whitespace();
 
     let n: i32 = it.next().unwrap().parse().unwrap();
     let s = it.next().unwrap();
 
-    // The C code indexes bytes in a char array; it effectively assumes single-byte characters.
-    // To preserve semantics, operate on raw bytes.
+    // Per spec: consider only the first n characters; precondition says s has at least n chars.
+    // The C code indexes bytes; here we assume ASCII input (as implied by "ABC").
     let bytes = s.as_bytes();
+    let n_usize = if n < 0 { 0 } else { n as usize };
 
     let mut count: i32 = 0;
-    let mut i: i32 = 0;
-
-    // C loop: for (int i=0; i<n-2; i++) { ...; if match { i+=2; } }
-    // Implemented as a while loop to control the increment precisely.
-    while i < n - 2 {
-        let idx = i as usize;
-        if bytes[idx] == b'A' && bytes[idx + 1] == b'B' && bytes[idx + 2] == b'C' {
+    let mut i: usize = 0;
+    while i + 2 < n_usize {
+        if bytes[i] == b'A' && bytes[i + 1] == b'B' && bytes[i + 2] == b'C' {
             count += 1;
-            i += 3; // consume 3 chars total (equivalent to i+=2 then loop i++)
+            i += 3; // non-overlapping: skip past this occurrence
         } else {
             i += 1;
         }

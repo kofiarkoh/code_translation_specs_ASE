@@ -5,73 +5,67 @@ static mut FUKUENNMISATO: [[i64; 2]; 64] = [[0; 2]; 64];
 static mut UTIYAMAYUMI: i64 = 0;
 static mut YOSINAGASAYURI: i64 = 0;
 
-/// Recursively enumerates all divisors of `UTIYAMAYUMI` via its prime factorization
-/// stored in `FUKUENNMISATO[0..MIZUKINANA)`, and multiplies into `YOSINAGASAYURI`
-/// all divisors except the number itself, with saturation/capping at `2*k`.
-///
-/// Note: This mirrors the C code's global-state recursion. We keep it `unsafe`-free
-/// by passing state explicitly in Rust, but the logic is identical.
-fn minaseinori(idx: usize, acc: i64, mizukinana: usize, factors: &[[i64; 2]], k: i64, prod: &mut i64) {
-    if idx >= mizukinana {
-        if acc != k {
-            // Multiply and cap at 2*k (spec invariant: values larger than 2k treated as 2k).
-            // Use i128 to avoid intermediate overflow; spec assumes this is safe under capping.
-            let cap = (k as i128) * 2;
-            let mut v = (*prod as i128) * (acc as i128);
-            if v > cap {
-                v = cap;
+/// Recursively enumerates all divisors `acc` of `UTIYAMAYUMI` (via its prime factorization),
+/// and multiplies `YOSINAGASAYURI` by each proper divisor (i.e., divisor != n),
+/// capping at 2*n as per the specification invariant.
+fn minaseinori(idx: usize, mut acc: i64) {
+    unsafe {
+        if idx >= MIZUKINANA {
+            if acc != UTIYAMAYUMI {
+                // Multiply by this proper divisor, with cap at 2*n.
+                // Use i128 to avoid overflow before capping.
+                let prod = (YOSINAGASAYURI as i128) * (acc as i128);
+                let cap = (UTIYAMAYUMI as i128) * 2;
+                YOSINAGASAYURI = if prod > cap { cap as i64 } else { prod as i64 };
             }
-            *prod = v as i64;
-        }
-    } else {
-        let p = factors[idx][0];
-        let e = factors[idx][1] as usize;
-        let mut cur_acc = acc;
-        for _ in 0..=e {
-            minaseinori(idx + 1, cur_acc, mizukinana, factors, k, prod);
-            cur_acc = cur_acc * p;
+        } else {
+            let p = FUKUENNMISATO[idx][0];
+            let e = FUKUENNMISATO[idx][1] as i32;
+            for _ in 0..=e {
+                minaseinori(idx + 1, acc);
+                acc *= p;
+            }
         }
     }
 }
 
 fn main() {
-    // Read all input
+    // Read all input; on parse failure, exit with nonzero status and no defined output.
     let mut input = String::new();
-    io::stdin().read_to_string(&mut input).unwrap();
+    if io::stdin().read_to_string(&mut input).is_err() {
+        std::process::exit(1);
+    }
     let mut it = input.split_whitespace();
 
-    let q: usize = match it.next() {
-        Some(s) => match s.parse() {
-            Ok(v) => v,
-            Err(_) => std::process::exit(1),
-        },
+    let q: usize = match it.next().and_then(|s| s.parse::<usize>().ok()) {
+        Some(v) => v,
         None => std::process::exit(1),
     };
 
     let mut nvals: Vec<usize> = Vec::with_capacity(q);
     let mut max_n: usize = 0;
     for _ in 0..q {
-        let v: usize = match it.next() {
-            Some(s) => match s.parse() {
-                Ok(v) => v,
-                Err(_) => std::process::exit(1),
-            },
+        let n: usize = match it.next().and_then(|s| s.parse::<usize>().ok()) {
+            Some(v) => v,
             None => std::process::exit(1),
         };
-        if v > max_n {
-            max_n = v;
+        if n > max_n {
+            max_n = n;
         }
-        nvals.push(v);
+        nvals.push(n);
     }
 
-    // Precompute cumulative counts up to max_n
-    let mut count = vec![0i32; max_n.saturating_add(1)];
-    for i in 2..=max_n {
-        // Factorize i
-        let mut x = i as i64;
-        let mut factors: [[i64; 2]; 64] = [[0; 2]; 64];
-        let mut nf: usize = 0;
+    // Supported bounds per spec: max query value must not exceed 114513.
+    // (If it does, behavior is undefined by spec; we do not add extra error reporting.)
+    let limit = 114_513usize;
+    let max_compute = max_n.min(limit);
 
+    let mut count = vec![0i32; max_compute + 1];
+
+    for i in 2..=max_compute {
+        // Factorize i into prime powers, store in FUKUENNMISATO.
+        let mut x = i as i64;
+        let mut idx: usize = 0;
         let mut p: i64 = 2;
         while p * p <= x {
             if x % p == 0 {
@@ -80,33 +74,45 @@ fn main() {
                     x /= p;
                     c += 1;
                 }
-                factors[nf][0] = p;
-                factors[nf][1] = c;
-                nf += 1;
+                unsafe {
+                    FUKUENNMISATO[idx][0] = p;
+                    FUKUENNMISATO[idx][1] = c;
+                }
+                idx += 1;
             }
             p += 1;
         }
         if x > 1 {
-            factors[nf][0] = x;
-            factors[nf][1] = 1;
-            nf += 1;
+            unsafe {
+                FUKUENNMISATO[idx][0] = x;
+                FUKUENNMISATO[idx][1] = 1;
+            }
+            idx += 1;
         }
 
-        let k = i as i64;
-        let mut prod: i64 = 1;
-        minaseinori(0, 1, nf, &factors, k, &mut prod);
+        unsafe {
+            MIZUKINANA = idx;
+            UTIYAMAYUMI = i as i64;
+            YOSINAGASAYURI = 1;
+        }
+        minaseinori(0, 1);
 
-        let prev = count[i - 1];
-        let add = if prod >= k * 2 { 1 } else { 0 };
-        count[i] = prev + add;
+        let ok = unsafe { YOSINAGASAYURI >= (i as i64) * 2 };
+        count[i] = count[i - 1] + if ok { 1 } else { 0 };
     }
 
-    // Answer queries
+    // Output answers.
+    // For n < 2, count[n] is 0 (initialized), matching spec.
     let mut out = String::new();
     for &n in &nvals {
-        // For n < 2, count[n] is 0 by initialization (and spec).
-        let ans = if n <= max_n { count[n] } else { 0 };
-        out.push_str(&format!("{ans}\n"));
+        // Per spec, defined only up to 114513; we mirror the C behavior of indexing directly
+        // within the supported range. If n > max_compute, spec does not define behavior.
+        if n <= max_compute {
+            out.push_str(&format!("{}\n", count[n]));
+        } else {
+            // Undefined by spec; do not invent behavior. Exit nonzero with no defined output.
+            std::process::exit(1);
+        }
     }
     print!("{out}");
 }

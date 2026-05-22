@@ -1,16 +1,94 @@
+use std::cmp::min;
 use std::io::{self, Read};
 
 const QMAX: usize = 3005;
-#[derive(Clone, Copy, Default)]
+
+#[derive(Copy, Clone, Default)]
 struct Que {
     t: i32,
     s: i32,
 }
 
+struct MinHeap {
+    a: [Que; QMAX],
+    size: usize,
+}
+
+impl MinHeap {
+    fn new() -> Self {
+        Self {
+            a: [Que::default(); QMAX],
+            size: 0,
+        }
+    }
+    #[inline]
+    fn parent(i: usize) -> usize {
+        i >> 1
+    }
+    #[inline]
+    fn left(i: usize) -> usize {
+        i << 1
+    }
+    #[inline]
+    fn right(i: usize) -> usize {
+        (i << 1) + 1
+    }
+
+    fn min_heapify(&mut self, i: usize) {
+        let l = Self::left(i);
+        let r = Self::right(i);
+        let mut m = i;
+        if l < self.size && self.a[l].t < self.a[i].t {
+            m = l;
+        }
+        if r < self.size && self.a[r].t < self.a[m].t {
+            m = r;
+        }
+        if m != i {
+            self.a.swap(i, m);
+            self.min_heapify(m);
+        }
+    }
+
+    fn deq(&mut self) {
+        self.size -= 1;
+        self.a[0] = self.a[self.size];
+        self.min_heapify(0);
+    }
+
+    fn enq(&mut self, s: i32, t: i32) {
+        let mut i = self.size;
+        self.size += 1;
+        self.a[i].s = s;
+        self.a[i].t = t;
+        while i > 0 {
+            let p = Self::parent(i);
+            if self.a[p].t > self.a[i].t {
+                self.a.swap(i, p);
+                i = p;
+            } else {
+                break;
+            }
+        }
+    }
+
+    fn is_empty(&self) -> bool {
+        self.size == 0
+    }
+
+    fn top(&self) -> Que {
+        self.a[0]
+    }
+
+    fn clear(&mut self) {
+        self.size = 0;
+    }
+}
+
 const INF: i32 = 0x10101010;
 const MAX: usize = 110;
 
-#[derive(Clone, Copy, Default)]
+#[derive(Copy, Clone, Default)]
 struct Edge {
     to: i32,
     rev: i32,
@@ -18,49 +96,7 @@ struct Edge {
     cost: i32,
 }
 
-struct Scanner {
-    buf: Vec<u8>,
-    idx: usize,
-}
-impl Scanner {
-    fn new() -> Self {
-        let mut input = String::new();
-        io::stdin().read_to_string(&mut input).unwrap();
-        Self { buf: input.into_bytes(), idx: 0 }
-    }
-    // Emulates the C in(): assumes there is a next integer token; no EOF check.
-    fn next_i32(&mut self) -> i32 {
-        // Skip non-digit and non-'-' (C code doesn't, but input is well-formed for AOJ).
-        while self.idx < self.buf.len()
-            && self.buf[self.idx] != b'-'
-            && (self.buf[self.idx] < b'0' || self.buf[self.idx] > b'9')
-        {
-            self.idx += 1;
-        }
-        let mut neg = false;
-        if self.idx < self.buf.len() && self.buf[self.idx] == b'-' {
-            neg = true;
-            self.idx += 1;
-        }
-        let mut n: i32 = 0;
-        while self.idx < self.buf.len() {
-            let c = self.buf[self.idx];
-            if c < b'0' || c > b'9' {
-                break;
-            }
-            // (c & 0xf) in C
-            n = n.wrapping_mul(10).wrapping_add((c & 0x0f) as i32);
-            self.idx += 1;
-        }
-        if neg { -n } else { n }
-    }
-}
-
-fn abs_i32(a: i32) -> i32 {
-    if a >= 0 { a } else { -a }
-}
-
-struct MinCostFlow {
+struct Mcmf {
     edge: [[Edge; MAX]; MAX],
     hi: [usize; MAX],
     v: usize,
@@ -68,13 +104,10 @@ struct MinCostFlow {
     dist: [i32; MAX],
     prevv: [i32; MAX],
     preve: [i32; MAX],
-
-    // custom min-heap priority queue (matches C behavior)
-    que: [Que; QMAX],
-    qsize: usize,
+    heap: MinHeap,
 }
 
-impl MinCostFlow {
+impl Mcmf {
     fn new() -> Self {
         Self {
             edge: [[Edge::default(); MAX]; MAX],
@@ -84,53 +117,18 @@ impl MinCostFlow {
             dist: [0; MAX],
             prevv: [0; MAX],
             preve: [0; MAX],
-            que: [Que::default(); QMAX],
-            qsize: 0,
+            heap: MinHeap::new(),
         }
     }
 
-    #[inline]
-    fn parent(i: usize) -> usize { i >> 1 }
-    #[inline]
-    fn left(i: usize) -> usize { i << 1 }
-    #[inline]
-    fn right(i: usize) -> usize { (i << 1) + 1 }
-
-    fn min_heapify(&mut self, i: usize) {
-        let l = Self::left(i);
-        let r = Self::right(i);
-        let mut min = if l < self.qsize && self.que[l].t < self.que[i].t { l } else { i };
-        if r < self.qsize && self.que[r].t < self.que[min].t {
-            min = r;
-        }
-        if min != i {
-            let qt = self.que[i];
-            self.que[i] = self.que[min];
-            self.que[min] = qt;
-            self.min_heapify(min);
-        }
+    fn set_v(&mut self, v: usize) {
+        self.v = v;
     }
 
-    fn deq(&mut self) {
-        self.qsize -= 1;
-        self.que[0] = self.que[self.qsize];
-        self.min_heapify(0);
-    }
-
-    fn enq(&mut self, s: i32, t: i32) {
-        let mut i = self.qsize;
-        self.qsize += 1;
-        self.que[i].s = s;
-        self.que[i].t = t;
-        while i > 0 {
-            let p = Self::parent(i);
-            if self.que[p].t <= self.que[i].t {
-                break;
-            }
-            let qt = self.que[i];
-            self.que[i] = self.que[p];
-            self.que[p] = qt;
-            i = p;
+    fn clear_graph(&mut self) {
+        // Equivalent to memset(hi, 0, V<<2) in C (only first V ints).
+        for i in 0..self.v {
+            self.hi[i] = 0;
         }
     }
 
@@ -140,8 +138,18 @@ impl MinCostFlow {
         let t = self.hi[to];
         self.hi[to] += 1;
 
-        self.edge[from][f] = Edge { to: to as i32, cap, cost, rev: t as i32 };
-        self.edge[to][t] = Edge { to: from as i32, cap: 0, cost: -cost, rev: f as i32 };
+        self.edge[from][f] = Edge {
+            to: to as i32,
+            cap,
+            cost,
+            rev: t as i32,
+        };
+        self.edge[to][t] = Edge {
+            to: from as i32,
+            cap: 0,
+            cost: -cost,
+            rev: f as i32,
+        };
     }
 
     fn min_cost_flow(&mut self, s: usize, t: usize, mut f: i32) -> i32 {
@@ -154,14 +162,15 @@ impl MinCostFlow {
             for i in 0..self.v {
                 self.dist[i] = INF;
             }
-            self.qsize = 0;
-            self.enq(s as i32, 0);
+            self.heap.clear();
+            self.heap.enq(s as i32, 0);
             self.dist[s] = 0;
 
-            while self.qsize != 0 {
-                let v = self.que[0].s as usize;
-                let cur_t = self.que[0].t;
-                self.deq();
+            while !self.heap.is_empty() {
+                let q = self.heap.top();
+                let v = q.s as usize;
+                let cur_t = q.t;
+                self.heap.deq();
                 if self.dist[v] < cur_t {
                     continue;
                 }
@@ -172,7 +181,7 @@ impl MinCostFlow {
                         continue;
                     }
                     let nv = ep.to as usize;
-                    // nt = t + cost - potential[nv] + potential[v]
+                    // Preserve i32 wraparound like C signed overflow (best-effort):
                     let nt = cur_t
                         .wrapping_add(ep.cost)
                         .wrapping_sub(self.potential[nv])
@@ -181,7 +190,7 @@ impl MinCostFlow {
                         self.dist[nv] = nt;
                         self.prevv[nv] = v as i32;
                         self.preve[nv] = i as i32;
-                        self.enq(nv as i32, nt);
+                        self.heap.enq(nv as i32, nt);
                     }
                 }
             }
@@ -207,21 +216,17 @@ impl MinCostFlow {
             f -= addf;
 
             ret = ret.wrapping_add(addf.wrapping_mul(self.potential[t]));
+
             let mut v2 = t;
             while v2 != s {
                 let pv = self.prevv[v2] as usize;
                 let pe = self.preve[v2] as usize;
+                let rev = self.edge[pv][pe].rev as usize;
 
-                // Update forward edge
-                let mut ep = self.edge[pv][pe];
-                ep.cap -= addf;
-                self.edge[pv][pe] = ep;
-
-                // Update reverse edge
-                let rev = ep.rev as usize;
-                let mut back = self.edge[v2][rev];
-                back.cap += addf;
-                self.edge[v2][rev] = back;
+                // mutate forward
+                self.edge[pv][pe].cap -= addf;
+                // mutate reverse
+                self.edge[v2][rev].cap += addf;
 
                 v2 = pv;
             }
@@ -230,13 +235,67 @@ impl MinCostFlow {
     }
 }
 
+fn abs_i32(a: i32) -> i32 {
+    if a >= 0 { a } else { -a }
+}
+
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut input = String::new();
+        io::stdin().read_to_string(&mut input).unwrap();
+        Self {
+            buf: input.into_bytes(),
+            idx: 0,
+        }
+    }
+    fn next_i32(&mut self) -> i32 {
+        // Emulate the C in(): it does not skip non-digit except handling '-'.
+        // In AOJ input, tokens are separated by whitespace; we skip whitespace here.
+        while self.idx < self.buf.len() && self.buf[self.idx].is_ascii_whitespace() {
+            self.idx += 1;
+        }
+        if self.idx >= self.buf.len() {
+            return 0;
+        }
+        let mut c = self.buf[self.idx];
+        self.idx += 1;
+
+        let mut n: i32 = 0;
+        if c == b'-' {
+            if self.idx < self.buf.len() {
+                c = self.buf[self.idx];
+                self.idx += 1;
+            }
+            while c >= b'0' {
+                n = n.wrapping_mul(10).wrapping_add((c & 0x0f) as i32);
+                if self.idx >= self.buf.len() {
+                    break;
+                }
+                c = self.buf[self.idx];
+                self.idx += 1;
+            }
+            return -n;
+        }
+        while c >= b'0' {
+            n = n.wrapping_mul(10).wrapping_add((c & 0x0f) as i32);
+            if self.idx >= self.buf.len() {
+                break;
+            }
+            c = self.buf[self.idx];
+            self.idx += 1;
+        }
+        n
+    }
+}
+
 fn main() {
     let mut sc = Scanner::new();
-    let mut out = String::new();
+    let mut mcmf = Mcmf::new();
 
-    let mut mcf = MinCostFlow::new();
-
-    // Problem data arrays (match C sizes)
     let mut ax = [0i32; 101];
     let mut ay = [0i32; 101];
     let mut bx = [0i32; 6];
@@ -244,18 +303,18 @@ fn main() {
     let mut c = [0i32; 6];
     let mut f = [0i32; 6];
 
+    let mut out = String::new();
+
     loop {
-        // The original C uses: while (N = in()) { ... }
-        // Here we must stop on N == 0. Input is assumed well-formed.
         let n = sc.next_i32();
         if n == 0 {
             break;
         }
-        let n_usize = n as usize;
+        let n_us = n as usize;
         let m = sc.next_i32() as usize;
         let b = sc.next_i32();
 
-        for i in 0..n_usize {
+        for i in 0..n_us {
             ax[i] = sc.next_i32();
             ay[i] = sc.next_i32();
         }
@@ -266,11 +325,12 @@ fn main() {
             f[i] = sc.next_i32();
         }
 
-        let source = n_usize + m;
+        let source = n_us + m;
         let sink = source + 1;
-        mcf.v = sink + 1;
+        let v = sink + 1;
+        mcmf.set_v(v);
 
-        let mut ans = INF;
+        let mut ans: i32 = INF;
         let lim = 1usize << m;
 
         for s in 0..lim {
@@ -286,45 +346,75 @@ fn main() {
             let mut lb: i32 = 0;
             let mut ub: i32 = 4002;
 
-            // helper closure to build graph like C make_edge(s, mi)
-            let mut make_edge = |mcf: &mut MinCostFlow, mi: i32| {
-                for i in 0..mcf.v {
-                    mcf.hi[i] = 0;
-                }
-                for i in 0..n_usize {
-                    mcf.add_edge(source, i, 1, 0);
+            // helper to build graph like make_edge(s, mi)
+            let mut make_edge = |mi: i32, mcmf: &mut Mcmf| {
+                mcmf.clear_graph();
+                for i in 0..n_us {
+                    mcmf.add_edge(source, i, 1, 0);
                 }
                 for i in 0..m {
-                    if ((1usize << i) & s) != 0 {
-                        for j in 0..n_usize {
+                    if ((s >> i) & 1) != 0 {
+                        for j in 0..n_us {
                             let mut x = abs_i32(ax[j] - bx[i]) + abs_i32(ay[j] - by[i]) - mi;
                             if x < 0 {
                                 x = 0;
                             }
-                            mcf.add_edge(j, n_usize + i, 1, x);
+                            mcmf.add_edge(j, n_us + i, 1, x);
                         }
-                        mcf.add_edge(n_usize + i, sink, c[i], 0);
+                        mcmf.add_edge(n_us + i, sink, c[i], 0);
                     }
                 }
             };
 
-            // binary search loop with "goto next" behavior
-            let mut skip = false;
-            while lb + 1 < ub {
+            'bin: while lb + 1 < ub {
                 let mi = (lb + ub) >> 1;
 
-                make_edge(&mut mcf, mi);
-                let a1 = mcf
-                    .min_cost_flow(source, sink, n as i32)
+                make_edge(mi, &mut mcmf);
+                let a1 = mcmf
+                    .min_cost_flow(source, sink, n)
                     .wrapping_add(mi.wrapping_mul(b).wrapping_mul(cnt));
 
-                make_edge(&mut mcf, mi - 1);
-                let a2 = mcf
-                    .min_cost_flow(source, sink, n as i32)
+                make_edge(mi - 1, &mut mcmf);
+                let a2 = mcmf
+                    .min_cost_flow(source, sink, n)
                     .wrapping_add((mi - 1).wrapping_mul(b).wrapping_mul(cnt));
 
                 if a1 < 0 || a2 < 0 {
-                    skip = true;
+                    break 'bin; // goto next;
+                }
+                if a1 < a2 {
+                    lb = mi;
+                } else {
+                    ub = mi;
+                }
+            }
+
+            // If we broke due to infeasible, skip like goto next.
+            // In C, the goto triggers only when a1<0||a2<0 inside loop.
+            // Here, if infeasible happened, we already broke; we must detect it by recomputing?
+            // We can track with a flag.
+            // Implement by checking feasibility at lb after loop only if not infeasible.
+            // To preserve behavior, we need the same skip when infeasible occurred.
+            // We'll re-run the same check at the last mi used is not available; so use a flag.
+            let mut infeasible = false;
+            // Re-run the binary search with flag (minimal overhead, M<=5).
+            lb = 0;
+            ub = 4002;
+            while lb + 1 < ub {
+                let mi = (lb + ub) >> 1;
+
+                make_edge(mi, &mut mcmf);
+                let a1 = mcmf
+                    .min_cost_flow(source, sink, n)
+                    .wrapping_add(mi.wrapping_mul(b).wrapping_mul(cnt));
+
+                make_edge(mi - 1, &mut mcmf);
+                let a2 = mcmf
+                    .min_cost_flow(source, sink, n)
+                    .wrapping_add((mi - 1).wrapping_mul(b).wrapping_mul(cnt));
+
+                if a1 < 0 || a2 < 0 {
+                    infeasible = true;
                     break;
                 }
                 if a1 < a2 {
@@ -333,17 +423,15 @@ fn main() {
                     ub = mi;
                 }
             }
-            if skip {
+            if infeasible {
                 continue;
             }
 
-            make_edge(&mut mcf, lb);
+            make_edge(lb, &mut mcmf);
             res = res
-                .wrapping_add(mcf.min_cost_flow(source, sink, n as i32))
+                .wrapping_add(mcmf.min_cost_flow(source, sink, n))
                 .wrapping_add(lb.wrapping_mul(b).wrapping_mul(cnt));
-            if ans > res {
-                ans = res;
-            }
+            ans = min(ans, res);
         }
 
         out.push_str(&format!("{ans}\n"));

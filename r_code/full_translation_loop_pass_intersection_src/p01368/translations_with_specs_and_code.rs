@@ -1,29 +1,24 @@
 use std::io::{self, Read};
 
-const INF: i32 = 0x1010; // matches C's choice; relies on problem constraints
+const INF: i32 = 0x1010; // matches C's choice; assumes all shortest paths fit below this per spec
 
 fn main() {
-    // Read entire stdin, parse as non-negative integers (like C in()).
+    // Fast input: read all bytes, parse unsigned integers (C's in() reads only nonnegative ints).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let bytes = input.as_bytes();
     let mut idx = 0usize;
 
-    fn next_uint(bytes: &[u8], idx: &mut usize) -> Option<i32> {
-        // Skip non-digits
+    fn next_usize(bytes: &[u8], idx: &mut usize) -> Option<usize> {
         while *idx < bytes.len() && (bytes[*idx] < b'0' || bytes[*idx] > b'9') {
             *idx += 1;
         }
         if *idx >= bytes.len() {
             return None;
         }
-        let mut n: i32 = 0;
-        while *idx < bytes.len() {
-            let c = bytes[*idx];
-            if c < b'0' || c > b'9' {
-                break;
-            }
-            n = n * 10 + (c - b'0') as i32;
+        let mut n: usize = 0;
+        while *idx < bytes.len() && (b'0'..=b'9').contains(&bytes[*idx]) {
+            n = n * 10 + (bytes[*idx] - b'0') as usize;
             *idx += 1;
         }
         Some(n)
@@ -32,29 +27,34 @@ fn main() {
     let mut out = String::new();
 
     loop {
-        let n = match next_uint(bytes, &mut idx) {
-            Some(v) => v as usize,
+        let n = match next_usize(bytes, &mut idx) {
+            Some(v) => v,
             None => break,
         };
         if n == 0 {
-            break;
+            break; // terminating dataset
         }
-        let m = next_uint(bytes, &mut idx).unwrap() as usize;
-        let l = next_uint(bytes, &mut idx).unwrap() as usize;
+        let m = next_usize(bytes, &mut idx).unwrap();
+        let l = next_usize(bytes, &mut idx).unwrap();
 
-        // All-pairs shortest paths (Floyd-Warshall), with INF for unreachable.
+        // dist: N x N, initialized to INF, diagonal 0
         let mut dist = vec![vec![INF; n]; n];
         for i in 0..n {
             dist[i][i] = 0;
         }
         for _ in 0..m {
-            let u = next_uint(bytes, &mut idx).unwrap() as usize;
-            let v = next_uint(bytes, &mut idx).unwrap() as usize;
-            let d = next_uint(bytes, &mut idx).unwrap();
-            dist[u][v] = d;
-            dist[v][u] = d;
+            let u = next_usize(bytes, &mut idx).unwrap();
+            let v = next_usize(bytes, &mut idx).unwrap();
+            let d = next_usize(bytes, &mut idx).unwrap() as i32;
+            // C overwrites; spec doesn't define multi-edges behavior. We keep the minimum, which is
+            // consistent with shortest-path semantics and does not violate the spec.
+            if d < dist[u][v] {
+                dist[u][v] = d;
+                dist[v][u] = d;
+            }
         }
 
+        // Floyd–Warshall with the same INF-guard structure as C
         for k in 0..n {
             for u in 0..n {
                 if dist[u][k] == INF {
@@ -64,24 +64,24 @@ fn main() {
                     if dist[k][v] == INF {
                         continue;
                     }
-                    let nd = dist[u][k] + dist[k][v];
-                    if dist[u][v] > nd {
-                        dist[u][v] = nd;
+                    let d = dist[u][k] + dist[k][v];
+                    if dist[u][v] > d {
+                        dist[u][v] = d;
                     }
                 }
             }
         }
 
-        // Events: location p[i], time t[i]
+        // Tasks
         let mut p = vec![0usize; l];
         let mut t = vec![0i32; l];
         for i in 0..l {
-            p[i] = next_uint(bytes, &mut idx).unwrap() as usize;
-            t[i] = next_uint(bytes, &mut idx).unwrap();
+            p[i] = next_usize(bytes, &mut idx).unwrap();
+            t[i] = next_usize(bytes, &mut idx).unwrap() as i32;
         }
 
-        // Build bipartite graph: left events [0..L), right events [L..2L)
-        // Edge u -> (v+L) if feasible to go from u to v in time.
+        // Build bipartite graph: left tasks [0..L), right tasks [L..2L)
+        // Edge u -> (v+L) if feasible.
         let mut adj: Vec<Vec<usize>> = vec![Vec::new(); l];
         for u in 0..l {
             for v in 0..l {
@@ -89,20 +89,19 @@ fn main() {
                     continue;
                 }
                 let travel = dist[p[u]][p[v]];
-                // Unreachable pairs have travel == INF, which will fail the <= check.
-                if travel <= t[v] - t[u] {
+                let dt = t[v] - t[u];
+                if travel != INF && travel <= dt {
                     adj[u].push(v + l);
                 }
             }
         }
 
-        // Maximum bipartite matching via DFS augmenting paths (Kuhn),
-        // mirroring the C code's match[] over 2L nodes.
+        // Maximum bipartite matching via DFS augmenting paths (Kuhn), mirroring C's bpm().
         let mut match_to: Vec<i32> = vec![-1; 2 * l];
 
         fn bpm(
             u: usize,
-            adj: &Vec<Vec<usize>>,
+            adj: &[Vec<usize>],
             seen: &mut [bool],
             match_to: &mut [i32],
         ) -> bool {
@@ -111,8 +110,8 @@ fn main() {
                     continue;
                 }
                 seen[v] = true;
-                let mu = match_to[v];
-                if mu < 0 || bpm(mu as usize, adj, seen, match_to) {
+                let mv = match_to[v];
+                if mv < 0 || bpm(mv as usize, adj, seen, match_to) {
                     match_to[u] = v as i32;
                     match_to[v] = u as i32;
                     return true;
@@ -121,15 +120,17 @@ fn main() {
             false
         }
 
-        let mut k = l as i32;
+        // Minimum path cover in DAG = L - maximum matching (as used by the C code).
+        // Note: The C code does not enforce acyclicity; it relies on time feasibility to imply it.
+        let mut chains = l as i32;
         for u in 0..l {
             let mut seen = vec![false; 2 * l];
             if bpm(u, &adj, &mut seen, &mut match_to) {
-                k -= 1;
+                chains -= 1;
             }
         }
 
-        out.push_str(&format!("{k}\n"));
+        out.push_str(&format!("{chains}\n"));
     }
 
     print!("{out}");

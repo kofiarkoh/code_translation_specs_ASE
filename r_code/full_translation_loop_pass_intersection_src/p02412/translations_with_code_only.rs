@@ -1,18 +1,16 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, then parse as whitespace-separated integers (like scanf("%d")).
+    // Read entire stdin, then parse as whitespace-separated integers (like scanf("%d %d")).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
-
-    let mut out = String::new();
 
     loop {
         let n_opt = it.next();
         let x_opt = it.next();
         if n_opt.is_none() || x_opt.is_none() {
-            break; // EOF or incomplete pair: C code would stop making progress; we terminate.
+            break; // No more complete pairs to read.
         }
 
         let n: i32 = n_opt.unwrap().parse().unwrap();
@@ -30,21 +28,16 @@ fn main() {
                     if i == j || j == k || i == k {
                         // do nothing
                     } else {
-                        // In C, signed overflow is UB; we use wrapping_add to emulate typical
-                        // two's-complement wraparound behavior as closely as possible.
-                        let a = i.wrapping_add(j).wrapping_add(k);
+                        let a = i + j + k;
                         if a == x {
-                            b = b.wrapping_add(1);
+                            b += 1;
                         }
                     }
                 }
             }
         }
 
-        // C integer division truncates toward zero; Rust does the same for i32.
-        out.push_str(&(b / 6).to_string());
-        out.push('\n');
+        // In C, b is divisible by 6 due to counting permutations; integer division truncates.
+        println!("{}", b / 6);
     }
-
-    print!("{out}");
 }

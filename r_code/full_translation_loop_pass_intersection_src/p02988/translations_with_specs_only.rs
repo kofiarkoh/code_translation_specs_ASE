@@ -1,26 +1,27 @@
 use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin; no explicit error handling per specification.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
+
     let mut it = input.split_whitespace();
 
-    let n: i64 = it.next().unwrap().parse().unwrap();
+    let n: usize = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return, // Undefined behavior per spec; choose to do nothing if no input.
+    };
 
-    // Fixed-size storage for up to 1000 integers, as specified.
-    // If n exceeds capacity, behavior is unspecified by the specification; we do not add checks.
-    let mut a = vec![0i64; 1000];
-
-    // Read exactly n integers into storage (1-based indexing in spec; we store 0-based).
-    // If input is insufficient/invalid, behavior is unspecified; unwrap() matches "no explicit error handling".
-    for i in 0..(n as usize) {
-        a[i] = it.next().unwrap().parse().unwrap();
+    // Store up to n elements; spec assumes n <= 999 and enough integers are provided.
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        a.push(v);
     }
 
     let mut count: i64 = 0;
-
     if n >= 3 {
-        for i in 0..((n - 2) as usize) {
+        for i in 0..=(n - 3) {
             let x = a[i];
             let y = a[i + 1];
             let z = a[i + 2];
@@ -30,5 +31,5 @@ fn main() {
         }
     }
 
-    println!("{}", count);
+    print!("{}", count);
 }

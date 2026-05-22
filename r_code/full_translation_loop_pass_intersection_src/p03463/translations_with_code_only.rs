@@ -1,29 +1,23 @@
-use std::io::{self, Read, Write};
+use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin (scanf-like whitespace handling).
+    // Read entire stdin (matches typical scanf behavior for whitespace-separated ints).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    // In the C code, failing scanf would leave variables uninitialized (UB).
-    // Here we assume the three integers are present, matching typical problem inputs.
-    let n: i32 = it.next().unwrap().parse().unwrap();
+    let _n: i32 = it.next().unwrap().parse().unwrap();
     let a: i32 = it.next().unwrap().parse().unwrap();
     let b: i32 = it.next().unwrap().parse().unwrap();
 
-    // Preserve C's signed overflow behavior as closely as practical:
-    // (B - A) in C is signed int subtraction; overflow is UB, but many platforms wrap.
-    // Use wrapping_sub to emulate common two's-complement wraparound.
+    // In C, signed overflow is UB. We emulate common two's-complement wraparound
+    // by using wrapping arithmetic, then apply C-like remainder behavior.
     let diff = b.wrapping_sub(a);
+    if diff.wrapping_rem(2) == 0 {
+        print!("Alice\n");
+    } else {
+        print!("Borys\n");
+    }
 
-    let out = if diff % 2 == 0 { "Alice\n" } else { "Borys\n" };
-
-    // Match printf + fflush(stdout)
-    let mut stdout = io::stdout().lock();
-    stdout.write_all(out.as_bytes()).unwrap();
-    stdout.flush().unwrap();
-
-    // N is read but unused, as in the C code.
-    let _ = n;
+    // stdout is flushed on program exit; explicit flush not necessary to preserve output.
 }

@@ -1,64 +1,67 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Neighbor offsets (same as C)
-    const X: [i32; 6] = [1, 2, 1, -1, -2, -1];
-    const Y: [i32; 6] = [1, 0, -1, -1, 0, 1];
+    // Neighbor offsets in the "doubled-x" coordinate system used by the C code.
+    // This matches the hex-grid adjacency encoded there.
+    let dx: [i32; 6] = [1, 2, 1, -1, -2, -1];
+    let dy: [i32; 6] = [1, 0, -1, -1, 0, 1];
 
-    // Read all input
-    let mut s = String::new();
-    io::stdin().read_to_string(&mut s).unwrap();
-    let mut it = s.split_whitespace();
+    // Read all input tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let w: usize = match it.next() {
-        Some(v) => v.parse().unwrap(),
-        None => return,
-    };
+    let w: usize = it.next().unwrap().parse().unwrap();
     let h: usize = it.next().unwrap().parse().unwrap();
 
-    // Fixed-size grid like the C code.
-    // 0 = empty, 1 = filled (or other non-zero), 2 = exterior-reachable empty
-    let mut d = vec![vec![0i32; 210]; 110];
+    // The C program uses a fixed array d[110][210] and relies on implicit zero-initialization
+    // except d[0][0]=2 due to `{2}` initializer.
+    //
+    // We reproduce the same effective bounds and indexing scheme:
+    // y in [0..=h+1], x in [0..=w*2+4].
+    let max_y = h + 2; // indices 0..=h+1
+    let max_x = w * 2 + 5; // indices 0..=w*2+4
 
+    let mut d = vec![vec![0i32; max_x]; max_y];
+    d[0][0] = 2;
+
+    // Read occupancy into shifted x coordinate: x = j*2 + (i%2), with i,j starting at 1.
     for i in 1..=h {
-        let parity = i & 1;
         for j in 1..=w {
-            let v: i32 = it.next().unwrap().parse().unwrap();
-            let x = j * 2 + parity;
-            d[i][x] = v;
+            let val: i32 = it.next().unwrap().parse().unwrap();
+            let x = j * 2 + (i % 2);
+            d[i][x] = val;
         }
     }
 
-    // Flood fill from (0,0) over empty cells.
-    // To avoid timeout from repeatedly re-enqueuing (0,0), mark it as exterior first.
-    // This does not change the intended perimeter counting (only cells with value 2 matter),
-    // and matches the conceptual "outside is exterior" definition in the spec.
-    d[0][0] = 2;
-
-    let max_ny: i32 = (h + 1) as i32;
-    let max_nx: i32 = (w * 2 + 4) as i32;
-
-    // Use a simple ring-buffer queue (faster than VecDeque for this fixed workload).
-    let mut qx: Vec<i32> = Vec::with_capacity(25000);
-    let mut qy: Vec<i32> = Vec::with_capacity(25000);
+    // BFS/queue over exterior-reachable empty cells, starting from (0,0).
+    // Mark exterior empty cells with value 2 (same as C).
+    let mut qx: Vec<i32> = Vec::with_capacity(10000);
+    let mut qy: Vec<i32> = Vec::with_capacity(10000);
     qx.push(0);
     qy.push(0);
-    let mut head: usize = 0;
 
-    while head < qx.len() {
-        let cx = qx[head];
-        let cy = qy[head];
-        head += 1;
+    let mut t: usize = 0;
+    while t < qx.len() {
+        let cx = qx[t];
+        let cy = qy[t];
+        t += 1;
 
         for k in 0..6 {
-            let nx = cx + X[k];
-            let ny = cy + Y[k];
-            if nx < 0 || ny < 0 || ny > max_ny || nx > max_nx {
+            let nx = cx + dx[k];
+            let ny = cy + dy[k];
+
+            if nx < 0 || ny < 0 {
                 continue;
             }
-            let (nyu, nxu) = (ny as usize, nx as usize);
-            if d[nyu][nxu] != 0 {
+            let nxu = nx as usize;
+            let nyu = ny as usize;
+
+            if nyu > h + 1 || nxu > w * 2 + 4 {
                 continue;
+            }
+            if d[nyu][nxu] != 0 {
+                continue; // occupied (1) or already exterior-marked (2)
             }
             d[nyu][nxu] = 2;
             qx.push(nx);
@@ -66,24 +69,25 @@ fn main() {
         }
     }
 
-    // Count perimeter edges adjacent to exterior-reachable empty.
-    let mut ans: i32 = 0;
+    // Count edges between occupied cells (value 1) and exterior empty space (value 2).
+    let mut s: i32 = 0;
     for i in 1..=h {
-        let parity = (i & 1) as i32;
         for j in 1..=w {
-            let cx = (j as i32) * 2 + parity;
-            if d[i][cx as usize] != 1 {
+            let x = (j * 2 + (i % 2)) as i32;
+            if d[i][x as usize] != 1 {
                 continue;
             }
             for k in 0..6 {
-                let nx = cx + X[k];
-                let ny = i as i32 + Y[k];
+                let nx = x + dx[k];
+                let ny = i as i32 + dy[k];
+                // In the C code, these indices are always within bounds due to padding and
+                // the chosen coordinate system; we keep the same assumption (undefined if not).
                 if d[ny as usize][nx as usize] == 2 {
-                    ans += 1;
+                    s += 1;
                 }
             }
         }
     }
 
-    print!("{ans}\n");
+    print!("{s}\n");
 }

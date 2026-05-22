@@ -1,13 +1,14 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, parse one integer (as per spec: input is parseable).
+    // Read entire stdin; behavior for missing/invalid input is unspecified by the spec.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
+
     let n: i32 = input.split_whitespace().next().unwrap().parse().unwrap();
 
-    // Use separate `if` statements to mirror the C code's structure.
-    // (Mutually exclusive values ensure at most one line is printed.)
+    // Use independent `if` statements to match the C code's structure.
+    // (Semantically equivalent here since n cannot equal multiple values.)
     if n == 25 {
         print!("Christmas\n");
     }

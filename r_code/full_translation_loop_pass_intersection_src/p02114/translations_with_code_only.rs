@@ -1,69 +1,37 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, then parse like scanf would for "%d" and " %c"
+    // Tokenize like scanf: %d then repeated " %c" (skips whitespace, reads one char).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
-    let bytes = input.as_bytes();
-    let mut p: usize = 0;
+    let mut it = input.split_whitespace();
 
-    fn skip_ws(bytes: &[u8], p: &mut usize) {
-        while *p < bytes.len() && bytes[*p].is_ascii_whitespace() {
-            *p += 1;
-        }
-    }
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
 
-    fn read_i32(bytes: &[u8], p: &mut usize) -> i32 {
-        skip_ws(bytes, p);
-        let mut sign: i32 = 1;
-        if *p < bytes.len() && bytes[*p] == b'-' {
-            sign = -1;
-            *p += 1;
-        }
-        let mut v: i32 = 0;
-        while *p < bytes.len() {
-            let c = bytes[*p];
-            if !c.is_ascii_digit() {
-                break;
-            }
-            v = v.saturating_mul(10).saturating_add((c - b'0') as i32);
-            *p += 1;
-        }
-        v * sign
-    }
-
-    fn read_char(bytes: &[u8], p: &mut usize) -> u8 {
-        // " %c" skips whitespace then reads one byte
-        skip_ws(bytes, p);
-        let c = if *p < bytes.len() { bytes[*p] } else { 0 };
-        if *p < bytes.len() {
-            *p += 1;
-        }
-        c
-    }
-
-    let n = read_i32(bytes, &mut p) as usize;
-
-    // C: char d[300][300] = {};
-    // Use u8 grid initialized to 0. Indices used are [1..=n] with neighbor lookups
-    // potentially touching 0 and n+1; the 300x300 buffer provides a zero border.
+    // C: char d[300][300] = {}; (zero-initialized)
     let mut d = vec![vec![0u8; 300]; 300];
 
+    // Important: " %c" reads a single character, not a whole token.
+    // But split_whitespace gives us each row as a token like "oxooo".
+    // So we must fill from each row string's bytes.
     for i in 0..n {
+        let row = it.next().unwrap_or("");
+        let bytes = row.as_bytes();
         for j in 0..n {
-            let ch = read_char(bytes, &mut p);
-            d[i + 1][j + 1] = ch;
+            d[i + 1][j + 1] = *bytes.get(j).unwrap_or(&0);
         }
     }
 
     let xdir: [i32; 4] = [1, 0, -1, 0];
     let ydir: [i32; 4] = [0, 1, 0, -1];
 
-    // C: int x[100010], y[100010];
     let mut x = vec![0i32; 100_010];
     let mut y = vec![0i32; 100_010];
 
-    let mut c_count: i32 = 0;
+    let mut c: i32 = 0;
 
     for i in 0..n {
         for j in 0..n {
@@ -71,33 +39,30 @@ fn main() {
                 continue;
             }
 
-            // d[y[t=0]=i+1][x[0]=j+1]='x';
-            let mut t: i32 = 0;
+            // Start a flood fill from any non-'x' cell, but only expand through 'o' cells.
+            let mut t: usize = 0;
             y[0] = (i + 1) as i32;
             x[0] = (j + 1) as i32;
-            d[(i + 1)][(j + 1)] = b'x';
+            d[i + 1][j + 1] = b'x';
+            c += 1;
 
-            c_count += 1;
-
-            // for(r=1; r-t; t++) { ... }
-            let mut r: i32 = 1;
-            while r - t != 0 {
+            let mut r: usize = 1;
+            while r != t {
                 for k in 0..4 {
-                    let ny = y[t as usize] + ydir[k];
-                    let nx = x[t as usize] + xdir[k];
+                    let ny = y[t] + ydir[k];
+                    let nx = x[t] + xdir[k];
 
-                    // if(d[ny][nx]-'o')continue;
-                    // In C, this is true unless the cell equals 'o'.
-                    // Here we emulate by checking equality to b'o'.
+                    // Matches C's behavior assuming indices stay within the 300x300 buffer.
                     let nyu = ny as usize;
                     let nxu = nx as usize;
-                    if d[nyu][nxu] != b'o' {
+
+                    // C: if(d[ny][nx]-'o')continue;
+                    if d[nyu][nxu].wrapping_sub(b'o') != 0 {
                         continue;
                     }
 
-                    // d[y[r]=ny][x[r]=nx]='x'; r++;
-                    y[r as usize] = ny;
-                    x[r as usize] = nx;
+                    y[r] = ny;
+                    x[r] = nx;
                     d[nyu][nxu] = b'x';
                     r += 1;
                 }
@@ -106,7 +71,6 @@ fn main() {
         }
     }
 
-    // printf("%d\n",(c-1)/3);
-    let ans = (c_count - 1) / 3;
+    let ans = (c - 1) / 3;
     print!("{ans}\n");
 }

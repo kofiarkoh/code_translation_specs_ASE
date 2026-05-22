@@ -1,7 +1,7 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin (scanf-like behavior for whitespace-separated ints).
+    // Read entire stdin (scanf("%d %d") ignores leading whitespace).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
 
@@ -9,8 +9,9 @@ fn main() {
     let a: i32 = it.next().unwrap().parse().unwrap();
     let b: i32 = it.next().unwrap().parse().unwrap();
 
-    // In C, division/modulo by zero is undefined; in Rust it panics.
-    // We keep the direct operations to mirror the C intent.
+    // Match C's behavior for division/modulo on i32.
+    // Note: In C, division by zero is undefined; in Rust it panics.
+    // We do not add checks to preserve the "no defined behavior" nature.
     let mut c = a / b;
     if a % b != 0 {
         c += 1;

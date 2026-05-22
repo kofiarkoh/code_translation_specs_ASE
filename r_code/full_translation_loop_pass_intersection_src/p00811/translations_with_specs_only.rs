@@ -1,109 +1,98 @@
 use std::io::{self, Read};
 
-const MAXP: usize = 100_000;
+fn generate_primes_lt(limit: usize) -> Vec<i32> {
+    if limit <= 2 {
+        return Vec::new();
+    }
+    let mut is_prime = vec![true; limit];
+    is_prime[0] = false;
+    is_prime[1] = false;
 
-fn sieve_primes_below_100k() -> Vec<u32> {
-    let mut is_prime = vec![true; MAXP];
-    if MAXP > 0 {
-        is_prime[0] = false;
-    }
-    if MAXP > 1 {
-        is_prime[1] = false;
-    }
     let mut p = 2usize;
-    while p * p < MAXP {
+    while p * p < limit {
         if is_prime[p] {
-            let mut m = p * p;
-            while m < MAXP {
-                is_prime[m] = false;
-                m += p;
+            let mut j = p * p;
+            while j < limit {
+                is_prime[j] = false;
+                j += p;
             }
         }
         p += 1;
     }
+
     let mut primes = Vec::new();
-    for i in 2..MAXP {
+    for i in 2..limit {
         if is_prime[i] {
-            primes.push(i as u32);
+            primes.push(i as i32);
         }
     }
     primes
 }
 
 fn main() {
-    // Read all input; terminate silently if fewer than 3 integers are available.
+    // Prime generation is performed once at startup.
+    let primes = generate_primes_lt(100_000);
+
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).ok();
     let mut it = input.split_whitespace();
 
-    let primes = sieve_primes_below_100k();
-
     let mut out = String::new();
 
     loop {
-        let a = match it.next() {
-            Some(s) => match s.parse::<i64>() {
+        let m: i64 = match it.next() {
+            Some(s) => match s.parse() {
                 Ok(v) => v,
-                Err(_) => break, // malformed token => no explicit error handling specified
+                Err(_) => break, // cannot be fully read as integer
             },
-            None => break,
+            None => break, // input ends
         };
-        let b = match it.next() {
-            Some(s) => match s.parse::<i64>() {
+        let a: i64 = match it.next() {
+            Some(s) => match s.parse() {
                 Ok(v) => v,
                 Err(_) => break,
             },
             None => break,
         };
-        let c = match it.next() {
-            Some(s) => match s.parse::<i64>() {
+        let b: i64 = match it.next() {
+            Some(s) => match s.parse() {
                 Ok(v) => v,
                 Err(_) => break,
             },
             None => break,
         };
 
-        if a == 0 && b == 0 && c == 0 {
+        // Input terminates when (m|a|b) == 0.
+        if (m | a | b) == 0 {
             break;
         }
 
-        // Use widened arithmetic for comparisons involving products to reduce overflow risk.
-        // The spec notes behavior is not inferable if overflows occur outside widened multiplication.
-        let limit = a as i128;
-        let ratio_a = b as i128;
-        let ratio_b = c as i128;
+        // Best pair reset per record.
+        let mut best_p: i32 = 0;
+        let mut best_q: i32 = 0;
+        let mut best_prod: i64 = 0;
 
-        let mut best_p: u32 = 0;
-        let mut best_q: u32 = 0;
-        let mut best_prod: i128 = -1;
+        // Search only pairs with p <= q, in increasing prime list order.
+        for (i, &p_i32) in primes.iter().enumerate() {
+            let p = p_i32 as i64;
 
-        // Enumerate all prime pairs with p <= q, both < 100000.
-        // This is the narrowest faithful interpretation of "among all prime pairs" given the fixed prime set.
-        for (i, &p) in primes.iter().enumerate() {
-            let p128 = p as i128;
+            for &q_i32 in primes[i..].iter() {
+                let q = q_i32 as i64;
 
-            // If even p*p exceeds limit, then for this and larger p, no q>=p can work.
-            if p128 * p128 > limit {
-                break;
-            }
-
-            for &q in primes[i..].iter() {
-                let q128 = q as i128;
-                let prod = p128 * q128;
-
-                if prod > limit {
-                    // For fixed p, q increases => product increases; can stop this inner loop.
+                // Constraints evaluated with widening (conceptually 64-bit).
+                let prod = p * q;
+                if prod > m {
+                    // For fixed p, q increases; once product exceeds m, further q will also exceed.
                     break;
                 }
 
-                // Ratio constraint: ratioA * q <= p * ratioB
-                if ratio_a * q128 <= p128 * ratio_b {
+                if a * q <= p * b {
                     if prod > best_prod {
                         best_prod = prod;
-                        best_p = p;
-                        best_q = q;
+                        best_p = p_i32;
+                        best_q = q_i32;
                     }
-                    // Tie-breaking is unspecified; keep first found maximal product.
+                    // No update on ties (strictly greater only).
                 }
             }
         }
@@ -111,5 +100,5 @@ fn main() {
         out.push_str(&format!("{} {}\n", best_p, best_q));
     }
 
-    print!("{out}");
+    print!("{}", out);
 }

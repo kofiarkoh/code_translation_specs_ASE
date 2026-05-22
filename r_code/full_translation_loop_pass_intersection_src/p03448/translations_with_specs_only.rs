@@ -10,6 +10,7 @@ fn main() {
     let c: i64 = it.next().unwrap().parse().unwrap();
     let x: i64 = it.next().unwrap().parse().unwrap();
 
+    // If any maximum is negative, no combinations are considered.
     if a < 0 || b < 0 || c < 0 {
         print!("0");
         return;
@@ -17,12 +18,11 @@ fn main() {
 
     let mut count: i64 = 0;
 
-    // Iterate exactly (A+1)*(B+1)*(C+1) combinations when A,B,C are nonnegative.
+    // Time cost proportional to (A+1)*(B+1)*(C+1), constant extra memory.
     for i in 0..=a {
         for j in 0..=b {
             for k in 0..=c {
-                // Use i64 arithmetic; if it overflows, Rust will panic in debug builds
-                // and wrap in release builds, matching the spec's "not inferable" behavior.
+                // Overflow behavior is unspecified by the spec; use normal i64 arithmetic.
                 if 500 * i + 100 * j + 50 * k == x {
                     count += 1;
                 }

@@ -59,9 +59,7 @@ impl MinHeap {
         // C code assumes size > 0 when called.
         self.size -= 1;
         self.a[0] = self.a[self.size];
-        if self.size > 0 {
-            self.min_heapify(0);
-        }
+        self.min_heapify(0);
     }
 
     fn enq(&mut self, r: i32, c: i32, t: i32) {
@@ -81,36 +79,24 @@ impl MinHeap {
             i = p;
         }
     }
-
-    #[inline]
-    fn top(&self) -> Que {
-        self.a[0]
-    }
-
-    #[inline]
-    fn is_empty(&self) -> bool {
-        self.size == 0
-    }
 }
 
+// Fast input matching the C in(): reads digits, stops when next char < '0'.
+// It does not skip non-digits before the number; the original AOJ input is well-formed.
 struct Scanner {
     buf: Vec<u8>,
     idx: usize,
 }
-
 impl Scanner {
     fn new() -> Self {
-        let mut input = String::new();
-        io::stdin().read_to_string(&mut input).unwrap();
+        let mut s = String::new();
+        io::stdin().read_to_string(&mut s).unwrap();
         Self {
-            buf: input.into_bytes(),
+            buf: s.into_bytes(),
             idx: 0,
         }
     }
-
-    // Emulates the C in(): reads an unsigned integer, assuming next nonconsumed
-    // byte is a digit. Stops when c < '0'. (No whitespace skipping.)
-    fn in_int(&mut self) -> i32 {
+    fn in_i32(&mut self) -> i32 {
         let mut n: i32 = 0;
         if self.idx >= self.buf.len() {
             return 0;
@@ -135,7 +121,7 @@ impl Scanner {
 fn main() {
     const MV: [(i32, i32); 4] = [(-1, 0), (0, 1), (1, 0), (0, -1)];
 
-    // Fixed-size arrays to mirror C globals.
+    // Static-sized arrays as in C.
     let mut l = vec![vec![0i32; 501]; 501];
     let mut mk = vec![vec![0u8; 501]; 501];
     let mut level = vec![vec![0i32; 100001]; 2];
@@ -145,26 +131,26 @@ fn main() {
     let mut out = String::new();
 
     loop {
-        let r_in = sc.in_int();
+        let r_in = sc.in_i32();
         if r_in == 0 {
             break;
         }
-        let r_total = r_in as usize;
+        let r_limit = r_in as usize;
 
         for side in 0..2 {
-            let w = sc.in_int() as i32;
-            let h = sc.in_int() as i32;
-            let x = sc.in_int() - 1;
-            let y = sc.in_int() - 1;
+            let w = sc.in_i32() as i32;
+            let h = sc.in_i32() as i32;
+            let x = sc.in_i32() - 1;
+            let y = sc.in_i32() - 1;
 
             for rr in 0..h {
                 for cc in 0..w {
-                    l[rr as usize][cc as usize] = sc.in_int();
+                    l[rr as usize][cc as usize] = sc.in_i32();
                 }
             }
 
-            // memset(mk, 0, sizeof(mk)) but only the used region matters.
-            for rr in 0..h as usize {
+            // memset(mk, 0, sizeof(mk))
+            for rr in 0..(h as usize) {
                 mk[rr][..(w as usize)].fill(0);
             }
 
@@ -176,8 +162,8 @@ fn main() {
             heap.enq(y, x, l[y as usize][x as usize]);
             mk[y as usize][x as usize] = 1;
 
-            while !heap.is_empty() {
-                let top = heap.top();
+            while heap.size != 0 {
+                let top = heap.a[0];
                 let t = top.t;
                 let rr = top.r as i32;
                 let cc = top.c as i32;
@@ -190,7 +176,7 @@ fn main() {
                 level[side][idx] = maxv;
                 lsz[side] += 1;
 
-                for (dr, dc) in MV {
+                for (dr, dc) in MV.iter() {
                     let r2 = rr + dr;
                     let c2 = cc + dc;
                     if r2 < 0 || r2 >= h || c2 < 0 || c2 >= w {
@@ -209,8 +195,8 @@ fn main() {
         }
 
         let mut ans: i32 = 0x7ffffff; // matches C literal
-        for i in 0..=r_total {
-            let j = r_total - i;
+        for i in 0..=r_limit {
+            let j = r_limit - i;
             if i < lsz[0] && j < lsz[1] {
                 let t = level[0][i] + level[1][j];
                 if t < ans {

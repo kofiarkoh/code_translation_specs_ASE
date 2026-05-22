@@ -1,7 +1,7 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read all input as whitespace-separated integers.
+    // Read all input (no explicit error handling per spec).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -9,40 +9,37 @@ fn main() {
     let n: usize = it.next().unwrap().parse().unwrap();
     let m: usize = it.next().unwrap().parse().unwrap();
 
-    // 1-based arrays to match the C code indexing.
+    // 1-based arrays to mirror the C code indexing.
     let mut k = vec![0i32; n + 1];
-    let mut t = vec![0i32; m + 1];
-
     for i in 1..=n {
         k[i] = it.next().unwrap().parse().unwrap();
     }
+
+    let mut t = vec![0i32; m + 1];
     for i in 1..=m {
         t[i] = it.next().unwrap().parse().unwrap();
     }
 
-    // DP table hi[i][j] = minimum cost selecting j items from first i candidates.
-    // Sentinel is fixed at 1_000_000_000 as in the C code/spec.
+    // DP table hi[i][j] for i in 0..=m, j in 0..=n.
+    // Sentinel value matches C code.
     let inf: i32 = 1_000_000_000;
     let mut hi = vec![vec![inf; n + 1]; m + 1];
 
-    // Invariant: selecting 0 items costs 0 for any prefix length i.
+    // Base case: cost 0 to assign 0 items regardless of i.
     for i in 0..=m {
         hi[i][0] = 0;
     }
 
+    // Transition:
+    // hi[i][j] = min( k[j]*t[i] + hi[i-1][j-1], hi[i-1][j] )
+    // Uses i32 arithmetic like C; overflow behavior is unspecified by the spec.
     for i in 1..=m {
         for j in 1..=n {
-            // Choose candidate i for item j:
-            // cost = k[j] * t[i] + hi[i-1][j-1]
-            // (Assumed not to overflow per spec.)
-            let choose = k[j] * t[i] + hi[i - 1][j - 1];
-
-            // Or skip candidate i:
+            let take = k[j].wrapping_mul(t[i]).wrapping_add(hi[i - 1][j - 1]);
             let skip = hi[i - 1][j];
-
-            hi[i][j] = if choose > skip { skip } else { choose };
+            hi[i][j] = if take > skip { skip } else { take };
         }
     }
 
-    print!("{}\n", hi[m][n]);
+    println!("{}", hi[m][n]);
 }

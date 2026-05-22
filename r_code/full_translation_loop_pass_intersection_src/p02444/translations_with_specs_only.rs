@@ -1,40 +1,50 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin and parse as whitespace-separated integers.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let n: usize = it.next().unwrap().parse().unwrap();
+    let n: usize = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return, // Undefined by spec if missing; exit quietly.
+    };
+
     let mut a: Vec<i64> = Vec::with_capacity(n);
     for _ in 0..n {
-        a.push(it.next().unwrap().parse().unwrap());
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        a.push(v);
     }
 
     let q: usize = it.next().unwrap().parse().unwrap();
-
-    // Temporary buffer proportional to maximum sequence size (<= 1000).
-    let mut tmp: Vec<i64> = Vec::with_capacity(n);
 
     for _ in 0..q {
         let b: usize = it.next().unwrap().parse().unwrap();
         let m: usize = it.next().unwrap().parse().unwrap();
         let e: usize = it.next().unwrap().parse().unwrap();
 
-        // Preconditions are assumed; if violated, behavior is undefined per spec.
-        // Rotate subrange [b, e) left by (m - b), i.e., make original index m first.
-        tmp.clear();
-        tmp.extend_from_slice(&a[m..e]);
-        tmp.extend_from_slice(&a[b..m]);
+        let l = e - b; // precondition: positive
+        let k = m - b; // precondition: b <= m <= e, so 0..=l
 
-        // Write back in-place.
-        a[b..e].copy_from_slice(&tmp[..(e - b)]);
+        if l == 0 {
+            continue; // unreachable under preconditions; keep behavior simple.
+        }
+
+        // Postcondition mapping:
+        // new[b+i] = old[b + ((i + k) mod L)]
+        // This is a left rotation by k within [b, e).
+        let mut tmp: Vec<i64> = Vec::with_capacity(l);
+        for i in 0..l {
+            let src = b + (i + k) % l;
+            tmp.push(a[src]);
+        }
+        for i in 0..l {
+            a[b + i] = tmp[i];
+        }
     }
 
-    // Output: n integers separated by spaces, ending with newline.
     let mut out = String::new();
-    for i in 0..n {
+    for i in 0..a.len() {
         if i > 0 {
             out.push(' ');
         }

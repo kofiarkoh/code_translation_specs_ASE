@@ -1,109 +1,80 @@
 use std::io::{self, Read};
 
+const BASE: usize = 300;
+const KMAX: usize = 600;
+
 fn main() {
-    // Fixed internal capacities implied by the specification.
-    const MAX_OFFERS: usize = 100;
-    const MAX_A: usize = 300;
-    const MAX_B: usize = 300;
-
-    // Quantity B is tracked in a shifted index space to allow negative intermediate values.
-    // Supported actual range is approximately [-300, 300], so index range is [0, 600].
-    const B_SHIFT: isize = 300;
-    const B_SIZE: usize = 601; // -300..=300
-
+    // Read all input as whitespace-separated integers.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let n: usize = match it.next() {
-        Some(x) => x.parse().unwrap(),
-        None => return,
-    };
-    let limit_a: usize = it.next().unwrap().parse().unwrap();
-    let limit_b: isize = it.next().unwrap().parse::<usize>().unwrap() as isize;
+    // Per spec: malformed/missing input => undefined behavior; we unwrap.
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let x: usize = it.next().unwrap().parse().unwrap();
+    let y: usize = it.next().unwrap().parse().unwrap();
 
-    // DP over (A, B) storing max value; unreachable = -1.
-    // We only need two layers (prefix invariant).
-    let mut dp = vec![vec![-1i64; B_SIZE]; MAX_A + 1];
-    let mut next = vec![vec![-1i64; B_SIZE]; MAX_A + 1];
+    // DP over (j, k) for current i; unreachable states are invalid.
+    // The original spec implies no explicit bounds checks for k-b or k+c;
+    // we therefore index directly and rely on the precondition that indices stay in 0..=600.
+    //
+    // Use i64 for rewards; inputs are non-negative, and n<=100, so i64 is ample.
+    let neg_inf: i64 = i64::MIN / 4;
 
-    // Initial state: A=0, B=0, value=0.
-    dp[0][(0 + B_SHIFT) as usize] = 0;
+    let mut dp = vec![vec![neg_inf; KMAX + 1]; x + 1];
+    dp[0][BASE] = 0;
 
-    for _ in 0..n.min(MAX_OFFERS) {
-        let inc_a: usize = it.next().unwrap().parse().unwrap();
-        let dec_b: isize = it.next().unwrap().parse::<usize>().unwrap() as isize;
-        let inc_b: isize = it.next().unwrap().parse::<usize>().unwrap() as isize;
-        let inc_value: i64 = it.next().unwrap().parse::<usize>().unwrap() as i64;
+    for _ in 0..n {
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        let c: usize = it.next().unwrap().parse().unwrap();
+        let d: i64 = it.next().unwrap().parse::<i64>().unwrap();
 
-        // Reset next layer to unreachable.
-        for a in 0..=MAX_A {
-            next[a].fill(-1);
-        }
+        let mut next = vec![vec![neg_inf; KMAX + 1]; x + 1];
 
-        for a in 0..=MAX_A {
-            for bi in 0..B_SIZE {
-                let cur = dp[a][bi];
-                if cur < 0 {
+        for j in 0..=x {
+            for k in 0..=KMAX {
+                let cur = dp[j][k];
+                if cur == neg_inf {
                     continue;
                 }
-                let b_actual = bi as isize - B_SHIFT;
 
-                // Unchanged.
-                if cur > next[a][bi] {
-                    next[a][bi] = cur;
+                // 1) No-op
+                if cur > next[j][k] {
+                    next[j][k] = cur;
                 }
 
-                // Mode 1: (A + incA, B - decB, value), only if A + incA <= limit A.
-                // The specification only guards by limit A; B bounds are assumed by preconditions.
-                if a + inc_a <= limit_a {
-                    let na = a + inc_a;
-                    if na <= MAX_A {
-                        let nb = b_actual - dec_b;
-                        let nbi = nb + B_SHIFT;
-                        if (0..B_SIZE as isize).contains(&nbi) {
-                            let nbiu = nbi as usize;
-                            if cur > next[na][nbiu] {
-                                next[na][nbiu] = cur;
-                            }
-                        }
+                // 2) Trade: only if j + a <= x; k-b assumed in range by precondition.
+                if j + a <= x {
+                    let nk = k - b; // may panic if k < b; spec says inputs avoid this (otherwise undefined).
+                    if cur > next[j + a][nk] {
+                        next[j + a][nk] = cur;
                     }
                 }
 
-                // Mode 2: (A, B + incB, value + incValue).
-                {
-                    let nb = b_actual + inc_b;
-                    let nbi = nb + B_SHIFT;
-                    if (0..B_SIZE as isize).contains(&nbi) {
-                        let nbiu = nbi as usize;
-                        let nv = cur + inc_value;
-                        if nv > next[a][nbiu] {
-                            next[a][nbiu] = nv;
-                        }
-                    }
+                // 3) Reward: k+c assumed in range by precondition.
+                let nk = k + c; // may panic if nk > 600; spec says inputs avoid this (otherwise undefined).
+                let val = cur + d;
+                if val > next[j][nk] {
+                    next[j][nk] = val;
                 }
             }
         }
 
-        std::mem::swap(&mut dp, &mut next);
+        dp = next;
     }
 
-    // Final selection: A <= limit A and B <= limit B.
-    let mut ans: i64 = 0;
-    let a_max = limit_a.min(MAX_A);
-    for a in 0..=a_max {
-        for bi in 0..B_SIZE {
-            let v = dp[a][bi];
-            if v < 0 {
-                continue;
-            }
-            let b_actual = bi as isize - B_SHIFT;
-            if b_actual <= limit_b && v > ans {
+    // Result selection: max over j<=x and k<=BASE+y (and k within 0..=600).
+    let upper_k = (BASE + y).min(KMAX);
+    let mut ans: i64 = 0; // per spec: print 0 if no feasible plan yields positive reward.
+    for j in 0..=x {
+        for k in 0..=upper_k {
+            let v = dp[j][k];
+            if v > ans {
                 ans = v;
             }
         }
     }
 
-    // Output is a single non-negative integer; if nothing feasible, remains 0.
     println!("{}", ans);
 }

@@ -2,83 +2,79 @@ use std::cmp::Reverse;
 use std::collections::BinaryHeap;
 use std::io::{self, Read};
 
-const INF: i32 = i32::MAX;
-
-#[derive(Clone, Copy)]
-struct Edge {
-    to: usize,
-    cost: i32,
+#[derive(Clone, Default)]
+struct Adj {
+    to: Vec<usize>,
+    cost: Vec<i32>,
 }
 
-fn search(adj: &[Vec<Edge>], start: usize, goal: usize) -> i32 {
-    // node[u][r] = best known cost to reach node u with r remaining waivers (r in 0..=2)
-    let n = adj.len();
-    let mut node = vec![[ -1i32; 3 ]; n];
+fn search(tbl: &[Adj], start: usize, goal: usize) -> i32 {
+    // node[v][c] = best known cost to reach v with exactly c remaining waivers, or -1 if unknown.
+    let n = tbl.len();
+    let mut node = vec![vec![-1i32; 3]; n];
 
-    // Priority queue of (total_cost, node, remaining_waivers)
+    // Min-heap by total cost t. State: (t, vertex, remaining_waivers)
     let mut pq: BinaryHeap<(Reverse<i32>, usize, usize)> = BinaryHeap::new();
 
     node[start][2] = 0;
     pq.push((Reverse(0), start, 2));
 
     while let Some((Reverse(_t), s, c)) = pq.pop() {
-        // Skip stale entries (Dijkstra-style)
+        // Skip stale entries (Dijkstra-style).
         let cur = node[s][c];
         if cur < 0 {
             continue;
         }
 
-        // Matches C behavior: stop when goal is popped with c != 1.
-        // Note: This is a semantic quirk: reaching goal with exactly 1 remaining waiver
-        // is not accepted as a final result by the original code/spec.
+        // Matches C behavior: stop when we pop goal with c != 1.
         if s == goal && c != 1 {
             break;
         }
 
-        for &e in &adj[s] {
-            let s2 = e.to;
-            let f2 = e.cost;
+        let adj = &tbl[s];
+        for i in 0..adj.to.len() {
+            let s2 = adj.to[i];
+            let f2 = adj.cost[i];
 
-            // Pay the edge: only allowed when c != 1 (matches C code).
-            // SPEC's transition allows paying for any r, but the provided C code forbids it
-            // for r==1; we follow the SPEC's "source-of-truth" for intended behavior.
-            //
-            // MISMATCH NOTE:
-            // - SPEC says paying is permitted for any r.
-            // - C code disallows paying when r==1.
-            // We follow the SPEC, so we allow paying for any r.
-            let k_pay = cur.saturating_add(f2);
-            if node[s2][c] < 0 || k_pay < node[s2][c] {
-                node[s2][c] = k_pay;
-                pq.push((Reverse(k_pay), s2, c));
+            // Transition without using a waiver: only permitted when remaining waivers != 1.
+            if c != 1 {
+                let k = cur.saturating_add(f2);
+                if node[s2][c] < 0 || k < node[s2][c] {
+                    node[s2][c] = k;
+                    pq.push((Reverse(k), s2, c));
+                }
             }
 
-            // Waive the edge if possible
+            // Transition using a waiver (if any remain): cost does not increase.
             if c > 0 {
                 let c2 = c - 1;
-                let k_free = cur;
-                if node[s2][c2] < 0 || k_free < node[s2][c2] {
-                    node[s2][c2] = k_free;
-                    pq.push((Reverse(k_free), s2, c2));
+                let k = cur;
+                if node[s2][c2] < 0 || k < node[s2][c2] {
+                    node[s2][c2] = k;
+                    pq.push((Reverse(k), s2, c2));
                 }
             }
         }
     }
 
     // Final answer: min(cost at goal with remaining waivers 0 or 2).
-    // If unreachable, behavior is unspecified by the original code/spec; we mimic C's
-    // return logic, which may return -1 if both are unreachable.
-    let g0 = node[goal][0];
-    let g2 = node[goal][2];
-    match (g0 >= 0, g2 >= 0) {
-        (true, true) => g0.min(g2),
-        (true, false) => g0,
-        (false, true) => g2,
-        (false, false) => -1,
+    // Destination with remaining waivers == 1 is not accepted.
+    let a0 = node[goal][0];
+    let a2 = node[goal][2];
+    match (a0 >= 0, a2 >= 0) {
+        (true, true) => a0.min(a2),
+        (true, false) => a0,
+        (false, true) => a2,
+        (false, false) => {
+            // Spec says unreachable behavior is undefined; C would return an invalid value.
+            // We mirror that loosely by returning -1 if both are unknown.
+            -1
+        }
     }
 }
 
 fn main() {
+    // Read all input, parse as integers.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -96,21 +92,22 @@ fn main() {
             break;
         }
 
-        let mut adj: Vec<Vec<Edge>> = vec![Vec::new(); size];
+        let mut tbl: Vec<Adj> = vec![Adj::default(); size];
         for _ in 0..m {
             let mut a: usize = it.next().unwrap().parse().unwrap();
             let mut b: usize = it.next().unwrap().parse().unwrap();
             let c: i32 = it.next().unwrap().parse().unwrap();
-            // Convert to 0-based
+            // Input is 1-based in the C code.
             a -= 1;
             b -= 1;
-            adj[a].push(Edge { to: b, cost: c });
-            adj[b].push(Edge { to: a, cost: c });
+
+            tbl[a].to.push(b);
+            tbl[a].cost.push(c);
+            tbl[b].to.push(a);
+            tbl[b].cost.push(c);
         }
 
-        let start = 0usize;
-        let goal = size - 1;
-        let ans = search(&adj, start, goal);
+        let ans = search(&tbl, 0, size - 1);
         out.push_str(&format!("{ans}\n"));
     }
 

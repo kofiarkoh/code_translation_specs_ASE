@@ -1,31 +1,31 @@
 use std::io::{self, Read};
 
-const MOD: i64 = 1_000_000_007;
+const P: i64 = 1_000_000_007;
 
 fn mod_norm(x: i64) -> i64 {
-    let mut v = x % MOD;
+    let mut v = x % P;
     if v < 0 {
-        v += MOD;
+        v += P;
     }
     v
 }
 
-fn mod_pow(mut a: i64, mut e: i64) -> i64 {
-    a = mod_norm(a);
-    let mut r: i64 = 1;
-    while e > 0 {
-        if (e & 1) != 0 {
-            r = (r * a) % MOD;
+fn mod_pow(mut base: i64, mut exp: i64) -> i64 {
+    base = mod_norm(base);
+    let mut res: i64 = 1;
+    while exp > 0 {
+        if (exp & 1) == 1 {
+            res = (res * base) % P;
         }
-        a = (a * a) % MOD;
-        e >>= 1;
+        base = (base * base) % P;
+        exp >>= 1;
     }
-    r
+    res
 }
 
-fn mod_inv(a: i64) -> i64 {
-    // MOD is prime; precondition requires a != 0 (mod MOD) when used for division.
-    mod_pow(a, MOD - 2)
+fn mod_inv(x: i64) -> i64 {
+    // As per spec, if x == 0 (mod P) the program still attempts inversion.
+    mod_pow(x, P - 2)
 }
 
 fn main() {
@@ -33,103 +33,121 @@ fn main() {
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let h0: usize = it.next().unwrap().parse().unwrap();
-    let w0: usize = it.next().unwrap().parse().unwrap();
+    let mut h: usize = it.next().unwrap().parse().unwrap();
+    let mut w: usize = it.next().unwrap().parse().unwrap();
     let k: i64 = it.next().unwrap().parse().unwrap();
 
-    let n = h0.max(w0);
-
-    // Internal square character matrix of side length max(H, W).
-    // Only the top-left HxW region is meaningful for the original grid.
-    let mut g: Vec<Vec<u8>> = vec![vec![b'.'; n]; n];
-
-    for i in 0..h0 {
-        let s = it.next().unwrap();
-        let bytes = s.as_bytes();
-        // Preconditions guarantee bytes.len() >= w0.
-        for j in 0..w0 {
-            g[i][j] = bytes[j];
-        }
-    }
-
-    // Compute x, f_row, f_col on the original grid.
-    let mut x: i64 = 0;
-    let mut f_row = false;
-    let mut f_col = false;
-
-    for i in 0..h0 {
-        for j in 0..w0 {
-            if g[i][j] == b'#' {
-                x += 1;
-            }
-        }
-        if g[i][0] == b'#' && g[i][w0 - 1] == b'#' {
-            f_row = true;
-        }
-    }
-    for j in 0..w0 {
-        if g[0][j] == b'#' && g[h0 - 1][j] == b'#' {
-            f_col = true;
-        }
-    }
-
-    // If f_col is true and f_row is false, proceed as if transposed.
-    let transpose = f_col && !f_row;
-    let (h, w) = if transpose { (w0, h0) } else { (h0, w0) };
-
-    // Derive a, b, c from the effective grid.
-    let mut a: i64 = 0;
-    let mut b: i64 = 0;
-    let mut c: i64 = 0;
+    let n = h.max(w);
+    // Square buffer of side max(H, W), initialized to unmarked.
+    let mut s: Vec<Vec<u8>> = vec![vec![b'.'; n]; n];
 
     for i in 0..h {
-        let mut x_row: i64 = 0;
-        let mut e_row: i64 = 0;
-
+        let row = it.next().unwrap().as_bytes();
         for j in 0..w {
-            let cell = if transpose { g[j][i] } else { g[i][j] };
-            if cell == b'#' {
-                x_row += 1;
-            }
-            if j + 1 < w {
-                let cell2 = if transpose { g[j + 1][i] } else { g[i][j + 1] };
-                if cell == b'#' && cell2 == b'#' {
-                    e_row += 1;
+            s[i][j] = row[j];
+        }
+    }
+
+    // Boundary flags from the original grid.
+    let mut f_row = false;
+    for i in 0..h {
+        if s[i][0] == b'#' && s[i][w - 1] == b'#' {
+            f_row = true;
+            break;
+        }
+    }
+    let mut f_col = false;
+    for j in 0..w {
+        if s[0][j] == b'#' && s[h - 1][j] == b'#' {
+            f_col = true;
+            break;
+        }
+    }
+
+    if k == 0 {
+        println!("1");
+        return;
+    }
+    if f_row && f_col {
+        println!("1");
+        return;
+    }
+
+    // If neither boundary flag is true, output pow(x, K-1) where x is total marked in original grid.
+    if !f_row && !f_col {
+        let mut x: i64 = 0;
+        for i in 0..h {
+            for j in 0..w {
+                if s[i][j] == b'#' {
+                    x += 1;
                 }
             }
         }
+        let ans = mod_pow(x, k - 1);
+        println!("{}", ans);
+        return;
+    }
 
-        if x_row == w as i64 {
+    // Orientation normalization: only when f_col is true and f_row is false.
+    if f_col && !f_row {
+        // Transpose in-place over the square buffer of side n.
+        for i in 0..n {
+            for j in (i + 1)..n {
+                let tmp = s[i][j];
+                s[i][j] = s[j][i];
+                s[j][i] = tmp;
+            }
+        }
+        std::mem::swap(&mut h, &mut w);
+        // After transpose, exactly one boundary flag remains true; we proceed with per-row aggregates.
+    }
+
+    // Per-row aggregates after normalization.
+    let mut a: i64 = 0;
+    let mut b: i64 = 0;
+    let mut c: i64 = 0;
+    let mut x: i64 = 0;
+
+    for i in 0..h {
+        let mut x_sub: i64 = 0;
+        let mut e: i64 = 0;
+        for j in 0..w {
+            if s[i][j] == b'#' {
+                x_sub += 1;
+                x += 1;
+            }
+            if j >= 1 && s[i][j - 1] == b'#' && s[i][j] == b'#' {
+                e += 1;
+            }
+        }
+
+        if x_sub == w as i64 {
             c += 1;
         } else {
-            a += x_row - e_row;
-            let first = if transpose { g[0][i] } else { g[i][0] };
-            let last = if transpose { g[w - 1][i] } else { g[i][w - 1] };
-            if first == b'#' && last == b'#' {
+            a += x_sub - e;
+            if s[i][0] == b'#' && s[i][w - 1] == b'#' {
                 a -= 2;
                 b += 1;
             }
         }
     }
 
-    let ans = if k == 0 {
-        1i64
-    } else if !f_row && !f_col {
-        mod_pow(x, k - 1)
-    } else if a == 0 && b == 0 {
+    let ans = if a == 0 && b == 0 {
         mod_pow(c, k - 1)
     } else {
-        let xk = mod_pow(x, k - 1);
+        // (((a + b) * pow(x, K-1) + (x - (a + 2*b + c)) * pow(b + c, K-1)) * inv(x - (b + c))) mod P
+        let ab = a + b;
         let bc = b + c;
-        let bck = mod_pow(bc, k - 1);
 
-        let term1 = mod_norm((a + b) % MOD) * xk % MOD;
-        let term2 = mod_norm(x - (a + 2 * b + c)) * bck % MOD;
+        let term1 = mod_norm(ab) * mod_pow(x, k - 1) % P;
+        let coeff2 = x - (a + 2 * b + c);
+        let term2 = mod_norm(coeff2) * mod_pow(bc, k - 1) % P;
 
-        let num = mod_norm(term1 + term2);
-        let den = mod_norm(x - bc);
-        // Preconditions require den != 0 (mod MOD) when this branch is reached.
-        num * mod_inv(den) % MOD
+        let numer = (term1 + term2) % P;
+        let denom = x - bc;
+        let inv_denom = mod_inv(denom);
+
+        (numer * inv_denom) % P
     };
 
     println!("{}", mod_norm(ans));

@@ -3,46 +3,32 @@ use std::io::{self, Read};
 fn main() {
     // Read entire stdin, then parse as whitespace-separated integers.
     let mut input = String::new();
-    if io::stdin().read_to_string(&mut input).is_err() {
-        return;
-    }
+    io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    // Fixed maximum capacity per spec (and C code).
-    let mut a = [0i64; 100];
+    let mut out = String::new();
 
     loop {
+        // If the dataset length cannot be read, stop with no further output.
         let n: usize = match it.next() {
-            Some(tok) => match tok.parse::<usize>() {
-                Ok(v) => v,
-                Err(_) => return, // invalid integer => terminate immediately
-            },
-            None => return, // input exhausted
+            Some(tok) => tok.parse().unwrap(),
+            None => break,
         };
 
+        // If length is zero, stop with no output for that terminating dataset.
         if n == 0 {
-            return; // terminating length; no output
+            break;
         }
 
-        // Per spec, n is 1..=100; if outside, behavior is undefined in C.
-        // We avoid panics and just stop if it would exceed our fixed buffer.
-        if n > 100 {
-            return;
+        // Per spec, exactly n integers are available; otherwise behavior is unspecified.
+        let mut a: Vec<i32> = Vec::with_capacity(n);
+        for _ in 0..n {
+            let v: i32 = it.next().unwrap().parse().unwrap();
+            a.push(v);
         }
 
-        for i in 0..n {
-            let val = match it.next() {
-                Some(tok) => match tok.parse::<i64>() {
-                    Ok(v) => v,
-                    Err(_) => return, // invalid integer => terminate immediately
-                },
-                None => return, // missing required integer => terminate immediately
-            };
-            a[i] = val;
-        }
-
-        // The C code counts swaps performed by bubble sort; this equals inversion count.
-        let mut swap_count: i64 = 0;
+        // Count adjacent swaps performed by bubble sort (equals inversion count).
+        let mut swap_count: i32 = 0;
         for u in (1..n).rev() {
             for i in 0..u {
                 if a[i] > a[i + 1] {
@@ -52,6 +38,8 @@ fn main() {
             }
         }
 
-        println!("{swap_count}");
+        out.push_str(&format!("{swap_count}\n"));
     }
+
+    print!("{out}");
 }

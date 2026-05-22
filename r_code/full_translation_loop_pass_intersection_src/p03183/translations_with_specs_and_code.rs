@@ -3,43 +3,59 @@ use std::io::{self, Read};
 
 #[derive(Clone, Copy)]
 struct Item {
-    w: usize,
-    s: usize,
-    v: i64,
+    w: i32,
+    s: i32,
+    v: i32,
 }
 
 fn main() {
-    // Read entire stdin (no explicit error handling per spec/C behavior).
+    // Read all input (undefined behavior per spec if malformed; we simply unwrap).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let n: usize = match it.next() {
-        Some(x) => x.parse().unwrap(),
-        None => return, // malformed/incomplete input: behavior not defined; exit quietly
-    };
+    let n: i32 = it.next().unwrap().parse().unwrap();
+    // Spec: if n is negative, behavior is undefined. We'll mirror that by not handling it.
+    let n_usize = n as usize;
 
-    let mut items: Vec<Item> = Vec::with_capacity(n);
-    for _ in 0..n {
-        let w: usize = it.next().unwrap().parse().unwrap();
-        let s: usize = it.next().unwrap().parse().unwrap();
-        let v: i64 = it.next().unwrap().parse().unwrap();
+    let mut items = Vec::with_capacity(n_usize);
+    for _ in 0..n_usize {
+        let w: i32 = it.next().unwrap().parse().unwrap();
+        let s: i32 = it.next().unwrap().parse().unwrap();
+        let v: i32 = it.next().unwrap().parse().unwrap();
         items.push(Item { w, s, v });
     }
 
-    // Sort by (s + w) ascending, matching C comparator semantics.
-    // Note: In C, (p->s+p->w)-(q->s+q->w) is an int subtraction; here we use a safe ordering.
-    items.sort_by_key(|x| x.s + x.w);
+    // Sort by (s + w) ascending, matching the C comparator intent.
+    // Note: C uses 32-bit int subtraction which can overflow (UB in C). Spec does not define this;
+    // we use i64 to avoid overflow while preserving ordering for in-range values.
+    items.sort_by_key(|x| (x.s as i64) + (x.w as i64));
 
     const M: usize = 20000;
     let mut dp = vec![0i64; M + 1];
 
     for item in items {
         // C loops j from item.s down to 0 inclusive.
-        // Preconditions imply item.s + item.w <= 20000, so k is in-bounds.
-        for j in (0..=item.s).rev() {
-            let k = j + item.w;
-            dp[k] = max(dp[k], dp[j] + item.v);
+        // Spec notes undefined behavior if strengths exceed 20000 or weights cause indices > 20000.
+        // We intentionally do not clamp; we just avoid panics by skipping out-of-range indices,
+        // which is the closest safe analogue while keeping defined behavior for valid inputs.
+        if item.s < 0 {
+            continue; // strength negative is outside meaningful contract; ignore safely.
+        }
+        let s = item.s as i64;
+        let w = item.w as i64;
+        let v = item.v as i64;
+
+        let start = if s as usize > M { M } else { s as usize };
+        for j in (0..=start).rev() {
+            let k_i64 = (j as i64) + w;
+            if k_i64 < 0 || k_i64 as usize > M {
+                // Out of representable weight range (0..=20000); spec says behavior undefined.
+                // We skip to keep Rust safe.
+                continue;
+            }
+            let k = k_i64 as usize;
+            dp[k] = max(dp[k], dp[j] + v);
         }
     }
 

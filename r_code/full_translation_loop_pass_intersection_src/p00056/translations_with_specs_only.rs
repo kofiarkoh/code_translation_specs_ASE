@@ -1,67 +1,64 @@
 use std::io::{self, Read};
 
-const MAX: usize = 50_000;
+const MAX_N: usize = 50_000;
 
-fn sieve_primes_up_to(max: usize) -> Vec<bool> {
-    // is_prime[k] == true iff k is prime; 0 and 1 are non-prime.
-    let mut is_prime = vec![true; max + 1];
-    if max >= 0 {
+fn build_is_prime() -> [bool; MAX_N + 1] {
+    let mut is_prime = [true; MAX_N + 1];
+    if MAX_N >= 0 {
         is_prime[0] = false;
     }
-    if max >= 1 {
+    if MAX_N >= 1 {
         is_prime[1] = false;
     }
 
+    // Sieve of Eratosthenes
     let mut p = 2usize;
-    while p * p <= max {
+    while p * p <= MAX_N {
         if is_prime[p] {
             let mut m = p * p;
-            while m <= max {
+            while m <= MAX_N {
                 is_prime[m] = false;
                 m += p;
             }
         }
         p += 1;
     }
+
     is_prime
 }
 
 fn main() {
-    // Precompute primality for 0..=50000 once.
-    let is_prime = sieve_primes_up_to(MAX);
-
-    // Read all input; stop processing on parse failure by only consuming valid integers.
+    // Read entire stdin; if it can't be read, terminate with no output.
     let mut input = String::new();
-    io::stdin().read_to_string(&mut input).ok();
+    if io::stdin().read_to_string(&mut input).is_err() {
+        return;
+    }
+
+    let is_prime = build_is_prime();
 
     let mut out = String::new();
 
     for tok in input.split_whitespace() {
+        // If input cannot be read as an integer, terminate with no further output.
         let n_i32: i32 = match tok.parse() {
             Ok(v) => v,
-            Err(_) => break, // parse failure => stop with no further output
+            Err(_) => break,
         };
 
         if n_i32 == 0 {
-            break; // termination on 0
-        }
-
-        // Behavior is only guaranteed for 0..=50000; we keep indexing safe by skipping
-        // out-of-range values (unspecified by the spec).
-        if n_i32 < 0 || (n_i32 as usize) > MAX {
-            // Unspecified behavior; choose the narrowest safe behavior: stop processing.
             break;
         }
 
+        // Behavior is undefined for negative or > MAX_N in the specification.
+        // We choose the narrowest reasonable interpretation: assume precondition holds.
         let n = n_i32 as usize;
 
-        // Count unordered prime pairs (p, q) with p <= q and p + q == n.
-        // This is equivalent to counting primes p in [2..=n/2] such that n-p is prime.
-        let mut count: u32 = 0;
-        for p in 2..=n / 2 {
+        let mut count: i32 = 0;
+        let half = n / 2;
+        for p in 2..=half {
             if is_prime[p] {
                 let q = n - p;
-                if q <= MAX && is_prime[q] {
+                if q <= MAX_N && is_prime[q] {
                     count += 1;
                 }
             }

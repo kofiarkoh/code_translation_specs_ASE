@@ -1,23 +1,29 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, split by whitespace (matches scanf("%d %d") and scanf("%s") behavior).
+    // Read entire stdin, tokenized by whitespace (matches scanf("%d %d") and scanf("%s")).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let h: usize = it.next().unwrap().parse().unwrap();
+    let h: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
     let w: usize = it.next().unwrap().parse().unwrap();
 
-    // Fixed-size buffer like C: char s[51][60] = {""};
-    // Initialize with 0 bytes to mimic C's zero-initialized array.
-    let mut s = vec![[0u8; 60]; 51];
+    // Fixed-size storage as in C: char s[51][60] = {""};
+    // We'll store bytes; default 0 matches C's zero-initialization.
+    let mut s = vec![vec![0u8; 60]; 51];
 
     for i in 0..h {
-        let row = it.next().unwrap().as_bytes();
-        // Copy row bytes into s[i], leaving remaining bytes as 0 (like C's '\0' padding).
-        let len = row.len().min(60);
-        s[i][..len].copy_from_slice(&row[..len]);
+        if let Some(row) = it.next() {
+            let bytes = row.as_bytes();
+            // Spec says each row contains at least `w` characters; no explicit error handling.
+            // Copy up to 60 to mirror the fixed buffer size.
+            let n = bytes.len().min(60);
+            s[i][..n].copy_from_slice(&bytes[..n]);
+        }
     }
 
     for i in 0..h {
@@ -25,9 +31,11 @@ fn main() {
             let u = if i == 0 { 0 } else { s[i - 1][j] };
             let l = if j == 0 { 0 } else { s[i][j - 1] };
 
-            // Note: The original C code reads s[i+1][j] and s[i][j+1] without bounds checks.
-            // The SPEC states this is only defined under its preconditions (padding / safe readable boundary).
-            // We preserve that behavior by indexing directly; if preconditions are violated, this may panic.
+            // NOTE: The C code reads s[i+1][j] and s[i][j+1] unconditionally, which can
+            // go out of the logical grid at bottom/right edges. The specification states
+            // behavior is only well-defined under assumptions about such reads.
+            // We preserve the C behavior by reading from the fixed-size buffer, which is
+            // zero-initialized beyond provided input.
             let d = s[i + 1][j];
             let r = s[i][j + 1];
 

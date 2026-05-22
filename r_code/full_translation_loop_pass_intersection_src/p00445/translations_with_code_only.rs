@@ -1,9 +1,11 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, then mimic scanf("%s") tokenization (whitespace-separated).
+    // Read entire stdin, then mimic repeated `scanf("%s", str)` by splitting on whitespace.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut out = String::new();
 
     for token in input.split_whitespace() {
         let bytes = token.as_bytes();
@@ -11,9 +13,10 @@ fn main() {
         let mut ioi: i32 = 0;
 
         // C loop: for (i = 0; i < strlen(str) - 2; i++)
-        // In C, strlen is size_t; if len < 2, len - 2 underflows to a huge value,
-        // and the loop would attempt out-of-bounds reads (undefined behavior).
-        // Here we avoid UB and only scan valid 3-byte windows.
+        // If len < 2, `strlen - 2` underflows in unsigned arithmetic and then is compared to int,
+        // which is undefined/implementation-defined. In practice for this problem, inputs are
+        // expected to be long enough; we emulate the intended behavior by doing no iterations
+        // when len < 3.
         if bytes.len() >= 3 {
             for i in 0..=(bytes.len() - 3) {
                 if &bytes[i..i + 3] == b"JOI" {
@@ -25,8 +28,8 @@ fn main() {
             }
         }
 
-        // Match C output formatting: two lines per token.
-        println!("{}", joi);
-        println!("{}", ioi);
+        out.push_str(&format!("{}\n{}\n", joi, ioi));
     }
+
+    print!("{out}");
 }

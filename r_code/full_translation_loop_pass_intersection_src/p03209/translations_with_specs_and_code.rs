@@ -1,15 +1,16 @@
 use std::io::{self, Read};
 
-fn f(n: i64, x: i64) -> i64 {
-    if n == 0 {
-        return if x <= 0 { 0 } else { 1 };
-    }
-    // Spec/C require that 2^n fits in signed integer range; we use i64 and assume precondition.
-    let p: i64 = (1_i64 << n) - 1;
-    if x <= 2 * p {
-        f(n - 1, x - 1)
+fn f(level: i64, pos: i64) -> i64 {
+    if level == 0 {
+        if pos <= 0 { 0 } else { 1 }
     } else {
-        (p + 1) + f(n - 1, x - 1 - 2 * p)
+        // Per spec/C: p = 2^level - 1, assuming it is representable (precondition).
+        let p: i64 = (1_i64 << level) - 1;
+        if pos <= 2 * p {
+            f(level - 1, pos - 1)
+        } else {
+            (p + 1) + f(level - 1, pos - 1 - 2 * p)
+        }
     }
 }
 
@@ -17,9 +18,10 @@ fn main() {
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
+
+    // Behavior on missing/invalid input is unspecified by the spec; unwrap matches that spirit.
     let n: i64 = it.next().unwrap().parse().unwrap();
     let k: i64 = it.next().unwrap().parse().unwrap();
 
-    let ans = f(n, k);
-    print!("{ans}");
+    print!("{}", f(n, k));
 }

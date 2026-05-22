@@ -1,60 +1,61 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read all input as whitespace-separated integers.
+    // Read entire stdin; behavior on I/O failure is unspecified by the spec,
+    // so we keep it simple and let Rust's default behavior apply.
     let mut input = String::new();
-    io::stdin().read_to_string(&mut input).unwrap();
+    let _ = io::stdin().read_to_string(&mut input);
 
     let mut out = String::new();
 
     for tok in input.split_whitespace() {
-        // Specification precondition: each read must successfully provide an integer value.
-        // If parsing fails, behavior is not inferable; we choose to stop quietly.
-        let x: i128 = match tok.parse() {
+        // Spec precondition: each token intended for processing is a valid integer.
+        // If parsing fails, behavior is unspecified; we stop processing.
+        let x_i64: i64 = match tok.parse() {
             Ok(v) => v,
             Err(_) => break,
         };
 
-        if x == 0 {
+        if x_i64 == 0 {
             break;
         }
 
-        // Specification: nonzero inputs are non-negative; negative behavior is not defined.
-        // We choose the narrowest reasonable behavior: do not attempt to process negatives.
-        if x < 0 {
-            break;
+        // Spec precondition: each nonzero input integer is non-negative.
+        // If negative values are provided, behavior is not meaningfully defined.
+        // We choose the narrowest reasonable behavior: do nothing for negatives.
+        if x_i64 < 0 {
+            continue;
         }
 
-        let mut n = x as u128;
+        let mut x: u64 = x_i64 as u64;
 
-        // Convert to base-8 digits (least significant first), then output in reverse.
-        // Specification constraint: at most 199 base-8 digits; otherwise undefined.
-        // We emulate the fixed bounded storage with a fixed-size array.
+        // Fixed-size internal storage: up to 199 base-8 digits.
+        // The spec says overflow would be undefined; we avoid panics and keep within bounds.
         let mut digits = [0u8; 199];
         let mut len: usize = 0;
 
-        while n != 0 {
-            if len >= digits.len() {
-                // Out-of-bounds in the original would be undefined; we stop processing.
-                // This is the narrowest safe behavior without inventing extra output.
-                return;
-            }
-            digits[len] = (n & 7) as u8;
+        // Convert to base-8 digits, least significant first.
+        // For x > 0, there is at least one digit.
+        while x > 0 && len < digits.len() {
+            digits[len] = (x & 7) as u8;
             len += 1;
-            n >>= 3;
+            x >>= 3;
         }
 
-        // Map base-8 digit to decimal digit by skipping 4 and 6:
-        // 0..3 -> same, 4..5 -> +1, 6..7 -> +2
+        // If x is still > 0 here, it would require more than 199 base-8 digits.
+        // Spec says behavior is undefined; we choose to truncate silently.
+
+        // Output transformed digits, most significant first.
         for i in (0..len).rev() {
             let d = digits[i];
-            let t: u8 = match d {
-                0..=3 => d,
-                4..=5 => d + 1,
-                6..=7 => d + 2,
-                _ => unreachable!(),
+            let t = if d <= 3 {
+                d
+            } else if d <= 5 {
+                d + 1
+            } else {
+                d + 2
             };
-            out.push((b'0' + t) as char);
+            out.push(char::from(b'0' + t));
         }
         out.push('\n');
     }

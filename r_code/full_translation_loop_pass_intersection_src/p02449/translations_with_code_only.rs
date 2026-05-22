@@ -1,24 +1,23 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, parse as whitespace-separated integers (like scanf("%d")).
+    // Read entire stdin and parse as whitespace-separated integers (like scanf("%d")).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
     let n: i32 = match it.next() {
         Some(s) => s.parse().unwrap(),
-        None => return, // No input: C would have undefined behavior; we just exit.
+        None => return,
     };
 
-    // C uses fixed-size arrays of length 9; preserve that.
+    // C uses fixed-size arrays of length 9. We'll mirror that.
     let mut a = [0i32; 9];
     let mut next_a = [0i32; 9];
     let mut prev_a = [0i32; 9];
 
-    // Fill first n elements.
-    // Note: If n > 9, the C code would write out of bounds (UB). We do not emulate UB;
-    // we keep the same storage size and will panic if n > 9 due to bounds checks.
+    // Note: The original C code has undefined behavior if n > 9 or n < 0.
+    // We assume inputs are within bounds as typical for such problems.
     for i in 0..(n as usize) {
         let v: i32 = it.next().unwrap().parse().unwrap();
         a[i] = v;
@@ -30,95 +29,116 @@ fn main() {
 
     if n == 1 {
         out.push_str("1\n");
-        print!("{out}");
-        return;
-    }
+    } else {
+        // search for previous permutation
+        let mut flag = 0i32;
+        let mut pivot_i: i32 = 0;
 
-    // search for previous permutation
-    let mut flag = 0i32;
-    let mut i_idx: i32 = 0;
-    for i in (0..=(n - 2)).rev() {
-        let iu = i as usize;
-        if prev_a[iu] > prev_a[iu + 1] {
-            flag = 1;
-            i_idx = i;
-            break;
-        }
-    }
-
-    if flag != 0 {
-        for j in ((i_idx + 1)..=n - 1).rev() {
-            let ju = j as usize;
-            let iu = i_idx as usize;
-            if prev_a[ju] < prev_a[iu] {
-                let tmp = prev_a[ju];
-                prev_a[ju] = prev_a[iu];
-                prev_a[iu] = tmp;
+        // for (i = n - 2; i >= 0; i--) { ... }
+        // Use i32 to match C loop behavior.
+        let mut i = n - 2;
+        while i >= 0 {
+            let iu = i as usize;
+            if prev_a[iu] > prev_a[iu + 1] {
+                flag = 1;
+                pivot_i = i;
                 break;
             }
-        }
-        let mid: i32 = (n - i_idx - 1) / 2;
-        for k in 1..=mid {
-            let left = (i_idx + k) as usize;
-            let right = (n - k) as usize;
-            let tmp = prev_a[left];
-            prev_a[left] = prev_a[right];
-            prev_a[right] = tmp;
+            i -= 1;
         }
 
-        // print the previous permutation
-        out.push_str(&format!("{}", prev_a[0]));
-        for i in 1..(n as usize) {
-            out.push_str(&format!(" {}", prev_a[i]));
+        if flag != 0 {
+            // for (j = n - 1; j > i; j--) { ... }
+            let mut j = n - 1;
+            while j > pivot_i {
+                let ju = j as usize;
+                let piu = pivot_i as usize;
+                if prev_a[ju] < prev_a[piu] {
+                    let tmp = prev_a[ju];
+                    prev_a[ju] = prev_a[piu];
+                    prev_a[piu] = tmp;
+                    break;
+                }
+                j -= 1;
+            }
+
+            let mid = (n - pivot_i - 1) / 2;
+            let mut k = 1;
+            while k <= mid {
+                let piu = pivot_i as usize;
+                let ku = k as usize;
+                let left = piu + ku;
+                let right = (n - k) as usize;
+                let tmp = prev_a[left];
+                prev_a[left] = prev_a[right];
+                prev_a[right] = tmp;
+                k += 1;
+            }
+
+            // print the previous permutation
+            out.push_str(&format!("{}", prev_a[0]));
+            for idx in 1..(n as usize) {
+                out.push_str(&format!(" {}", prev_a[idx]));
+            }
+            out.push('\n');
+        }
+
+        // print the given sequence
+        out.push_str(&format!("{}", a[0]));
+        for idx in 1..(n as usize) {
+            out.push_str(&format!(" {}", a[idx]));
         }
         out.push('\n');
-    }
 
-    // print the given sequence
-    out.push_str(&format!("{}", a[0]));
-    for i in 1..(n as usize) {
-        out.push_str(&format!(" {}", a[i]));
-    }
-    out.push('\n');
+        // search for next permutation
+        flag = 0;
+        let mut pivot_i2: i32 = 0;
 
-    // search for next permutation
-    flag = 0;
-    i_idx = 0;
-    for i in (0..=(n - 2)).rev() {
-        let iu = i as usize;
-        if next_a[iu] < next_a[iu + 1] {
-            flag = 1;
-            i_idx = i;
-            break;
-        }
-    }
-
-    if flag != 0 {
-        for j in ((i_idx + 1)..=n - 1).rev() {
-            let ju = j as usize;
-            let iu = i_idx as usize;
-            if next_a[ju] > next_a[iu] {
-                let tmp = next_a[ju];
-                next_a[ju] = next_a[iu];
-                next_a[iu] = tmp;
+        let mut i2 = n - 2;
+        while i2 >= 0 {
+            let iu = i2 as usize;
+            if next_a[iu] < next_a[iu + 1] {
+                flag = 1;
+                pivot_i2 = i2;
                 break;
             }
-        }
-        let mid: i32 = (n - i_idx - 1) / 2;
-        for k in 1..=mid {
-            let left = (i_idx + k) as usize;
-            let right = (n - k) as usize;
-            let tmp = next_a[left];
-            next_a[left] = next_a[right];
-            next_a[right] = tmp;
+            i2 -= 1;
         }
 
-        // print the next permutation
-        out.push_str(&format!("{}", next_a[0]));
-        for i in 1..(n as usize) {
-            out.push_str(&format!(" {}", next_a[i]));
+        if flag != 0 {
+            let mut j2 = n - 1;
+            while j2 > pivot_i2 {
+                let ju = j2 as usize;
+                let piu = pivot_i2 as usize;
+                if next_a[ju] > next_a[piu] {
+                    let tmp = next_a[ju];
+                    next_a[ju] = next_a[piu];
+                    next_a[piu] = tmp;
+                    break;
+                }
+                j2 -= 1;
+            }
+
+            let mid2 = (n - pivot_i2 - 1) / 2;
+            let mut k2 = 1;
+            while k2 <= mid2 {
+                let piu = pivot_i2 as usize;
+                let ku = k2 as usize;
+                let left = piu + ku;
+                let right = (n - k2) as usize;
+                let tmp = next_a[left];
+                next_a[left] = next_a[right];
+                next_a[right] = tmp;
+                k2 += 1;
+            }
+
+            // print the next permutation
+            out.push_str(&format!("{}", next_a[0]));
+            for idx in 1..(n as usize) {
+                out.push_str(&format!(" {}", next_a[idx]));
+            }
+            out.push('\n');
         }
-        out.push('\n');
     }
 
     print!("{out}");

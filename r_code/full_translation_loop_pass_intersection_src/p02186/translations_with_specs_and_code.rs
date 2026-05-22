@@ -4,14 +4,22 @@ const INF: i64 = ((1i64 << 62) - (1i64 << 31));
 
 #[derive(Clone, Copy, Debug)]
 struct Lazy {
-    k: i64, // range add
+    k: i64,
 }
+const SID: Lazy = Lazy { k: 0 };
+
 #[derive(Clone, Copy, Debug)]
 struct Val {
-    m: i64, // min prefix in segment
-    M: i64, // max prefix in segment
-    x: i64, // max increase (P[b]-P[a]) within segment
+    m: i64, // minimum prefix in segment
+    M: i64, // maximum prefix in segment
+    x: i64, // maximum difference (max subarray sum) within segment
 }
+const AID: Val = Val {
+    m: INF,
+    M: -INF,
+    x: 0,
+};
+
 #[derive(Clone, Copy, Debug)]
 struct Node {
     t: Lazy,
@@ -19,20 +27,15 @@ struct Node {
 }
 
 fn combine(a: Val, b: Val) -> Val {
-    // Merge two adjacent segments.
-    // max increase is max of:
-    // - best in left
-    // - best in right
-    // - best crossing: max(right) - min(left)
-    Val {
-        m: a.m.min(b.m),
-        M: a.M.max(b.M),
-        x: (b.M - a.m).max(a.x.max(b.x)),
-    }
+    // Merge two segments: min, max, and best cross difference.
+    let m = a.m.min(b.m);
+    let M = a.M.max(b.M);
+    let x = (b.M - a.m).max(a.x.max(b.x));
+    Val { m, M, x }
 }
 
 fn apply(t: Lazy, v: Val) -> Val {
-    // Range add shifts min/max, but does not change max difference within the segment.
+    // Add t.k to all prefix sums in this segment; x unchanged.
     Val {
         m: v.m + t.k,
         M: v.M + t.k,
@@ -41,123 +44,99 @@ fn apply(t: Lazy, v: Val) -> Val {
 }
 
 fn compose(a: Lazy, b: Lazy) -> Lazy {
-    // Apply a then b (both are adds) => add sums.
+    // Apply a then b (both are additions), so add.
     Lazy { k: a.k + b.k }
 }
 
-struct LazySeg {
+struct LazySegTree {
     n: usize,        // power-of-two size
-    tree: Vec<Node>, // 1-indexed segment tree nodes, size 2*n
-    sid: Lazy,
-    aid: Val,
+    nodes: Vec<Node>, // 1-indexed tree nodes, size 2*n
 }
 
-impl LazySeg {
+impl LazySegTree {
     fn new(n_pow2: usize) -> Self {
-        let sid = Lazy { k: 0 };
-        let aid = Val {
-            m: INF,
-            M: -INF,
-            x: 0,
-        };
-        let mut tree = vec![
+        let mut nodes = vec![
             Node {
-                t: sid,
-                x: aid
+                t: SID,
+                x: AID
             };
             2 * n_pow2
         ];
-        // Initialize internal nodes from leaves (all aid initially).
+        // Initialize internal nodes from leaves (all AID initially).
         for i in (1..n_pow2).rev() {
-            let left = tree[2 * i].x;
-            let right = tree[2 * i + 1].x;
-            tree[i].x = combine(left, right);
-            tree[i].t = sid;
+            nodes[i].x = combine(nodes[2 * i].x, nodes[2 * i + 1].x);
+            nodes[i].t = SID;
         }
-        Self {
-            n: n_pow2,
-            tree,
-            sid,
-            aid,
-        }
+        Self { n: n_pow2, nodes }
     }
 
     fn set_leaf(&mut self, idx: usize, v: Val) {
-        // idx is 0-based in leaf array
-        self.tree[self.n + idx].x = v;
+        self.nodes[self.n + idx].x = v;
     }
 
-    fn init_build(&mut self) {
+    fn init(&mut self) {
         for i in (1..self.n).rev() {
-            let left = self.tree[2 * i].x;
-            let right = self.tree[2 * i + 1].x;
-            self.tree[i].x = combine(left, right);
-            self.tree[i].t = self.sid;
+            self.nodes[i].x = combine(self.nodes[2 * i].x, self.nodes[2 * i + 1].x);
+            self.nodes[i].t = SID;
         }
     }
 
     fn push(&mut self, i: usize) {
-        let t = self.tree[i].t;
+        let t = self.nodes[i].t;
         if t.k != 0 {
             let l = 2 * i;
             let r = 2 * i + 1;
-            self.tree[l].t = compose(t, self.tree[l].t);
-            self.tree[r].t = compose(t, self.tree[r].t);
-            self.tree[i].x = apply(t, self.tree[i].x);
-            self.tree[i].t = self.sid;
+            self.nodes[l].t = compose(t, self.nodes[l].t);
+            self.nodes[r].t = compose(t, self.nodes[r].t);
+            self.nodes[i].x = apply(t, self.nodes[i].x);
+            self.nodes[i].t = SID;
         }
     }
 
-    fn range_add(&mut self, l: usize, r: usize, t: Lazy) {
-        self.range_add_rec(l, r, t, 1, 0, self.n);
+    fn update_range(&mut self, l: usize, r: usize, t: Lazy) {
+        self.update_sub(l, r, t, 1, 0, self.n);
     }
 
-    fn range_add_rec(&mut self, l: usize, r: usize, t: Lazy, i: usize, cl: usize, cr: usize) {
+    fn update_sub(&mut self, l: usize, r: usize, t: Lazy, i: usize, cl: usize, cr: usize) {
         if l >= r || cr <= l || r <= cl {
             return;
         }
         if l <= cl && cr <= r {
-            self.tree[i].t = compose(t, self.tree[i].t);
+            self.nodes[i].t = compose(t, self.nodes[i].t);
             return;
         }
-        // propagate pending to children before descending
+        // propagate pending tag before going down
         self.push(i);
         let cm = (cl + cr) / 2;
-        self.range_add_rec(l, r, t, 2 * i, cl, cm);
-        self.range_add_rec(l, r, t, 2 * i + 1, cm, cr);
-
-        // Recompute from children, applying their lazies (without pushing them).
-        let left = apply(self.tree[2 * i].t, self.tree[2 * i].x);
-        let right = apply(self.tree[2 * i + 1].t, self.tree[2 * i + 1].x);
-        self.tree[i].x = combine(left, right);
-        self.tree[i].t = self.sid;
+        self.update_sub(l, r, t, 2 * i, cl, cm);
+        self.update_sub(l, r, t, 2 * i + 1, cm, cr);
+        let left = apply(self.nodes[2 * i].t, self.nodes[2 * i].x);
+        let right = apply(self.nodes[2 * i + 1].t, self.nodes[2 * i + 1].x);
+        self.nodes[i].x = combine(left, right);
+        self.nodes[i].t = SID;
     }
 
-    fn query(&mut self, l: usize, r: usize) -> Val {
-        self.query_rec(l, r, 1, 0, self.n)
+    fn query_range(&mut self, l: usize, r: usize) -> Val {
+        self.query_sub(l, r, 1, 0, self.n)
     }
 
-    fn query_rec(&mut self, l: usize, r: usize, i: usize, cl: usize, cr: usize) -> Val {
+    fn query_sub(&mut self, l: usize, r: usize, i: usize, cl: usize, cr: usize) -> Val {
         if l >= r {
-            return self.aid;
+            return AID;
         }
         if l <= cl && cr <= r {
-            return apply(self.tree[i].t, self.tree[i].x);
+            return apply(self.nodes[i].t, self.nodes[i].x);
         }
-        let cm = (cl + cr) / 2;
-
-        // In the C code, query propagates lazies down (mutating the tree) to keep correctness.
-        // We do the same to preserve semantics.
         self.push(i);
-
+        let cm = (cl + cr) / 2;
         if r <= cm {
-            return self.query_rec(l, r, 2 * i, cl, cm);
+            return self.query_sub(l, r, 2 * i, cl, cm);
         }
         if cm <= l {
-            return self.query_rec(l, r, 2 * i + 1, cm, cr);
+            return self.query_sub(l, r, 2 * i + 1, cm, cr);
         }
-        let a = self.query_rec(l, r, 2 * i, cl, cm);
-        let b = self.query_rec(l, r, 2 * i + 1, cm, cr);
+        let a = self.query_sub(l, r, 2 * i, cl, cm);
+        let b = self.query_sub(l, r, 2 * i + 1, cm, cr);
         combine(a, b)
     }
 }
@@ -171,57 +150,38 @@ fn main() {
     let n: usize = it.next().unwrap().parse().unwrap();
     let q: usize = it.next().unwrap().parse().unwrap();
 
-    // Fixed capacity: 2^17 leaves, as in the C code.
-    // Spec allows n <= 131071 so n+1 <= 131072 fits.
-    let mut seg = LazySeg::new(1 << 17);
+    // Fixed internal capacity as in C: 1<<17 (131072)
+    // Spec precondition ensures n+1 fits.
+    let mut seg = LazySegTree::new(1 << 17);
 
-    // P[0] = 0 at index 0
-    seg.set_leaf(
-        0,
-        Val {
-            m: 0,
-            M: 0,
-            x: 0,
-        },
-    );
-
-    // Build prefix sums P[1..=n] at indices 1..=n
+    // Build prefix sums P[0..n], stored as leaves 0..n (length n+1).
+    // Leaves beyond n are left as AID and never queried/updated.
+    seg.set_leaf(0, Val { m: 0, M: 0, x: 0 });
     let mut pref: i64 = 0;
     for i in 0..n {
-        let t: i64 = it.next().unwrap().parse().unwrap();
-        pref += t;
-        seg.set_leaf(
-            i + 1,
-            Val {
-                m: pref,
-                M: pref,
-                x: 0,
-            },
-        );
+        let a: i64 = it.next().unwrap().parse().unwrap();
+        pref += a;
+        seg.set_leaf(i + 1, Val { m: pref, M: pref, x: 0 });
     }
-
-    seg.init_build();
+    seg.init();
 
     let mut out = String::new();
-    let ans0 = seg.query(0, n + 1).x;
-    out.push_str(&format!("{ans0}\n"));
+    out.push_str(&format!("{}\n", seg.query_range(0, n + 1).x));
 
     for _ in 0..q {
-        let pos_1based: usize = it.next().unwrap().parse().unwrap();
-        let new_val: i64 = it.next().unwrap().parse().unwrap();
+        let idx1: usize = it.next().unwrap().parse().unwrap(); // 1-based
+        let t_new: i64 = it.next().unwrap().parse().unwrap();
 
-        // C computes delta using current prefix sums:
-        // T = new_val - P[pos] + P[pos-1]
-        // then adds T to all P[k] for k >= pos (i.e., indices [pos, n+1) in prefix array).
-        let p = pos_1based; // prefix index equals element position
-        let p_i = seg.query(p, p + 1).m;
-        let p_im1 = seg.query(p - 1, p).m;
-        let delta = new_val - p_i + p_im1;
+        // Compute delta to add to all prefix sums P[k] for k >= idx1.
+        // Using the same formula as C:
+        // delta = new_value - old_value, where old_value = P[i]-P[i-1]
+        let p_i = seg.query_range(idx1, idx1 + 1).m;
+        let p_im1 = seg.query_range(idx1 - 1, idx1).m;
+        let old_val = p_i - p_im1;
+        let delta = t_new - old_val;
 
-        seg.range_add(p, n + 1, Lazy { k: delta });
-
-        let ans = seg.query(0, n + 1).x;
-        out.push_str(&format!("{ans}\n"));
+        seg.update_range(idx1, n + 1, Lazy { k: delta });
+        out.push_str(&format!("{}\n", seg.query_range(0, n + 1).x));
     }
 
     print!("{out}");

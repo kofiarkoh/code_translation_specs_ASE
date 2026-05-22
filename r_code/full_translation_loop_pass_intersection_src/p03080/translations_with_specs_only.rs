@@ -2,7 +2,7 @@ use std::io::{self, Read};
 use std::process;
 
 fn main() {
-    // Read entire stdin.
+    // Read entire stdin; on failure, terminate with non-zero exit status and no specified output.
     let mut input = String::new();
     if io::stdin().read_to_string(&mut input).is_err() {
         process::exit(1);
@@ -10,38 +10,31 @@ fn main() {
 
     let mut it = input.split_whitespace();
 
-    // If either required input value cannot be read, terminate immediately with non-success status
-    // and produce no required output.
-    let n_str = match it.next() {
-        Some(v) => v,
-        None => process::exit(1),
-    };
-    let token = match it.next() {
+    // Required input 1: non-negative integer count.
+    let n: usize = match it.next().and_then(|s| s.parse::<usize>().ok()) {
         Some(v) => v,
         None => process::exit(1),
     };
 
-    let n: usize = match n_str.parse::<usize>() {
-        Ok(v) => v,
-        Err(_) => process::exit(1),
+    // Required input 2: non-empty, whitespace-delimited character sequence.
+    let s = match it.next() {
+        Some(v) => v,
+        None => process::exit(1),
     };
 
-    // Preconditions (N non-negative, token has at least N characters, token length <= 127)
-    // are assumed by the specification; if violated, behavior is undefined. We do not add checks.
-
-    // Evaluate first N characters. The specification speaks in terms of "characters";
-    // we interpret this as bytes of the token as read (ASCII 'R' check), matching typical C behavior.
-    let bytes = token.as_bytes();
-    let mut score: i32 = 0;
-    for i in 0..n {
-        if bytes[i] == b'R' {
-            score += 1;
+    // Behavior is undefined by the specification if n > s length; we do not guard against it.
+    // Evaluate first n characters: 'R' => +1, anything else => -1.
+    let mut total: i32 = 0;
+    for ch in s.chars().take(n) {
+        if ch == 'R' {
+            total += 1;
         } else {
-            score -= 1;
+            total -= 1;
         }
     }
 
-    if score > 0 {
+    // Output affirmative if total > 0, else negative (including equality).
+    if total > 0 {
         println!("Yes");
     } else {
         println!("No");

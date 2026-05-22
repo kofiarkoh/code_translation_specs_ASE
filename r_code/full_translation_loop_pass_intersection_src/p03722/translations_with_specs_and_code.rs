@@ -6,16 +6,19 @@ const SUP: i64 = 1i64 << 60;
 struct Edge {
     t: usize,
     h: usize,
-    cost: i64,
+    cost: i64, // stored as -c (we run shortest path to compute maximum in original graph)
 }
 
 fn main() {
-    // Read all input as whitespace-separated integers.
+    // Read all input
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let n: usize = it.next().unwrap().parse().unwrap();
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
     let m: usize = it.next().unwrap().parse().unwrap();
 
     let mut edges: Vec<Edge> = Vec::with_capacity(m);
@@ -23,53 +26,56 @@ fn main() {
         let u: usize = it.next().unwrap().parse().unwrap();
         let w: usize = it.next().unwrap().parse().unwrap();
         let c: i64 = it.next().unwrap().parse().unwrap();
-        // C code negates c to convert "maximum path" into "minimum path".
-        edges.push(Edge { t: u, h: w, cost: -c });
+        edges.push(Edge {
+            t: u,
+            h: w,
+            cost: -c,
+        });
     }
 
-    // min[v] holds best-known (minimum) cost to reach v in the transformed graph.
-    // 1-indexed, size n+1.
-    let mut min = vec![SUP; n + 1];
-    if n >= 1 {
-        min[1] = 0;
-    }
+    // Bellman-Ford on negated weights:
+    // min[v] is the minimum total negated cost from 1 to v,
+    // so -min[N] is the maximum total original weight from 1 to N.
+    let mut min_dist = vec![SUP; n + 1];
+    min_dist[1] = 0;
 
-    // Bellman-Ford relaxations for N-1 iterations.
     for _k in 1..n {
-        for &e in &edges {
+        for e in &edges {
             let u = e.t;
             let w = e.h;
             let c = e.cost;
-            if u <= n && w <= n && min[u] < SUP {
-                let cand = min[u] + c;
-                if min[w] > cand {
-                    min[w] = cand;
+            if min_dist[u] < SUP {
+                let cand = min_dist[u] + c;
+                if min_dist[w] > cand {
+                    min_dist[w] = cand;
                 }
             }
         }
     }
 
-    let ans = min[n];
+    let ans = min_dist[n];
 
-    // Additional N iterations to detect if min[N] can still be improved.
+    // One more phase to detect a reachable negative cycle (in negated graph),
+    // which corresponds to a reachable positive cycle in the original graph.
+    // Note: This matches the provided C code behavior: it only checks whether
+    // min_dist[N] changes after N more relaxations, and does not explicitly
+    // verify that the cycle can reach N beyond what affects min_dist[N].
     for _k in 1..=n {
-        for &e in &edges {
+        for e in &edges {
             let u = e.t;
             let w = e.h;
             let c = e.cost;
-            if u <= n && w <= n && min[u] < SUP {
-                let cand = min[u] + c;
-                if min[w] > cand {
-                    min[w] = cand;
+            if min_dist[u] < SUP {
+                let cand = min_dist[u] + c;
+                if min_dist[w] > cand {
+                    min_dist[w] = cand;
                 }
             }
         }
     }
 
-    if min[n] == ans {
-        // Output maximum total weight, which is -min_cost in transformed graph.
-        // Note: If no path exists, this prints a large negative sentinel-derived value,
-        // matching the specification and the C behavior.
+    if min_dist[n] == ans {
+        // Finite (or unreachable sentinel): print -ans
         println!("{}", -ans);
     } else {
         println!("inf");

@@ -1,28 +1,25 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, then parse whitespace-separated tokens as f32,
-    // mirroring C's `float` and `scanf("%f", ...)` tokenization.
+    // Read entire stdin, then parse whitespace-separated tokens as f32 (matches C `float`).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
 
     for tok in input.split_whitespace() {
-        // Spec notes behavior is not inferable if a token is not a real number.
-        // We choose to stop processing on parse failure (a reasonable, deterministic choice).
+        // Per spec, invalid tokens are outside the contract; we simply stop if parsing fails.
         let v: f32 = match tok.parse() {
             Ok(x) => x,
             Err(_) => break,
         };
 
-        // Follow the specification exactly:
-        // x = 4.9*v^2 / 9.8^2
-        // t = trunc_toward_zero(x + 5)
-        // q = trunc_toward_zero(t / 5)
-        // n = q + 1
-        let x: f32 = (4.9_f32 * v * v) / (9.8_f32 * 9.8_f32);
-        let t: i32 = (x + 5.0_f32) as i32; // Rust float->int casts truncate toward zero.
-        let q: i32 = (t / 5) as i32; // integer division truncates toward zero.
-        let n: i32 = q + 1;
+        // x = 4.9 * v^2 / 9.8^2
+        let x: f32 = (4.9_f32 * v * v) / 9.8_f32 / 9.8_f32;
+
+        // k = truncate(x + 5) toward zero, then m = truncate(k / 5) (integer division).
+        // This matches the C expression: n = (int)(x + 5) / 5; n = n + 1;
+        let k: i32 = (x + 5.0_f32) as i32;
+        let m: i32 = k / 5;
+        let n: i32 = m + 1;
 
         println!("{n}");
     }

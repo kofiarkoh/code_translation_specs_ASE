@@ -1,101 +1,100 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin (fast enough; preserves exact I/O formatting: only prints answers with '\n')
+    // Read entire stdin
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let bytes = input.as_bytes();
     let mut idx = 0usize;
 
-    // Emulate the C in(): reads a non-negative integer, assuming input is well-formed.
-    // C version does not skip non-digits; it starts from current char and accumulates until c < '0'.
-    // In typical AOJ input, numbers are separated by whitespace/newlines, so we skip non-digits here
-    // to be robust while preserving intended behavior.
-    fn read_u32(bytes: &[u8], idx: &mut usize) -> usize {
-        while *idx < bytes.len() && (bytes[*idx] < b'0' || bytes[*idx] > b'9') {
+    // Emulate the C in(): assumes next chars are digits; stops when c < '0'
+    fn in_num(bytes: &[u8], idx: &mut usize) -> i32 {
+        let mut n: i32 = 0;
+        // In the original C, it immediately reads a char and starts parsing digits.
+        // We mimic that behavior; if input is malformed, behavior is unspecified anyway.
+        while *idx < bytes.len() && bytes[*idx] < b'0' {
+            // The C code doesn't skip non-digits; it would treat them as terminators
+            // only after reading at least one digit. However AOJ input is well-formed.
+            // We skip leading whitespace to be robust without changing intended behavior.
             *idx += 1;
         }
-        let mut n: usize = 0;
         while *idx < bytes.len() {
             let c = bytes[*idx];
-            if c < b'0' || c > b'9' {
+            if c < b'0' {
                 break;
             }
-            n = n * 10 + (c - b'0') as usize;
+            n = (n << 3) + (n << 1) + ((c & 0x0f) as i32);
             *idx += 1;
         }
         n
     }
 
-    let n = read_u32(bytes, &mut idx);
+    let n = in_num(bytes, &mut idx) as usize;
 
-    // Arrays are sized n+1 (1-based indexing), matching the C code's usage.
-    let mut p = vec![0usize; n + 1];
+    // 1-based arrays sized n+1
+    let mut p = vec![0i32; n + 1];
     let mut hi = vec![0usize; n + 1];
-    let mut ans = vec![0usize; n + 1];
+    let mut ans = vec![0i32; n + 1];
 
+    // Read p[i] and count occurrences in hi[a]
     for i in 1..=n {
-        let a = read_u32(bytes, &mut idx);
-        p[i] = a;
+        let a = in_num(bytes, &mut idx) as usize;
+        p[i] = a as i32;
         if a <= n {
             hi[a] += 1;
         } else {
-            // The C code would index out of bounds (UB) if a > n.
-            // We keep behavior defined in Rust by allowing growth, but only if needed.
-            // However, AOJ inputs should satisfy 1..=n.
-            // If it happens, extend arrays to preserve indexing semantics.
-            let new_len = a + 1;
-            if hi.len() < new_len {
-                hi.resize(new_len, 0);
-                ans.resize(new_len, 0);
-            }
-            hi[a] += 1;
+            // C would index out of bounds (UB) if a > n; input is assumed valid.
+            // Keep behavior defined in Rust by ignoring; but AOJ constraints should prevent this.
         }
     }
 
-    // q[i] is an array of positions where value i appears.
-    // In C: q[i] = malloc(hi[i]*sizeof(int)); then hi reset to 0 and used as fill count.
-    let mut q: Vec<Vec<usize>> = vec![Vec::new(); hi.len()];
-    for i in 1..hi.len() {
+    // Allocate q[i] with length hi[i]
+    let mut q: Vec<Vec<i32>> = vec![Vec::new(); n + 1];
+    for i in 1..=n {
         q[i] = Vec::with_capacity(hi[i]);
     }
 
-    // Reset hi to 0 for reuse as "current size" (like C memset).
+    // memset(hi, 0, (n+1)<<2);
     for v in hi.iter_mut() {
         *v = 0;
     }
 
+    // Fill q[a] with indices i, using hi[a] as current length counter
     for i in 1..=n {
-        let a = p[i];
-        if a >= q.len() {
-            q.resize_with(a + 1, Vec::new);
-            hi.resize(a + 1, 0);
-            ans.resize(a + 1, 0);
-        }
-        q[a].push(i);
-        hi[a] += 1;
+        let a = p[i] as usize;
+        let pos = hi[a];
+        hi[a] = pos + 1;
+        // Equivalent to q[a][pos] = i in C after malloc; we push in order.
+        q[a].push(i as i32);
     }
 
-    // Stack sp with capacity n (C uses sp[MAX]).
-    let mut sp: Vec<usize> = Vec::with_capacity(n);
+    // Stack sp
+    let mut sp: Vec<i32> = Vec::with_capacity(n);
+    let mut top: usize = 0;
 
-    // Two passes: for j=0..1, for i=1..n:
-    // while (hi[i]) sp[top++] = q[i][--hi[i]];
-    // if (!ans[i] && top) ans[i] = sp[--top];
+    // Two passes
     for _j in 0..2 {
         for i in 1..=n {
-            // Pop all occurrences of i from q[i] in reverse insertion order.
+            // while (hi[i]) sp[top++] = q[i][--hi[i]];
             while hi[i] != 0 {
                 hi[i] -= 1;
-                let pos = q[i][hi[i]];
-                sp.push(pos);
+                let v = q[i][hi[i]];
+                if top == sp.len() {
+                    sp.push(v);
+                } else {
+                    sp[top] = v;
+                }
+                top += 1;
             }
-            if ans[i] == 0 && !sp.is_empty() {
-                ans[i] = sp.pop().unwrap();
+            // if (!ans[i] && top) ans[i] = sp[--top];
+            if ans[i] == 0 && top != 0 {
+                top -= 1;
+                ans[i] = sp[top];
             }
         }
     }
 
+    // Output
     let mut out = String::new();
     for i in 1..=n {
         out.push_str(&format!("{}\n", ans[i]));

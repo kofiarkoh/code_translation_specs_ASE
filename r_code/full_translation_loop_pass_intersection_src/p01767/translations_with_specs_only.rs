@@ -1,55 +1,68 @@
 use std::io::{self, Read};
 
+fn upper_bound(arr: &[i64], x: i64) -> usize {
+    // Returns the first index i such that arr[i] > x (i.e., count of elements <= x).
+    let mut lo: usize = 0;
+    let mut hi: usize = arr.len();
+    while lo < hi {
+        let mid = lo + (hi - lo) / 2;
+        if arr[mid] <= x {
+            lo = mid + 1;
+        } else {
+            hi = mid;
+        }
+    }
+    lo
+}
+
 fn main() {
-    // Read entire stdin; no explicit error handling per specification.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    const MAX: usize = 300_000;
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return, // Unspecified behavior if insufficient input; exit quietly.
+    };
 
-    let n: usize = it.next().unwrap().parse().unwrap();
-    // If n > MAX, behavior is not defined by the specification; we proceed anyway.
-    let mut a: Vec<i64> = Vec::with_capacity(n.min(MAX));
+    let mut a: Vec<i64> = Vec::with_capacity(n);
     for _ in 0..n {
         let v: i64 = it.next().unwrap().parse().unwrap();
         a.push(v);
     }
 
-    a.sort(); // Nondecreasing order; comparison overflow is outside defined behavior.
+    a.sort(); // Non-decreasing order.
 
-    // Prefix sums: pref[i] = sum of first i elements (i from 0..=n).
-    // Sum fits in i64 for all queries per precondition.
-    let mut pref: Vec<i64> = Vec::with_capacity(a.len() + 1);
+    // Prefix sums: pref[k] = sum of first k elements, pref[0] = 0.
+    // Preconditions guarantee sums fit in i64, so normal addition is fine.
+    let mut pref: Vec<i64> = Vec::with_capacity(n + 1);
     pref.push(0);
     for &v in &a {
         let last = *pref.last().unwrap();
         pref.push(last + v);
     }
 
-    let q: usize = it.next().unwrap().parse().unwrap();
-    // If q > MAX, behavior is not defined by the specification; we proceed anyway.
-    let mut thresholds: Vec<i64> = Vec::with_capacity(q.min(MAX));
-    for _ in 0..q {
-        thresholds.push(it.next().unwrap().parse().unwrap());
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    let mut thresholds: Vec<i64> = Vec::with_capacity(m);
+    for _ in 0..m {
+        let t: i64 = it.next().unwrap().parse().unwrap();
+        thresholds.push(t);
     }
-    let mut required: Vec<i64> = Vec::with_capacity(q.min(MAX));
-    for _ in 0..q {
-        required.push(it.next().unwrap().parse().unwrap());
+
+    let mut required: Vec<i64> = Vec::with_capacity(m);
+    for _ in 0..m {
+        let r: i64 = it.next().unwrap().parse().unwrap();
+        required.push(r);
     }
 
     let mut out = String::new();
-    for i in 0..q {
+    for i in 0..m {
         let t = thresholds[i];
-        let need = required[i];
-
-        // Find count of elements <= t (upper_bound).
-        let idx = upper_bound(&a, t);
-        let s = pref[idx];
-
-        // Affirmative/negative response: choose narrowest reasonable interpretation.
-        // The specification does not define exact words; use "Yes"/"No".
-        if s >= need {
+        let r = required[i];
+        let k = upper_bound(&a, t);
+        let s = pref[k];
+        if s >= r {
             out.push_str("Yes\n");
         } else {
             out.push_str("No\n");
@@ -57,18 +70,4 @@ fn main() {
     }
 
     print!("{out}");
-}
-
-fn upper_bound(a: &[i64], x: i64) -> usize {
-    let mut lo: usize = 0;
-    let mut hi: usize = a.len();
-    while lo < hi {
-        let mid = lo + (hi - lo) / 2;
-        if a[mid] <= x {
-            lo = mid + 1;
-        } else {
-            hi = mid;
-        }
-    }
-    lo
 }

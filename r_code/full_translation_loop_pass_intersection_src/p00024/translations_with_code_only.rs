@@ -5,29 +5,37 @@ fn main() {
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
 
-    let mut out = String::new();
-
     for tok in input.split_whitespace() {
-        // In C, scanf("%f", &v) reads a float; if parsing fails, it would stop.
-        // Here we stop on the first non-float token to emulate that behavior.
+        // C's scanf("%f") reads a float; if parsing fails, it would stop.
+        // Here we stop on the first unparsable token to mimic that behavior.
         let v: f32 = match tok.parse() {
             Ok(x) => x,
             Err(_) => break,
         };
 
-        // Compute in float (C uses float for v; constants are double but result assigned to int).
-        // Use f64 for intermediate to better match C's usual float->double promotions in expressions.
-        let vf = v as f64;
-        let expr = (4.9f64 * vf * vf / 9.8f64 / 9.8f64) + 5.0f64;
+        // Compute in f32 to match C 'float' arithmetic as closely as possible.
+        // C cast to int truncates toward zero; Rust as-cast from float to i32
+        // saturates on out-of-range/NaN, which differs from C UB. We emulate
+        // truncation toward zero and clamp to i32 range for defined behavior.
+        let expr: f32 = (4.9_f32 * v * v / 9.8_f32 / 9.8_f32) + 5.0_f32;
+        let mut n_i64: i64 = if expr.is_nan() {
+            0
+        } else {
+            // truncation toward zero
+            let t = expr.trunc();
+            if t > i32::MAX as f32 {
+                i32::MAX as i64
+            } else if t < i32::MIN as f32 {
+                i32::MIN as i64
+            } else {
+                t as i64
+            }
+        };
 
-        // C cast to int truncates toward zero; Rust as i32 does the same for finite values.
-        // For NaN/inf/out-of-range, C behavior is undefined; Rust saturates/has defined behavior.
-        // We keep Rust's behavior (no unsafe) since C provides no defined semantics there.
-        let mut n: i32 = (expr as i32) / 5;
-        n = n + 1;
+        n_i64 /= 5;
+        n_i64 += 1;
 
-        out.push_str(&format!("{n}\n"));
+        // C prints "%d\n" (int). We print as i64 but formatting matches.
+        println!("{}", n_i64);
     }
-
-    print!("{out}");
 }

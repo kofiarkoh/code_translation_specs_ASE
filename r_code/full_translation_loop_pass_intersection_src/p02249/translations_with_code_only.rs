@@ -4,64 +4,49 @@ const MOD: i64 = 1_000_000_007;
 const C1: i64 = 401;
 const C2: i64 = 397;
 
-fn read_all() -> Vec<u8> {
-    let mut input = String::new();
-    io::stdin().read_to_string(&mut input).unwrap();
-    input.into_bytes()
-}
-
 struct Scanner {
     buf: Vec<u8>,
     idx: usize,
 }
 impl Scanner {
-    fn new(buf: Vec<u8>) -> Self {
-        Self { buf, idx: 0 }
+    fn new() -> Self {
+        let mut input = String::new();
+        io::stdin().read_to_string(&mut input).unwrap();
+        Self { buf: input.into_bytes(), idx: 0 }
     }
-
-    #[inline]
-    fn gc(&mut self) -> u8 {
-        if self.idx >= self.buf.len() {
-            0
-        } else {
-            let b = self.buf[self.idx];
+    fn next_u32(&mut self) -> u32 {
+        // Mimic C in(): assumes next token is a non-negative integer.
+        while self.idx < self.buf.len() && self.buf[self.idx] <= b' ' {
             self.idx += 1;
-            b
         }
-    }
-
-    // Emulates the C in(): assumes first char is a digit; stops when c < '0'.
-    fn in_i32(&mut self) -> i32 {
-        let mut n: i32 = 0;
-        let mut c = self.gc();
-        loop {
-            n = n.wrapping_mul(10).wrapping_add((c & 0x0f) as i32);
-            c = self.gc();
+        let mut n: u32 = 0;
+        while self.idx < self.buf.len() {
+            let c = self.buf[self.idx];
             if c < b'0' {
                 break;
             }
+            n = n * 10 + ((c & 0x0f) as u32);
+            self.idx += 1;
         }
         n
     }
-
-    // Reads a token as in the C code: while (ch = gc()) > ' ' store it.
-    fn read_token_bytes(&mut self) -> Vec<u8> {
-        let mut v = Vec::new();
-        loop {
-            let ch = self.gc();
-            if ch > b' ' {
-                v.push(ch);
-            } else {
-                break;
-            }
+    fn next_token_bytes(&mut self) -> Vec<u8> {
+        // Mimic: while ((ch = gc()) > ' ') *p++ = ch;
+        while self.idx < self.buf.len() && self.buf[self.idx] <= b' ' {
+            self.idx += 1;
         }
-        v
+        let start = self.idx;
+        while self.idx < self.buf.len() && self.buf[self.idx] > b' ' {
+            self.idx += 1;
+        }
+        self.buf[start..self.idx].to_vec()
     }
 }
 
 fn gen_hash(s: &[Vec<u8>], h: usize, w: usize, r_pat: usize, c_pat: usize) -> Vec<Vec<i32>> {
-    // t is h x w, res is h x w (like the C fixed MAX_L arrays, but sized to actual input)
-    let mut t = vec![vec![0i64; w]; h];
+    // res is only meaningfully filled for rows 0..=h-R and cols 0..=w-C,
+    // but we allocate full h x w like the C code's fixed arrays.
+    let mut t = vec![vec![0i32; w]; h];
     let mut res = vec![vec![0i32; w]; h];
 
     let mut x: i64 = 1;
@@ -73,17 +58,17 @@ fn gen_hash(s: &[Vec<u8>], h: usize, w: usize, r_pat: usize, c_pat: usize) -> Ve
         y = (y * C2) % MOD;
     }
 
-    // Horizontal rolling hash into t
-    for rr in 0..h {
+    // Horizontal rolling hash for each row -> t[r][c]
+    for r in 0..h {
         let mut k: i64 = 0;
-        for cc in 0..c_pat {
-            k = (k * C1 + s[rr][cc] as i64) % MOD;
+        for c in 0..c_pat {
+            k = (k * C1 + s[r][c] as i64) % MOD;
         }
-        for cc in 0..=w - c_pat {
-            t[rr][cc] = k;
-            if cc + c_pat < w {
-                // k = (k*C1 - s[r][c]*x + s[r][c+C]) % MOD; if (k<0) k+=MOD;
-                k = (k * C1 - (s[rr][cc] as i64) * x + s[rr][cc + c_pat] as i64) % MOD;
+        for c in 0..=w - c_pat {
+            t[r][c] = k as i32;
+            if c + c_pat < w {
+                // k = (k*C1 - s[r][c]*x + s[r][c+C]) % MOD; if (k < 0) k += MOD;
+                k = (k * C1 - (s[r][c] as i64) * x + (s[r][c + c_pat] as i64)) % MOD;
             }
             if k < 0 {
                 k += MOD;
@@ -91,16 +76,16 @@ fn gen_hash(s: &[Vec<u8>], h: usize, w: usize, r_pat: usize, c_pat: usize) -> Ve
         }
     }
 
-    // Vertical rolling hash into res
-    for cc in 0..w {
+    // Vertical rolling hash over t -> res[r][c]
+    for c in 0..w {
         let mut k: i64 = 0;
-        for rr in 0..r_pat {
-            k = (k * C2 + t[rr][cc]) % MOD;
+        for r in 0..r_pat {
+            k = (k * C2 + t[r][c] as i64) % MOD;
         }
-        for rr in 0..=h - r_pat {
-            res[rr][cc] = k as i32;
-            if rr + r_pat < h {
-                k = (k * C2 - t[rr][cc] * y + t[rr + r_pat][cc]) % MOD;
+        for r in 0..=h - r_pat {
+            res[r][c] = k as i32;
+            if r + r_pat < h {
+                k = (k * C2 - (t[r][c] as i64) * y + (t[r + r_pat][c] as i64)) % MOD;
             }
             if k < 0 {
                 k += MOD;
@@ -112,37 +97,35 @@ fn gen_hash(s: &[Vec<u8>], h: usize, w: usize, r_pat: usize, c_pat: usize) -> Ve
 }
 
 fn main() {
-    let buf = read_all();
-    let mut sc = Scanner::new(buf);
+    let mut sc = Scanner::new();
 
-    let h = sc.in_i32() as usize;
-    let w = sc.in_i32() as usize;
+    let h = sc.next_u32() as usize;
+    let w = sc.next_u32() as usize;
 
     let mut text: Vec<Vec<u8>> = Vec::with_capacity(h);
     for _ in 0..h {
-        let tok = sc.read_token_bytes();
-        // C code assumes exactly W chars; we preserve behavior by trusting input.
-        text.push(tok);
+        let row = sc.next_token_bytes();
+        // C code assumes exactly W characters; we preserve behavior by indexing as-is.
+        text.push(row);
     }
 
-    let r_pat = sc.in_i32() as usize;
-    let c_pat = sc.in_i32() as usize;
+    let r_pat = sc.next_u32() as usize;
+    let c_pat = sc.next_u32() as usize;
 
     let mut pat: Vec<Vec<u8>> = Vec::with_capacity(r_pat);
     for _ in 0..r_pat {
-        let tok = sc.read_token_bytes();
-        pat.push(tok);
+        let row = sc.next_token_bytes();
+        pat.push(row);
     }
 
     let a = gen_hash(&text, h, w, r_pat, c_pat);
     let b = gen_hash(&pat, r_pat, c_pat, r_pat, c_pat);
 
-    let target = b[0][0];
     let mut out = String::new();
-    for rr in 0..=h - r_pat {
-        for cc in 0..=w - c_pat {
-            if a[rr][cc] == target {
-                out.push_str(&format!("{} {}\n", rr, cc));
+    for r in 0..=h - r_pat {
+        for c in 0..=w - c_pat {
+            if a[r][c] == b[0][0] {
+                out.push_str(&format!("{} {}\n", r, c));
             }
         }
     }

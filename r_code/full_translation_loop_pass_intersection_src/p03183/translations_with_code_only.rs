@@ -1,8 +1,6 @@
 use std::cmp::Ordering;
 use std::io::{self, Read};
 
-type Int64 = i64;
-
 #[derive(Clone, Copy)]
 struct Node {
     w: i32,
@@ -11,14 +9,14 @@ struct Node {
 }
 
 fn main() {
-    // Read entire stdin, parse as whitespace-separated integers (like scanf).
+    // Read entire stdin (matches scanf-style whitespace handling).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
     let n: usize = match it.next() {
         Some(x) => x.parse().unwrap(),
-        None => return, // No input: C would have undefined behavior; we just exit.
+        None => return,
     };
 
     let mut p: Vec<Node> = Vec::with_capacity(n);
@@ -29,9 +27,8 @@ fn main() {
         p.push(Node { w, s, v });
     }
 
-    // qsort with comparator: (p->s+p->w)-(q->s+q->w)
-    // In C, this subtraction can overflow (UB). We emulate typical 32-bit wraparound
-    // by using wrapping arithmetic and then ordering by the wrapped i32 result.
+    // C comparator: (p->s+p->w)-(q->s+q->w) with int arithmetic.
+    // In Rust, we emulate potential 32-bit signed overflow by using wrapping ops.
     p.sort_by(|a, b| {
         let sa = a.s.wrapping_add(a.w);
         let sb = b.s.wrapping_add(b.w);
@@ -46,41 +43,36 @@ fn main() {
     });
 
     const M: usize = 20000;
-    let mut dp: Vec<Int64> = vec![0; M + 1];
+    let mut dp: Vec<i64> = vec![0; M + 1];
 
-    for item in p {
-        // C loop: for (j = p[i].s; j >= 0; j--)
-        // If s is negative, the loop doesn't execute.
-        if item.s < 0 {
+    for item in p.iter() {
+        // The C code assumes s >= 0 and k=j+w within [0..M].
+        // We preserve behavior for valid inputs; for invalid ones, we avoid panics.
+        let s = item.s;
+        if s < 0 {
             continue;
         }
-        let mut j = item.s as i32;
+        let mut j = s as i32;
         while j >= 0 {
-            let k_i32 = j.wrapping_add(item.w);
-            // C would index dp[k] without bounds checks (UB if out of range).
-            // We preserve defined behavior for in-range indices; out-of-range is ignored
-            // to avoid panics (closest safe approximation).
-            if k_i32 >= 0 {
-                let k = k_i32 as usize;
-                if k <= M {
-                    let jj = j as usize;
-                    let cand = dp[jj].wrapping_add(item.v as Int64);
-                    if cand > dp[k] {
-                        dp[k] = cand;
-                    }
+            let k = j.wrapping_add(item.w);
+            if k >= 0 && (k as usize) <= M {
+                let ju = j as usize;
+                let ku = k as usize;
+                let cand = dp[ju].wrapping_add(item.v as i64);
+                if cand > dp[ku] {
+                    dp[ku] = cand;
                 }
             }
             j -= 1;
         }
     }
 
-    let mut ans: Int64 = 0;
-    for &x in &dp {
+    let mut ans: i64 = 0;
+    for &x in dp.iter() {
         if x > ans {
             ans = x;
         }
     }
 
-    // Match C printf("%lld\n", ans);
     print!("{}\n", ans);
 }

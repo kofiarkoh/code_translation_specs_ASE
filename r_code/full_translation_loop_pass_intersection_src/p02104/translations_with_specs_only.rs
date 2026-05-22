@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::VecDeque;
 use std::io::{self, Read};
 
 fn main() {
@@ -7,70 +7,44 @@ fn main() {
     let mut it = input.split_whitespace();
 
     let n: usize = match it.next() {
-        Some(s) => s.parse().unwrap(),
+        Some(x) => x.parse().unwrap(),
         None => return,
     };
 
-    // pos[v] = all indices i (1-based) such that a[i] == v
-    let mut pos: Vec<Vec<usize>> = vec![Vec::new(); n + 1];
+    // occ[v] = queue of positions (1-based) where p[pos] == v, in increasing order.
+    let mut occ: Vec<VecDeque<usize>> = vec![VecDeque::new(); n + 1];
     for i in 1..=n {
         let v: usize = it.next().unwrap().parse().unwrap();
-        if v <= n {
-            pos[v].push(i);
-        }
+        // Spec: if v is out of 1..=n, behavior is undefined; we do not guard.
+        occ[v].push_back(i);
     }
 
-    // Deterministic assignment rule consistent with the sample:
-    // - Maintain a global set of unused indices.
-    // - Process values v = 1..=n in order.
-    // - If v appears, assign the smallest unused index among its occurrences.
-    // - If v does not appear, assign the smallest unused index overall.
-    // This guarantees:
-    // - Each index is used at most once.
-    // - If v appears, output index points to an occurrence of v.
-    // - If v does not appear, output is still a valid index (if any remain).
-    // The spec's "0 if v does not appear" is contradicted by the observed sample,
-    // so we follow the narrowest behavior that matches the sample while keeping
-    // the other invariants.
-    let mut unused: BTreeSet<usize> = (1..=n).collect();
-    let mut out: Vec<usize> = vec![0; n + 1];
+    let mut ans: Vec<usize> = vec![0; n + 1];
 
+    // First, assign each value that appears its earliest occurrence.
+    // Any additional occurrences become "spare positions" that can be used for missing values.
+    let mut spares: VecDeque<usize> = VecDeque::new();
     for v in 1..=n {
-        if !pos[v].is_empty() {
-            // choose smallest unused occurrence
-            let mut chosen = None;
-            for &p in &pos[v] {
-                if unused.contains(&p) {
-                    chosen = Some(p);
-                    break;
-                }
-            }
-            if let Some(p) = chosen {
-                out[v] = p;
-                unused.remove(&p);
-            } else {
-                // All occurrences already used; fall back to smallest unused overall.
-                if let Some(&p) = unused.iter().next() {
-                    out[v] = p;
-                    unused.remove(&p);
-                } else {
-                    out[v] = 0;
-                }
-            }
-        } else {
-            // v absent: assign smallest unused overall (if any)
-            if let Some(&p) = unused.iter().next() {
-                out[v] = p;
-                unused.remove(&p);
-            } else {
-                out[v] = 0;
+        if let Some(first) = occ[v].pop_front() {
+            ans[v] = first;
+            while let Some(extra) = occ[v].pop_front() {
+                spares.push_back(extra);
             }
         }
     }
 
-    let mut buf = String::new();
+    // Then, for each missing value (in increasing order), assign the earliest spare position.
     for v in 1..=n {
-        buf.push_str(&format!("{}\n", out[v]));
+        if ans[v] == 0 {
+            if let Some(pos) = spares.pop_front() {
+                ans[v] = pos;
+            }
+        }
     }
-    print!("{buf}");
+
+    let mut out = String::new();
+    for v in 1..=n {
+        out.push_str(&format!("{}\n", ans[v]));
+    }
+    print!("{out}");
 }

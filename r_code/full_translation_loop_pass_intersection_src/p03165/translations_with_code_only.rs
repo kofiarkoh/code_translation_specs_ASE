@@ -6,19 +6,13 @@ fn main() {
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
-    let s1 = match it.next() {
-        Some(x) => x.as_bytes().to_vec(),
-        None => return, // If no input, C would leave s1 uninitialized; we just exit.
-    };
-    let s2 = match it.next() {
-        Some(x) => x.as_bytes().to_vec(),
-        None => return,
-    };
+    let s1 = it.next().unwrap_or("").as_bytes().to_vec();
+    let s2 = it.next().unwrap_or("").as_bytes().to_vec();
 
     let l_s1 = s1.len();
     let l_s2 = s2.len();
 
-    // DP table arr[(l_s1+1) x (l_s2+1)], initialized to 0.
+    // DP table: (l_s1+1) x (l_s2+1), initialized to 0.
     let mut arr = vec![vec![0i32; l_s2 + 1]; l_s1 + 1];
 
     for i in 1..=l_s1 {
@@ -31,41 +25,38 @@ fn main() {
         }
     }
 
-    let len = arr[l_s1][l_s2] as isize;
+    let len = arr[l_s1][l_s2] as usize;
 
-    // Emulate C behavior closely:
-    // - C does: ans = malloc(len*sizeof(char)); (no NUL terminator)
-    // - If len == 0, malloc(0) is allowed and the later loop prints 0 chars.
-    // We'll allocate a Vec<u8> of length len (0 is fine).
-    let mut ans = vec![0u8; len.max(0) as usize];
+    // In the C code, ans is malloc(len) with no NUL terminator and then printed char-by-char.
+    // If len == 0, C does malloc(0) and then prints nothing. We mirror that.
+    let mut ans = vec![0u8; len];
 
-    // Backtrack to fill ans from the end.
-    // Note: In C, `int ind = len-1;` becomes -1 when len==0, but then the while loop
-    // won't execute because r>=1 && c>=1 may still be true; however it would only write
-    // to ans[ind] when characters match. With len==0, arr[l_s1][l_s2]==0 implies no match
-    // path that writes, so it's effectively safe. We preserve that by guarding writes.
-    let mut ind: isize = len - 1;
-    let mut r: usize = l_s1;
-    let mut c: usize = l_s2;
+    // Reconstruct LCS by walking backwards.
+    // Use signed indices to mirror the C loop condition (r>=1 && c>=1).
+    let mut ind: isize = len as isize - 1;
+    let mut r: isize = l_s1 as isize;
+    let mut c: isize = l_s2 as isize;
 
     while r >= 1 && c >= 1 {
-        if s1[r - 1] == s2[c - 1] {
+        let ri = r as usize;
+        let ci = c as usize;
+        if s1[ri - 1] == s2[ci - 1] {
+            // In C, this write is only reached when a match is found; for len==0 there are no matches.
             if ind >= 0 {
-                ans[ind as usize] = s1[r - 1];
+                ans[ind as usize] = s1[ri - 1];
             }
             r -= 1;
             c -= 1;
             ind -= 1;
-        } else if arr[r][c] == arr[r - 1][c] {
+        } else if arr[ri][ci] == arr[ri - 1][ci] {
             r -= 1;
         } else {
             c -= 1;
         }
     }
 
-    // Print exactly the LCS characters, no newline (matches C).
-    let out = io::stdout();
-    let mut handle = out.lock();
-    use std::io::Write;
-    handle.write_all(&ans).unwrap();
+    // Print exactly the LCS characters, no trailing newline (matches C).
+    let mut out = Vec::with_capacity(len);
+    out.extend_from_slice(&ans);
+    print!("{}", String::from_utf8_lossy(&out));
 }

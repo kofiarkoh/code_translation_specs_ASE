@@ -3,7 +3,6 @@ use std::io::{self, Read};
 const N: usize = 100_000;
 
 fn mpl() -> (Vec<u8>, Vec<i32>, usize) {
-    // Mirrors the C globals: isprime[100000], pr[100000], primenum
     let mut isprime = vec![1u8; N];
     isprime[0] = 0;
     isprime[1] = 0;
@@ -24,7 +23,7 @@ fn mpl() -> (Vec<u8>, Vec<i32>, usize) {
 }
 
 fn main() {
-    // Read all input, then parse as ints like repeated scanf("%d%d%d", ...)
+    // Read entire stdin; C scanf("%d") skips whitespace, so splitting by whitespace matches.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -41,7 +40,7 @@ fn main() {
         let a_opt = it.next();
         let b_opt = it.next();
         if a_opt.is_none() || b_opt.is_none() {
-            break; // incomplete triple: scanf would fail
+            break; // emulate scanf != 3
         }
 
         let m: i32 = m_opt.unwrap().parse().unwrap();
@@ -64,7 +63,6 @@ fn main() {
                 let pi = pr[i] as i64;
                 let pj = pr[j as usize] as i64;
 
-                // Use i64 to match C's (long long) casts and avoid overflow.
                 if pi * pj <= m as i64 && (a as i64) * pj <= pi * (b as i64) {
                     l = j + 1;
                 } else {
@@ -75,11 +73,11 @@ fn main() {
             if l > i as i32 {
                 let idx = (l - 1) as usize;
                 let pi = pr[i] as i64;
-                let pq = pr[idx] as i64;
+                let pj = pr[idx] as i64;
 
-                if pi * pq <= m as i64
-                    && (a as i64) * pq <= pi * (b as i64)
-                    && pi * pq > (p as i64) * (q as i64)
+                if pi * pj <= m as i64
+                    && (a as i64) * pj <= pi * (b as i64)
+                    && (pr[i] as i64) * (pr[idx] as i64) > (p as i64) * (q as i64)
                 {
                     p = pr[i];
                     q = pr[idx];
@@ -87,7 +85,7 @@ fn main() {
             }
         }
 
-        out.push_str(&format!("{} {}\n", p, q));
+        out.push_str(&format!("{p} {q}\n"));
     }
 
     print!("{out}");

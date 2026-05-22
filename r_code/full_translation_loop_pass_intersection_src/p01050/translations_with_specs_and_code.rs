@@ -1,41 +1,43 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, then take the first whitespace-delimited token (as in scanf("%s")).
+    // Read entire stdin, then take the first whitespace-delimited token.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
-    let token = input.split_whitespace().next().unwrap(); // per spec: at least one token exists
+    let s = input.split_whitespace().next().unwrap(); // per spec: at least one token
 
-    // Count frequencies over 256 possible character values.
-    // The C code indexes by `char` values; per spec, behavior is only defined for values in [0,255].
+    // Frequency table for byte values 0..=255.
+    // Spec assumes characters map into 0..=255; we use the raw UTF-8 bytes of the token.
     let mut freq = [0i32; 256];
-    let mut remaining: i32 = 0;
-    for &byte in token.as_bytes() {
-        freq[byte as usize] += 1;
-        remaining += 1;
+    for &b in s.as_bytes() {
+        freq[b as usize] += 1;
     }
 
-    // Simulate the C logic:
-    // Repeatedly scan i=0..255, consuming at most one occurrence per value per scan.
-    // Maintain `c` as the current run length (consecutive i with b[i] consumed; gaps reset and apply penalty).
+    // l = remaining total count
+    let mut l: i32 = s.as_bytes().len() as i32;
+
+    // a = accumulated score, c = current run length within a sweep
     let mut a: i32 = 0;
     let mut c: i32 = 0;
 
-    while remaining > 0 {
-        for i in 0..256 {
+    while l > 0 {
+        for i in 0..256usize {
             if freq[i] > 0 {
                 a += 1;
-                remaining -= 1;
+                l -= 1;
                 c += 1;
                 freq[i] -= 1;
             } else {
                 if c > 3 {
-                    a -= c - 3;
+                    a -= c - 3; // cap run contribution at 3
                 }
                 c = 0;
             }
         }
+        // Note: matches the C code/spec behavior: no end-of-sweep cap is applied
+        // unless a zero-frequency value is encountered (which always happens if l>0
+        // and not all 256 values are present in that sweep).
     }
 
-    print!("{a}\n");
+    println!("{a}");
 }

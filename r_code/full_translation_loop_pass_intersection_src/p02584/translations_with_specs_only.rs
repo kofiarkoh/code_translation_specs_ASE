@@ -1,6 +1,7 @@
 use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin and parse three signed 64-bit integers.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -9,23 +10,30 @@ fn main() {
     let k: i64 = it.next().unwrap().parse().unwrap();
     let d: i64 = it.next().unwrap().parse().unwrap();
 
-    // Preconditions (not enforced): d != 0, k >= 0, and all intermediate arithmetic fits in i64.
-    // The specification defines behavior in terms of X=|x| and D=|d|.
-    let x_abs: i64 = x.abs();
-    let d_abs: i64 = d.abs();
+    // Preconditions (per spec): d > 0, k >= 0, and all intermediate arithmetic fits in i64.
+    // No explicit error handling is required; unwraps are acceptable under the spec.
 
-    let q: i64 = x_abs / d_abs; // floor(X / D) for non-negative operands
-    let ans: i64 = if k <= q {
-        (x_abs - k * d_abs).abs()
+    // a = |x|
+    // Use i64::abs() which is defined for all values except i64::MIN; spec implies inputs
+    // and intermediates are within range, so we rely on that precondition.
+    let a: i64 = x.abs();
+
+    // q = floor(a / d)
+    let q: i64 = a / d;
+
+    // t = min(k, q)
+    let t: i64 = if k < q { k } else { q };
+
+    // r = a - t * d
+    let r: i64 = a - t * d;
+
+    // If k > q and (k - q) is odd => result = |r - d| else r
+    let result: i64 = if k > q && ((k - q) & 1) == 1 {
+        (r - d).abs()
     } else {
-        let r: i64 = x_abs % d_abs;
-        let k_prime: i64 = k - q;
-        if k_prime % 2 == 0 {
-            r
-        } else {
-            (r - d_abs).abs()
-        }
+        r
     };
 
-    println!("{}", ans);
+    // Output is a single non-negative integer.
+    println!("{}", result);
 }

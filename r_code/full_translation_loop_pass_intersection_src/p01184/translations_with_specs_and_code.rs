@@ -1,17 +1,19 @@
+use std::collections::HashMap;
 use std::io::{self, Read};
 
 fn check(pat: u32, groups: &[u32]) -> bool {
-    // Coverage: every group must contain at least one selected person.
+    // Coverage: every group must contain at least one chosen person.
     for &g in groups {
         if (g & pat) == 0 {
             return false;
         }
     }
 
-    // Connectivity among selected people via groups, restricted to selected people.
-    // This mirrors the C logic: start each selected person as its own "component mask" g[j],
-    // then for each group, if a component intersects the group, union in all selected members
-    // of that group. Finally, merge overlapping components and check if all selected are connected.
+    // Connectivity among chosen people under co-appearance in groups.
+    // Replicates the C logic: start with each chosen person as its own bitset,
+    // then for each group, if a component intersects the group, union in all
+    // chosen people from that group. Finally, merge overlapping components and
+    // require the union to equal pat.
     let mut comps: Vec<u32> = Vec::new();
     let mut k = pat;
     let mut bit: u32 = 1;
@@ -22,42 +24,47 @@ fn check(pat: u32, groups: &[u32]) -> bool {
         k >>= 1;
         bit <<= 1;
     }
+    let s = comps.len();
+    if s <= 1 {
+        return true;
+    }
 
-    for &grp in groups {
+    for &g in groups {
+        let add = g & pat;
+        if add == 0 {
+            continue;
+        }
         for comp in comps.iter_mut() {
-            if (*comp & grp) != 0 {
-                *comp |= grp & pat;
+            if (*comp & g) != 0 {
+                *comp |= add;
             }
         }
     }
 
-    if comps.is_empty() {
-        return false; // pat is never 0 in our search, but keep it safe.
-    }
     let mut merged = comps[0];
-    for &c in comps.iter().skip(1) {
-        if (c & merged) != 0 {
-            merged |= c;
+    for i in 1..s {
+        if (comps[i] & merged) != 0 {
+            merged |= comps[i];
         }
     }
     merged == pat
 }
 
-// Generate next bitmask with same popcount (Gosper's hack), within u32.
+// Gosper's hack: next higher number with same popcount.
+// Precondition: x != 0.
 fn next_combination(x: u32) -> u32 {
-    let u = x & x.wrapping_neg();
-    let v = x.wrapping_add(u);
-    v | (((x ^ v) / u) >> 2)
+    let c = x & x.wrapping_neg();
+    let r = x.wrapping_add(c);
+    (((x ^ r) >> 2) / c) | r
 }
 
 fn main() {
-    // Read entire stdin and tokenize by whitespace (matches scanf("%s") / "%d" behavior).
+    // Read all input as tokens.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let mut case_no = 0usize;
-    let mut out = String::new();
+    let mut first_dataset = true;
 
     loop {
         let n_opt = it.next();
@@ -65,45 +72,44 @@ fn main() {
             break;
         }
         let n: i32 = n_opt.unwrap().parse().unwrap();
-        let m: usize = match it.next() {
-            Some(v) => v.parse().unwrap(),
-            None => break,
-        };
+        let m: usize = it.next().unwrap().parse().unwrap();
         if n <= 0 {
             break;
         }
 
-        if case_no > 0 {
-            out.push('\n');
+        if !first_dataset {
+            // Blank line between datasets' outputs.
+            print!("\n");
         }
-        case_no += 1;
+        first_dataset = false;
 
-        // Map names to bit ids (1,2,4,...) and store unique names in insertion order.
-        // Spec invariant: repeated initial names do not create additional distinct people.
-        let mut name_to_bit: std::collections::HashMap<String, u32> = std::collections::HashMap::new();
+        // Candidate people treated as a set of unique names; duplicates ignored.
+        // Assign each unique candidate a distinct bit (up to 20).
+        let mut name_to_bit: HashMap<String, u32> = HashMap::new();
         let mut names: Vec<String> = Vec::new();
         let mut next_bit: u32 = 1;
 
         for _ in 0..n {
-            let s = it.next().unwrap().to_string();
-            if !name_to_bit.contains_key(&s) {
-                name_to_bit.insert(s.clone(), next_bit);
-                names.push(s);
+            let nm = it.next().unwrap().to_string();
+            if !name_to_bit.contains_key(&nm) {
+                name_to_bit.insert(nm.clone(), next_bit);
+                names.push(nm);
                 next_bit <<= 1;
             }
         }
 
         let sz = names.len();
-        let mut groups: Vec<u32> = vec![0u32; m];
+        let mut groups: Vec<u32> = vec![0; m];
 
         for i in 0..m {
             let cnt: usize = it.next().unwrap().parse().unwrap();
-            let mut mask = 0u32;
+            let mut mask: u32 = 0;
             for _ in 0..cnt {
                 let nm = it.next().unwrap();
-                // Per spec: behavior is not well-defined if unknown; we mimic C's
-                // "may produce incorrect results" by simply ignoring unknown names
-                // (C would OR -1 into the mask, which is also "incorrect/unsafe").
+                // Per spec, group names are assumed to be among candidates;
+                // otherwise behavior is unspecified. We mimic C's behavior by
+                // effectively OR-ing an invalid id (would be -1) into the mask;
+                // but in Rust we just ignore missing names to avoid inventing bits.
                 if let Some(&b) = name_to_bit.get(nm) {
                     mask |= b;
                 }
@@ -111,46 +117,42 @@ fn main() {
             groups[i] = mask;
         }
 
-        let mut ans_mask: Option<u32> = None;
-        let mut ans_size: usize = 0;
+        let mut ans_pat: Option<u32> = None;
+        let mut ans_size: u32 = 0;
 
-        // Search sizes 1..=5, minimal size first.
+        // Search minimal size 1..5.
         let limit = 1u32 << sz;
-        for k in 1..=5usize {
-            if k > sz {
+        for size in 1u32..=5u32 {
+            if size as usize > sz {
                 break;
             }
-            let mut comb: u32 = (1u32 << k) - 1;
-            while comb < limit {
-                if check(comb, &groups) {
-                    ans_mask = Some(comb);
-                    ans_size = k;
+            let mut pat: u32 = (1u32 << size) - 1;
+            while pat < limit {
+                if check(pat, &groups) {
+                    ans_pat = Some(pat);
+                    ans_size = size;
                     break;
                 }
-                comb = next_combination(comb);
+                // Next combination of same popcount.
+                pat = next_combination(pat);
             }
-            if ans_mask.is_some() {
+            if ans_pat.is_some() {
                 break;
             }
         }
 
-        match ans_mask {
-            None => {
-                out.push_str("Impossible\n");
-            }
-            Some(mask) => {
-                out.push_str(&format!("{ans_size}\n"));
-                let mut bit = 1u32;
-                for nm in &names {
-                    if (mask & bit) != 0 {
-                        out.push_str(nm);
-                        out.push('\n');
-                    }
-                    bit <<= 1;
+        if ans_pat.is_none() {
+            println!("Impossible");
+        } else {
+            let pat = ans_pat.unwrap();
+            println!("{}", ans_size);
+            let mut bit = 1u32;
+            for nm in &names {
+                if (pat & bit) != 0 {
+                    println!("{}", nm);
                 }
+                bit <<= 1;
             }
         }
     }
-
-    print!("{out}");
 }

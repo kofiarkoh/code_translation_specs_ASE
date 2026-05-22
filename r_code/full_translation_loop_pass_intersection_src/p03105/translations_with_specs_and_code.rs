@@ -1,7 +1,6 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, parse three integers.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
 
@@ -10,10 +9,9 @@ fn main() {
     let b: i32 = it.next().unwrap().parse().unwrap();
     let c: i32 = it.next().unwrap().parse().unwrap();
 
-    // Per spec, a is non-zero; division by zero is undefined behavior in C.
-    // Rust would panic on division by zero; we assume the precondition holds.
-    let q = b / a; // integer division truncating toward zero, matching C for i32.
-    let ans = if q <= c { q } else { c };
+    // Per spec: q is integer quotient with truncation toward zero (Rust i32 division matches C).
+    let q = b / a;
+    let out = if q <= c { q } else { c };
 
-    print!("{ans}\n");
+    println!("{out}");
 }

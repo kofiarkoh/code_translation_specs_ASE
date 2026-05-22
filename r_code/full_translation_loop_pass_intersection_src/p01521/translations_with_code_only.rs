@@ -4,22 +4,19 @@ fn main() {
     // C globals:
     // char B[200], c[256]; int i;
     // In C, globals are zero-initialized.
-    let mut b: [u8; 200] = [0; 200];
-    let mut c: [u8; 256] = [0; 256];
+    let mut b = [0u8; 200];
+    let mut c = [0u8; 256];
     let mut i: usize = 0;
 
-    // Emulate `gets(B)` as closely as practical:
-    // - reads a line from stdin up to '\n' (not including it)
-    // - stores bytes into B and NUL-terminates
-    // - if input exceeds 199 bytes, C `gets` would overflow (UB). Here we truncate.
+    // Emulate gets(B):
+    // - reads a line from stdin up to '\n' (not including it), then NUL-terminates.
+    // - no bounds checking in C; here we truncate to 199 bytes to keep space for NUL.
+    // - if input is empty/EOF, B[0] remains 0.
     let mut input = String::new();
-    // Read entire stdin, then take up to first '\n' like gets would.
     io::stdin().read_to_string(&mut input).ok();
     let line = input.splitn(2, '\n').next().unwrap_or("");
     let bytes = line.as_bytes();
-
-    let max_copy = 199usize; // leave room for NUL terminator
-    let n = bytes.len().min(max_copy);
+    let n = bytes.len().min(199);
     b[..n].copy_from_slice(&bytes[..n]);
     b[n] = 0;
 
@@ -27,16 +24,16 @@ fn main() {
     while i < b.len() && b[i] != 0 {
         if i == 0 || b[i] != b[i - 1] {
             let idx = b[i] as usize;
-            // C `char` may be signed/unsigned; indexing `c[B[i]]` is UB if negative.
-            // We treat bytes as unsigned (common intent for such code).
-            c[idx] = c[idx].wrapping_add(1); // preserve unsigned-char wraparound
+            // C's `char` may be signed; indexing `c[B[i]]` is UB for negative values.
+            // Here we treat bytes as unsigned (common intent for such code).
+            c[idx] = c[idx].wrapping_add(1); // emulate unsigned char overflow
         }
         i += 1;
     }
 
     // i = !puts(c['o']<c['x']?"x":"o");
-    // puts prints the string plus '\n'. It returns nonnegative on success.
-    // `!` in C yields 0 for nonzero, 1 for zero. We don't use `i` afterward.
+    // puts prints the string plus '\n'. `!` in C yields 1 if puts returned 0 else 0.
+    // We don't use `i` afterwards, but we preserve the output exactly.
     let out = if c[b'o' as usize] < c[b'x' as usize] { "x" } else { "o" };
-    println!("{out}");
+    print!("{out}\n");
 }

@@ -2,33 +2,24 @@ use std::io::{self, Read};
 
 fn main() {
     // Read entire stdin, then mimic scanf("%s", str) by taking the first
-    // whitespace-delimited token (if any).
+    // whitespace-delimited token (or empty if none).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let token = input.split_whitespace().next().unwrap_or("");
 
-    // C: int a[30] = {};
+    // C: char str[1010]; int a[30] = {};
+    // We'll keep a fixed-size array of 30 ints (0/1), toggled via ! in C.
     let mut a = [0i32; 30];
 
-    // C toggles a[str[i]-'a'] for each byte until NUL.
-    // We operate on bytes; this matches C's char-by-char behavior for ASCII input.
+    // C toggles: a[str[i]-'a'] = !a[str[i]-'a'];
+    // In C, !0 -> 1, !nonzero -> 0. Here values stay 0/1, so 1 - a[idx] works.
+    // Note: The C code has undefined behavior if characters are outside 'a'..'z'
+    // (negative/out-of-bounds index). We assume inputs follow that implied constraint.
     for &b in token.as_bytes() {
-        // In the original C, indexing is undefined if b is not in 'a'..='z'.
-        // We emulate the "int arithmetic then index" as closely as possible:
-        // compute (b - b'a') in wrapping i32, then cast to usize (also wrapping).
-        // If it ends up out of bounds, we ignore it to avoid panicking; C would be UB.
-        let idx_i32 = (b as i32).wrapping_sub(b'a' as i32);
-        let idx = idx_i32 as usize;
-        if idx < a.len() {
-            a[idx] = if a[idx] == 0 { 1 } else { 0 };
-        }
+        let idx = (b as i32 - b'a' as i32) as usize;
+        a[idx] = 1 - a[idx];
     }
 
-    // C: sum over 30 entries, then print sum/2 (integer division).
-    let mut sum: i32 = 0;
-    for i in 0..30 {
-        sum += a[i];
-    }
-
+    let sum: i32 = a.iter().sum();
     println!("{}", sum / 2);
 }

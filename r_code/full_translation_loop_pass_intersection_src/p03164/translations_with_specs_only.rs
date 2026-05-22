@@ -2,11 +2,11 @@ use std::io::{self, Read};
 use std::process;
 
 const MAX_ITEMS: usize = 128;
-const MAX_VALUE: usize = 112_344;
-const VALUE_RANGE: usize = MAX_VALUE + 1;
+const MAX_V: usize = 112_344;
+const TABLE_LEN: usize = MAX_V + 1;
 
 fn main() {
-    // Read entire stdin; on any parse failure of required integers, exit non-zero with no output.
+    // Read all input; on any read/parse failure, exit nonzero with no guaranteed output.
     let mut input = String::new();
     if io::stdin().read_to_string(&mut input).is_err() {
         process::exit(1);
@@ -17,52 +17,49 @@ fn main() {
         Some(v) => v,
         None => process::exit(1),
     };
-    let capacity: i64 = match it.next().and_then(|s| s.parse::<i64>().ok()) {
+    let w_limit: i64 = match it.next().and_then(|s| s.parse::<i64>().ok()) {
         Some(v) => v,
         None => process::exit(1),
     };
 
-    // If n exceeds internal storage, behavior is undefined by spec; we do not add extra handling.
-    // Still, we must read exactly 2*n integers or exit non-zero if missing.
-    let mut items: Vec<(i64, usize)> = Vec::with_capacity(n.min(MAX_ITEMS));
+    // Preconditions say n <= 128 and values within range; we do not add extra behavior beyond spec.
+    // Still, we must not panic; if n exceeds supported maximum, we only process what we can read
+    // but keep semantics narrow: the spec assumes it won't happen.
+    let n = n.min(MAX_ITEMS);
+
+    let mut items: Vec<(i64, usize)> = Vec::with_capacity(n);
     for _ in 0..n {
         let w: i64 = match it.next().and_then(|s| s.parse::<i64>().ok()) {
             Some(v) => v,
             None => process::exit(1),
         };
-        let v: i64 = match it.next().and_then(|s| s.parse::<i64>().ok()) {
-            Some(x) => x,
+        let v: usize = match it.next().and_then(|s| s.parse::<usize>().ok()) {
+            Some(v) => v,
             None => process::exit(1),
         };
-
-        // Spec says negative values violate assumptions (undefined behavior). We do not correct it.
-        // Values are only considered up to MAX_VALUE; larger values are effectively unusable in DP.
-        if v >= 0 {
-            let vu = v as usize;
-            items.push((w, vu));
-        } else {
-            items.push((w, 0usize));
-        }
+        // Spec preconditions guarantee 0 <= v <= MAX_V.
+        items.push((w, v));
     }
 
-    // DP over total value: dp[val] = minimal weight to achieve exactly 'val', or INF if not achievable.
-    // Sentinel chosen large enough; spec assumes no overflow in intermediate computations.
+    // DP invariant: dp[val] = minimum achievable weight to get total value exactly val,
+    // or sentinel meaning "not achievable within tracked bounds".
+    // Value 0 is always achievable with weight 0.
     let inf: i64 = i64::MAX / 4;
-    let mut dp = vec![inf; VALUE_RANGE];
+    let mut dp = vec![inf; TABLE_LEN];
     dp[0] = 0;
 
-    // Invariant: tracked minimal weight for any value never increases as more items are considered.
-    for &(w, v) in &items {
-        if v > MAX_VALUE {
-            // Value outside tracked range cannot be represented; skip (narrowest interpretation).
+    for (w, v) in items {
+        // 0/1 knapsack by value: iterate values descending to avoid reusing the same item.
+        if v > MAX_V {
+            // Precondition says this won't happen; ignore to avoid out-of-bounds.
             continue;
         }
-        // 0/1 knapsack update: iterate values descending to avoid reusing the same item.
-        for val in (v..=MAX_VALUE).rev() {
+        for val in (v..=MAX_V).rev() {
             let prev = dp[val - v];
             if prev == inf {
                 continue;
             }
+            // Preconditions state intermediate accumulated weights fit in integer range.
             let cand = prev + w;
             if cand < dp[val] {
                 dp[val] = cand;
@@ -70,25 +67,24 @@ fn main() {
         }
     }
 
-    // Find maximum value within tracked range whose minimal weight is <= capacity.
+    // Select the largest value with achievable weight <= limit.
     let mut best: Option<usize> = None;
-    for val in (0..=MAX_VALUE).rev() {
-        if dp[val] <= capacity {
+    for val in (0..=MAX_V).rev() {
+        if dp[val] <= w_limit {
             best = Some(val);
             break;
         }
     }
 
     match best {
-        Some(ans) => {
-            // If even value 0 is not achievable within capacity, print diagnostic line.
-            // This can happen if dp[0] is treated as not achievable (not the case here) or capacity < 0.
-            // With capacity < 0, dp[0]=0 is not <= capacity, so diagnostic is printed as per spec.
-            println!("{}", ans);
+        Some(v) => {
+            // Postcondition: printed value within [0, 112344].
+            println!("{v}");
         }
         None => {
-            // Diagnostic line content is not specified; keep it minimal and single-line.
-            println!("DIAGNOSTIC");
+            // Specific internal failure case: no achievable value within bounds.
+            // Spec requires a diagnostic message and successful termination.
+            println!("error");
         }
     }
 }

@@ -1,61 +1,66 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin as bytes; treat each byte as one terrain character.
+    // Read entire input as bytes; process as a character stream.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
 
-    // Stack of positions of unmatched descending slopes ('\').
-    let mut down_stack: Vec<usize> = Vec::new();
+    // Position index advances by 1 per input character processed (including ignored chars).
+    let mut pos: i64 = 0;
 
-    // Stack of (left_position, area) for formed regions, used to merge nested regions.
-    let mut regions: Vec<(usize, usize)> = Vec::new();
+    // Stack of positions of unmatched downward slopes.
+    let mut downs: Vec<i64> = Vec::new();
 
-    let mut total_area: usize = 0;
+    // Stack of formed regions: (left_boundary_position, area).
+    // Maintained so that areas can be merged when a new region encloses earlier ones.
+    let mut regions: Vec<(i64, i64)> = Vec::new();
 
-    for (pos, ch) in input.chars().enumerate() {
+    // Total trapped area across all regions.
+    let mut total_area: i64 = 0;
+
+    for ch in input.chars() {
         match ch {
             '\\' => {
-                down_stack.push(pos);
+                // Downward slope: push unmatched boundary at current position.
+                downs.push(pos);
             }
             '/' => {
-                if let Some(left) = down_stack.pop() {
-                    let mut area = pos - left;
-                    total_area += area;
-
-                    // Merge any regions that are nested within this new region.
-                    // A region is nested if its left boundary is to the right of `left`.
-                    while let Some(&(prev_left, prev_area)) = regions.last() {
-                        if prev_left > left {
-                            area += prev_area;
+                // Upward slope: if possible, close a region and merge enclosed regions.
+                if let Some(left) = downs.pop() {
+                    let mut area = pos - left; // width-based area per spec's implied behavior
+                    // Merge any previously formed regions entirely within [left, pos].
+                    while let Some(&(r_left, r_area)) = regions.last() {
+                        if r_left > left {
+                            area += r_area;
                             regions.pop();
                         } else {
                             break;
                         }
                     }
                     regions.push((left, area));
+                    total_area += area;
                 }
             }
+            '_' => {
+                // Flat: no state change other than position advance.
+            }
             _ => {
-                // Flat or unrecognized: advances position implicitly via enumerate; no action.
+                // Any other character: ignored for terrain semantics; only advances position.
             }
         }
+        pos += 1;
     }
 
     // Output:
-    // total_area
-    // count areas...
-    // with a single space before each area, and a trailing newline.
-    let mut out = String::new();
-    out.push_str(&format!("{}", total_area));
-    out.push('\n');
+    // Line 1: total trapped area.
+    // Line 2: number of regions followed by each region area in left-to-right order.
+    println!("{}", total_area);
 
-    out.push_str(&format!("{}", regions.len()));
-    for &(_, area) in &regions {
-        out.push(' ');
-        out.push_str(&area.to_string());
+    let mut areas: Vec<i64> = regions.into_iter().map(|(_, a)| a).collect();
+    // regions are already in left-to-right order due to stack/merge discipline.
+    print!("{}", areas.len());
+    for a in areas.drain(..) {
+        print!(" {}", a);
     }
-    out.push('\n');
-
-    print!("{out}");
+    println!();
 }

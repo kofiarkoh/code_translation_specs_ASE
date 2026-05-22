@@ -1,29 +1,31 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read all input
-    let mut s = String::new();
-    io::stdin().read_to_string(&mut s).unwrap();
-    let mut it = s.split_whitespace();
+    // Read entire stdin
+    let mut input = String::new();
+    if io::stdin().read_to_string(&mut input).is_err() {
+        std::process::exit(1);
+    }
+    let mut it = input.split_whitespace();
 
-    // Per spec: if any required input cannot be read, terminate with nonzero exit status.
-    let x: usize = match it.next().and_then(|t| t.parse().ok()) {
+    // Parse header; on any missing/invalid integer, exit non-zero with no guaranteed output.
+    let x: usize = match it.next().and_then(|s| s.parse().ok()) {
         Some(v) => v,
         None => std::process::exit(1),
     };
-    let y: usize = match it.next().and_then(|t| t.parse().ok()) {
+    let y: usize = match it.next().and_then(|s| s.parse().ok()) {
         Some(v) => v,
         None => std::process::exit(1),
     };
-    let a: usize = match it.next().and_then(|t| t.parse().ok()) {
+    let a: usize = match it.next().and_then(|s| s.parse().ok()) {
         Some(v) => v,
         None => std::process::exit(1),
     };
-    let b: usize = match it.next().and_then(|t| t.parse().ok()) {
+    let b: usize = match it.next().and_then(|s| s.parse().ok()) {
         Some(v) => v,
         None => std::process::exit(1),
     };
-    let c: usize = match it.next().and_then(|t| t.parse().ok()) {
+    let c: usize = match it.next().and_then(|s| s.parse().ok()) {
         Some(v) => v,
         None => std::process::exit(1),
     };
@@ -33,61 +35,54 @@ fn main() {
     let mut r: Vec<i64> = Vec::with_capacity(c);
 
     for _ in 0..a {
-        let v: i64 = match it.next().and_then(|t| t.parse().ok()) {
+        let v: i64 = match it.next().and_then(|s| s.parse().ok()) {
             Some(v) => v,
             None => std::process::exit(1),
         };
         p.push(v);
     }
     for _ in 0..b {
-        let v: i64 = match it.next().and_then(|t| t.parse().ok()) {
+        let v: i64 = match it.next().and_then(|s| s.parse().ok()) {
             Some(v) => v,
             None => std::process::exit(1),
         };
         q.push(v);
     }
     for _ in 0..c {
-        let v: i64 = match it.next().and_then(|t| t.parse().ok()) {
+        let v: i64 = match it.next().and_then(|s| s.parse().ok()) {
             Some(v) => v,
             None => std::process::exit(1),
         };
         r.push(v);
     }
 
-    // Sort descending (largest first), matching C comparator behavior.
+    // Sort descending (matches C qsort comparator behavior).
     p.sort_unstable_by(|a, b| b.cmp(a));
     q.sort_unstable_by(|a, b| b.cmp(a));
     r.sort_unstable_by(|a, b| b.cmp(a));
 
-    // Initial selection: top X from p and top Y from q.
-    // Replacement process: consider r in descending order, replace the current smallest among
-    // the selected elements (from p[0..X) and q[0..Y)) if r[i] is strictly larger.
-    //
-    // This matches the C code's logic using indices asumi=X-1 and iguti=Y-1 into the
-    // selected prefixes, which are the current minima of each selected set.
+    // Indices of the current "worst among selected" in each group:
+    // C uses asumi = X-1, iguti = Y-1 and decrements when replaced.
     let mut asumi: isize = x as isize - 1;
     let mut iguti: isize = y as isize - 1;
 
-    for &cand in &r {
+    for &rv in &r {
         if asumi < 0 && iguti < 0 {
             break;
-        } else if asumi < 0
-            || (iguti >= 0
-                && p[asumi as usize] > q[iguti as usize])
-        {
-            // Replace in q (its current minimum is >= p's current minimum, or p exhausted)
+        } else if asumi < 0 || (iguti >= 0 && p[asumi as usize] > q[iguti as usize]) {
+            // Replace in q (second group) if beneficial; otherwise stop.
             let idx = iguti as usize;
-            if cand > q[idx] {
-                q[idx] = cand;
+            if rv > q[idx] {
+                q[idx] = rv;
                 iguti -= 1;
             } else {
                 break;
             }
         } else {
-            // Replace in p
+            // Replace in p (first group) if beneficial; otherwise stop.
             let idx = asumi as usize;
-            if cand > p[idx] {
-                p[idx] = cand;
+            if rv > p[idx] {
+                p[idx] = rv;
                 asumi -= 1;
             } else {
                 break;
@@ -95,6 +90,7 @@ fn main() {
         }
     }
 
+    // Sum first X and first Y values (precondition ensures X<=A, Y<=B).
     let mut ans: i64 = 0;
     for i in 0..x {
         ans += p[i];

@@ -9,7 +9,7 @@ const B: usize = 5;
 const NA: usize = 6;
 
 fn main() {
-    // Equivalent to the C global `map`.
+    // Same transition table as the C code.
     let map: [[usize; 2]; 6] = [
         [X, Y],
         [NA, Z],
@@ -19,8 +19,7 @@ fn main() {
         [Y, X],
     ];
 
-    // C uses `scanf("%s", path)` repeatedly: token-based, whitespace-delimited.
-    // We'll read all stdin and split by whitespace to emulate that behavior.
+    // Emulate repeated `scanf("%s", path)` by tokenizing on ASCII whitespace.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
 
@@ -32,16 +31,13 @@ fn main() {
             break;
         }
 
-        let bytes = token.as_bytes();
         let mut city: usize = A;
-        let mut i: usize = 0;
 
-        // In C: while (path[i] != '\0') { ... }
-        while i < bytes.len() {
-            // C does: path[i] - '0' and uses it as index 0/1.
-            // If the character isn't '0' or '1', C would index out of bounds (UB).
-            // We emulate the "intended" behavior by stopping the walk on invalid input.
-            let idx = match bytes[i] {
+        // In C, indexing uses `path[i] - '0'` without validation; this is UB if not '0'/'1'.
+        // To preserve intended behavior while staying safe, we treat any non '0'/'1' as an
+        // immediate invalid transition (like hitting NA) and stop processing the token.
+        for &ch in token.as_bytes() {
+            let idx = match ch {
                 b'0' => 0usize,
                 b'1' => 1usize,
                 _ => break,
@@ -52,7 +48,6 @@ fn main() {
                 break;
             }
             city = next;
-            i += 1;
         }
 
         if city == B {

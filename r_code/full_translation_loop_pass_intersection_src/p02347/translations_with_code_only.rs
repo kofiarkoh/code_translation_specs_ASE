@@ -14,8 +14,8 @@ struct Point {
 #[derive(Clone, Copy, Default)]
 struct Node {
     location: i32, // index into p[]
-    l: i32,        // index into t[] or NIL
-    r: i32,        // index into t[] or NIL
+    l: i32,
+    r: i32,
 }
 
 fn make_kd_tree(p: &mut [Point], t: &mut [Node], np: &mut i32, l: i32, r: i32, depth: i32) -> i32 {
@@ -23,20 +23,19 @@ fn make_kd_tree(p: &mut [Point], t: &mut [Node], np: &mut i32, l: i32, r: i32, d
         return NIL;
     }
 
-    // In C: if (r - l >= 2) qsort(&p[l], r-l, ...)
-    // Rust: sort the sub-slice p[l..r] by x or y. This is not stable, matching qsort's lack of stability.
-    if r - l >= 2 {
-        let (lu, ru) = (l as usize, r as usize);
+    let len = (r - l) as usize;
+    if len >= 2 {
+        let lo = l as usize;
+        let hi = r as usize;
         if depth % 2 == 0 {
-            p[lu..ru].sort_unstable_by(|a, b| a.x.cmp(&b.x));
+            // C qsort is not stable; Rust's sort_unstable matches that property.
+            p[lo..hi].sort_unstable_by(|a, b| a.x.cmp(&b.x));
         } else {
-            p[lu..ru].sort_unstable_by(|a, b| a.y.cmp(&b.y));
+            p[lo..hi].sort_unstable_by(|a, b| a.y.cmp(&b.y));
         }
     }
 
-    // C integer division truncates toward zero; l,r are non-negative here, so this matches.
     let mid = (l + r) / 2;
-
     let s = *np;
     *np += 1;
 
@@ -87,24 +86,24 @@ fn find(
 }
 
 fn main() {
-    // Read all input, parse as i32 like scanf("%d").
+    // Read entire stdin, then parse as whitespace-separated integers (like scanf).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
     let n: usize = match it.next() {
-        Some(s) => s.parse::<i32>().unwrap() as usize,
+        Some(s) => s.parse().unwrap(),
         None => return,
     };
 
-    // Mirror the C globals with fixed-capacity arrays.
-    // Note: C code assumes n <= MAX_N; we do the same.
+    // Mirror the C global arrays with fixed maximum capacity.
+    // (We still only use the first n / np elements as in C.)
     let mut p = vec![Point::default(); MAX_N];
     let mut t = vec![Node::default(); MAX_N];
 
     for i in 0..n {
-        let x = it.next().unwrap().parse::<i32>().unwrap();
-        let y = it.next().unwrap().parse::<i32>().unwrap();
+        let x: i32 = it.next().unwrap().parse().unwrap();
+        let y: i32 = it.next().unwrap().parse().unwrap();
         p[i] = Point {
             id: i as i32,
             x,
@@ -115,28 +114,26 @@ fn main() {
     }
 
     let mut np: i32 = 0;
-    let root = make_kd_tree(&mut p[..n], &mut t, &mut np, 0, n as i32, 0);
+    let root = make_kd_tree(&mut p, &mut t, &mut np, 0, n as i32, 0);
 
-    let q: usize = it.next().unwrap().parse::<i32>().unwrap() as usize;
-
+    let q: usize = it.next().unwrap().parse().unwrap();
     let mut out = String::new();
-    let mut pid: Vec<i32> = Vec::new();
 
     for _ in 0..q {
-        let sx = it.next().unwrap().parse::<i32>().unwrap();
-        let tx = it.next().unwrap().parse::<i32>().unwrap();
-        let sy = it.next().unwrap().parse::<i32>().unwrap();
-        let ty = it.next().unwrap().parse::<i32>().unwrap();
+        let sx: i32 = it.next().unwrap().parse().unwrap();
+        let tx: i32 = it.next().unwrap().parse().unwrap();
+        let sy: i32 = it.next().unwrap().parse().unwrap();
+        let ty: i32 = it.next().unwrap().parse().unwrap();
 
-        pid.clear();
+        let mut pid: Vec<i32> = Vec::new();
         if root != NIL {
-            find(&p[..n], &t, &mut pid, root, sx, tx, sy, ty, 0);
+            find(&p, &t, &mut pid, root, sx, tx, sy, ty, 0);
         }
 
-        // C uses qsort with integer comparator; sort_unstable matches.
+        // C qsort on int array; use unstable sort to match non-stability.
         pid.sort_unstable_by(|a, b| a.cmp(b));
 
-        for id in &pid {
+        for id in pid {
             out.push_str(&format!("{id}\n"));
         }
         out.push('\n');

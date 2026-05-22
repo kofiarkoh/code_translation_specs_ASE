@@ -1,44 +1,40 @@
 use std::io::{self, Read};
 
 static mut Q: i32 = 0;
-static mut N: [i32; 114514] = [0; 114514];
-static mut COUNT: [i32; 114514] = [0; 114514];
+static mut N: [i32; 114_514] = [0; 114_514];
+static mut COUNT: [i32; 114_514] = [0; 114_514];
 
 static mut MIZUKINANA: i32 = 0;
 static mut FUKUENNMISATO: [[i32; 2]; 64] = [[0; 2]; 64];
 static mut UTIYAMAYUMI: i64 = 0;
 static mut YOSINAGASAYURI: i64 = 0;
 
+// Mirrors the C recursion and its global-variable usage.
+// Uses wrapping arithmetic to emulate C signed overflow behavior as closely as possible.
 fn minaseinori(idx: i32, acc: i64) {
-    // This function relies on global mutable state exactly like the C code.
-    // We keep the same recursion and arithmetic behavior.
     unsafe {
         if idx >= MIZUKINANA {
             if acc != UTIYAMAYUMI {
-                // In C, signed overflow is UB; we emulate typical 2's-complement wrap
-                // using wrapping arithmetic to preserve likely intended behavior.
                 YOSINAGASAYURI = YOSINAGASAYURI.wrapping_mul(acc);
-
-                // Clamp if greater than UTIYAMAYUMI * 2 (also with wrapping semantics).
-                let limit = UTIYAMAYUMI.wrapping_mul(2);
-                if YOSINAGASAYURI > limit {
-                    YOSINAGASAYURI = limit;
+                let cap = UTIYAMAYUMI.wrapping_mul(2);
+                if YOSINAGASAYURI > cap {
+                    YOSINAGASAYURI = cap;
                 }
             }
         } else {
-            let base = FUKUENNMISATO[idx as usize][0] as i64;
-            let exp = FUKUENNMISATO[idx as usize][1];
+            let p = FUKUENNMISATO[idx as usize][0] as i64;
+            let e = FUKUENNMISATO[idx as usize][1];
             let mut a = acc;
-            for _ in 0..=exp {
+            for _ in 0..=e {
                 minaseinori(idx + 1, a);
-                a = a.wrapping_mul(base);
+                a = a.wrapping_mul(p);
             }
         }
     }
 }
 
 fn main() {
-    // Read all input, parse as whitespace-separated integers (like scanf).
+    // Read all input (scanf-like whitespace handling).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -47,7 +43,9 @@ fn main() {
         Some(s) => s.parse().unwrap(),
         None => std::process::exit(1),
     };
-    unsafe { Q = q };
+    unsafe {
+        Q = q;
+    }
 
     let mut max_n: i32 = 0;
     for i in 0..(q as usize) {
@@ -55,7 +53,9 @@ fn main() {
             Some(s) => s.parse().unwrap(),
             None => std::process::exit(1),
         };
-        unsafe { N[i] = v };
+        unsafe {
+            N[i] = v;
+        }
         if max_n < v {
             max_n = v;
         }
@@ -64,10 +64,11 @@ fn main() {
     // COUNT[0] and COUNT[1] remain 0 as in C (global zero-initialized).
     for i in 2..=max_n {
         let mut sumipe: i32 = i;
-        unsafe { MIZUKINANA = 0 };
+        unsafe {
+            MIZUKINANA = 0;
+        }
 
         let mut tomatu: i32 = 2;
-        // Use i64 for the square to avoid overflow in the loop condition.
         while (tomatu as i64) * (tomatu as i64) <= sumipe as i64 {
             if sumipe % tomatu == 0 {
                 let mut c: i32 = 0;
@@ -101,10 +102,9 @@ fn main() {
         minaseinori(0, 1);
 
         unsafe {
-            // In C: (yosinagasayuri >= i * 2) where i*2 is int arithmetic.
-            // i is <= max_n from input; arrays bound suggests it fits in i32.
-            let cond = (YOSINAGASAYURI >= (i as i64) * 2) as i32;
-            COUNT[i as usize] = COUNT[(i - 1) as usize] + cond;
+            let prev = COUNT[(i - 1) as usize];
+            let cond = (YOSINAGASAYURI >= (i as i64).wrapping_mul(2)) as i32;
+            COUNT[i as usize] = prev + cond;
         }
     }
 

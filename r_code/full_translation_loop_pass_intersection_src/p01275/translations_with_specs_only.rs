@@ -1,46 +1,90 @@
+use std::collections::{HashMap, VecDeque};
 use std::io::{self, Read};
 
-fn dfs(pos: usize, n: usize, diff: &mut [u8], cost: i32, best: &mut i32) {
-    if cost >= *best {
-        return;
+fn parse_digit_vec(s: &str, n: usize) -> Vec<u8> {
+    s.as_bytes()
+        .iter()
+        .take(n)
+        .map(|&b| (b - b'0') as u8)
+        .collect()
+}
+
+fn encode_state(d: &[u8]) -> u64 {
+    // Base-10 encoding; n <= 10 fits in u64.
+    let mut key: u64 = 0;
+    for &x in d {
+        key = key * 10 + x as u64;
     }
-    if pos == n {
-        *best = cost;
-        return;
+    key
+}
+
+fn all_zero(d: &[u8]) -> bool {
+    d.iter().all(|&x| x == 0)
+}
+
+fn leftmost_nonzero(d: &[u8]) -> Option<usize> {
+    d.iter().position(|&x| x != 0)
+}
+
+fn min_operations(initial: &[u8], target: &[u8]) -> u32 {
+    let n = initial.len();
+    let mut diff: Vec<u8> = Vec::with_capacity(n);
+    for i in 0..n {
+        // Difference modulo 10 in range 0..=9
+        let a = initial[i] as i16;
+        let b = target[i] as i16;
+        let mut v = b - a;
+        v %= 10;
+        if v < 0 {
+            v += 10;
+        }
+        diff.push(v as u8);
     }
 
-    // Operation model (as required by observed behavior):
-    // One operation selects a position and applies a uniform forward rotation (mod 10)
-    // to that position and all positions to its right.
-    //
-    // The "minimum number of operations" counts how many such selections are made,
-    // NOT the total amount of rotation. Therefore, each operation has unit cost,
-    // and we may choose any rotation amount 0..9 per operation.
-    //
-    // To make progress, at position `pos` we can choose a rotation amount `x` that
-    // makes diff[pos] become 0. Since later operations cannot affect positions < pos,
-    // we must enforce diff[pos]==0 before recursing.
-    //
-    // For a given diff[pos], there is exactly one x in 0..9 that makes it 0:
-    // diff[pos] := (diff[pos] + x) mod 10  => x == (10 - diff[pos]) mod 10.
-    let need = (10 - diff[pos]) % 10;
-
-    // Apply this single operation (unit cost) to suffix.
-    for i in pos..n {
-        diff[i] = (diff[i] + need) % 10;
-    }
-    // Now diff[pos] must be 0.
-    dfs(pos + 1, n, diff, cost + 1, best);
-    // Undo.
-    for i in pos..n {
-        diff[i] = (diff[i] + 10 - need) % 10;
+    if all_zero(&diff) {
+        return 0;
     }
 
-    // Also allow skipping an operation if already matched at this position.
-    // This is necessary to allow 0 operations when sequences are identical.
-    if diff[pos] == 0 {
-        dfs(pos + 1, n, diff, cost, best);
+    // BFS over states; each transition costs 1 operation, so BFS yields minimum operations.
+    let start_key = encode_state(&diff);
+    let mut dist: HashMap<u64, u32> = HashMap::new();
+    let mut q: VecDeque<Vec<u8>> = VecDeque::new();
+
+    dist.insert(start_key, 0);
+    q.push_back(diff);
+
+    while let Some(state) = q.pop_front() {
+        let cur_d = dist[&encode_state(&state)];
+
+        if all_zero(&state) {
+            return cur_d;
+        }
+
+        let p = match leftmost_nonzero(&state) {
+            Some(idx) => idx,
+            None => return cur_d,
+        };
+        let k = state[p]; // 1..=9 by construction
+
+        // Choose any i with p <= i < n, subtract k from [p..=i] modulo 10.
+        for i in p..n {
+            let mut next = state.clone();
+            for j in p..=i {
+                // (next[j] - k) mod 10, kept in 0..=9
+                next[j] = (next[j] + 10 - k) % 10;
+            }
+            // By definition, next[p] becomes 0.
+            let key = encode_state(&next);
+            if !dist.contains_key(&key) {
+                dist.insert(key, cur_d + 1);
+                q.push_back(next);
+            }
+        }
     }
+
+    // With the specified transition model, all states should be reachable to terminal.
+    // If not, behavior is unspecified; return 0 as a narrow fallback.
+    0
 }
 
 fn main() {
@@ -48,37 +92,27 @@ fn main() {
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let mut outputs = Vec::new();
+    let mut outputs: Vec<String> = Vec::new();
 
     loop {
-        let Some(len_tok) = it.next() else { break };
-        let n: usize = len_tok.parse().unwrap();
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
         if n == 0 {
             break;
         }
 
-        let a = it.next().unwrap();
-        let b = it.next().unwrap();
+        let s1 = it.next().unwrap();
+        let s2 = it.next().unwrap();
 
-        // diff[i] = (target - initial) mod 10 in 0..=9.
-        // Applying a forward rotation by x to a suffix increases the initial digits by x,
-        // so it decreases (target - initial) by x; equivalently, we can track diff as
-        // (initial - target) and add x. Here we track (target - initial) and add x to
-        // represent "closing the gap" by rotating initial forward.
-        let mut diff = vec![0u8; n];
-        for (i, (ca, cb)) in a.bytes().zip(b.bytes()).enumerate().take(n) {
-            let da = (ca - b'0') as i32;
-            let db = (cb - b'0') as i32;
-            diff[i] = ((db - da).rem_euclid(10)) as u8;
-        }
+        let a = parse_digit_vec(s1, n);
+        let b = parse_digit_vec(s2, n);
 
-        let mut best: i32 = i32::MAX / 4;
-        dfs(0, n, &mut diff, 0, &mut best);
-        outputs.push(best.to_string());
+        let ans = min_operations(&a, &b);
+        outputs.push(ans.to_string());
     }
 
-    if !outputs.is_empty() {
-        print!("{}", outputs.join("\n"));
-        print!("\n");
-    }
+    print!("{}", outputs.join("\n"));
 }

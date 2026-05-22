@@ -2,10 +2,9 @@ use std::io::{self, Read};
 
 const BASE: usize = 300;
 const DBASE: usize = 600;
-const NEG: i32 = -1;
 
 fn main() {
-    // Read all input as bytes; input is specified to be non-negative integers.
+    // Read all input (no explicit error handling per spec).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -14,9 +13,10 @@ fn main() {
     let x: usize = it.next().unwrap().parse().unwrap();
     let y: usize = it.next().unwrap().parse().unwrap();
 
-    // dp[i][a][b_shift] = max value, or -1 if unreachable.
-    // b_shift represents actual B as (b_shift - BASE), so b_shift in 0..=DBASE.
-    let mut dp = vec![vec![vec![NEG; DBASE + 2]; BASE + 2]; n + 1];
+    // dp[i][j][k] = max reward after i items, consuming j resource, balance index k.
+    // Unreachable states are -1.
+    // Dimensions match the C program: i up to 100, j up to BASE (300), k up to DBASE (600).
+    let mut dp = vec![vec![vec![-1i32; DBASE + 2]; BASE + 2]; 101];
     dp[0][0][BASE] = 0;
 
     for i in 0..n {
@@ -32,39 +32,42 @@ fn main() {
                     continue;
                 }
 
-                // Ignore offer
+                // 1) No-op
                 if dp[i + 1][j][k] < cur {
                     dp[i + 1][j][k] = cur;
                 }
 
-                // Mode 1: (A + a, B - b), value unchanged, only if A bound satisfied.
-                // Note: The C code does not bounds-check k-b; preconditions guarantee it stays in range.
-                if x >= j + a {
-                    let nk = k.wrapping_sub(b);
-                    if nk <= DBASE && dp[i + 1][j + a][nk] < cur {
+                // 2) Trade: only if j + a <= x. (No bounds checks for k-b per spec.)
+                if j + a <= x {
+                    let nk = k.wrapping_sub(b); // mirrors C's unchecked indexing assumption
+                    if nk <= DBASE + 1 && dp[i + 1][j + a][nk] < cur {
                         dp[i + 1][j + a][nk] = cur;
                     }
                 }
 
-                // Mode 2: (A, B + c), value + d
-                // Note: The C code does not bounds-check k+c; preconditions guarantee it stays in range.
-                let nk2 = k + c;
-                if nk2 <= DBASE && dp[i + 1][j][nk2] < cur + d {
-                    dp[i + 1][j][nk2] = cur + d;
+                // 3) Reward: (No bounds checks for k+c per spec.)
+                let nk = k + c;
+                if nk <= DBASE + 1 {
+                    let val = cur + d;
+                    if dp[i + 1][j][nk] < val {
+                        dp[i + 1][j][nk] = val;
+                    }
                 }
             }
         }
     }
 
-    // Final answer: max dp[n][j][k] with j <= x and actual B <= y,
-    // i.e., k <= y + BASE.
+    // Result selection: max over j in [0..x], k in [0..600] with k <= BASE + y.
+    // Note: Spec defines this as an upper bound on k.
     let mut ans: i32 = 0;
-    let b_limit_shift = y + BASE;
+    let k_limit = BASE + y;
     for j in 0..=x.min(BASE) {
         for k in 0..=DBASE {
-            let v = dp[n][j][k];
-            if v > ans && b_limit_shift >= k {
-                ans = v;
+            if k <= k_limit {
+                let v = dp[n][j][k];
+                if v > ans {
+                    ans = v;
+                }
             }
         }
     }

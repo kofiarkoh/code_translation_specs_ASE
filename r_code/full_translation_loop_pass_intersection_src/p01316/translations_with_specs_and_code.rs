@@ -1,87 +1,71 @@
 use std::io::{self, Read};
 
-fn clamp_u8_range(v: i32) -> usize {
-    if v < 0 {
-        0
-    } else if v > 255 {
-        255
-    } else {
-        v as usize
-    }
-}
-
 fn main() {
-    // Read entire stdin, parse as whitespace-separated integers (like scanf).
+    // Read entire stdin
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let mut out = String::new();
-
     loop {
         let n_opt = it.next();
         if n_opt.is_none() {
-            break; // no more datasets
+            break; // no more instances
         }
         let n: usize = n_opt.unwrap().parse().unwrap();
-        let _m: usize = match it.next() {
-            Some(v) => v.parse().unwrap(),
-            None => break,
-        };
+        let m: usize = it.next().unwrap().parse().unwrap();
 
         if n == 0 {
             break; // termination condition per spec
         }
 
-        let m = _m;
-
+        // Read increments
         let mut inc = vec![0i32; m];
         for k in 0..m {
             inc[k] = it.next().unwrap().parse().unwrap();
         }
 
-        // DP over states 0..255; -1 means unreachable (matches C memset(-1)).
-        let mut prev = vec![-1i64; 256];
-        let mut curr = vec![-1i64; 256];
-        prev[128] = 0;
+        // DP over states 0..255, using -1 as "unreachable" like the C code.
+        // dp_prev[s] = min cost to be at state s after processing i targets.
+        let mut dp_prev = vec![-1i32; 256];
+        let mut dp_curr = vec![-1i32; 256];
+        dp_prev[128] = 0;
 
         for _ in 0..n {
             let x: i32 = it.next().unwrap().parse().unwrap();
-            curr.fill(-1);
+            dp_curr.fill(-1);
 
             for s in 0..256 {
-                let base = prev[s];
-                if base < 0 {
+                let prev_cost = dp_prev[s];
+                if prev_cost < 0 {
                     continue;
                 }
                 let s_i32 = s as i32;
-                for &a in &inc {
-                    let t = clamp_u8_range(s_i32 + a);
-                    let diff = x - (t as i32);
-                    let cost = (diff as i64) * (diff as i64);
-                    let y = base + cost;
-                    let slot = &mut curr[t];
-                    if *slot < 0 || y < *slot {
-                        *slot = y;
+                for &d in &inc {
+                    let mut t = s_i32 + d;
+                    if t < 0 {
+                        t = 0;
+                    } else if t > 255 {
+                        t = 255;
                     }
+                    let diff = x - t;
+                    let y = prev_cost + diff * diff; // per spec, fits in i32 (otherwise unspecified)
+                    let idx = t as usize;
+                    let cur = dp_curr[idx];
+                    dp_curr[idx] = if cur < 0 { y } else { cur.min(y) };
                 }
             }
 
-            std::mem::swap(&mut prev, &mut curr);
+            std::mem::swap(&mut dp_prev, &mut dp_curr);
         }
 
-        // Minimum over all final states.
-        let mut res: i64 = (1i64 << 60);
-        for &v in &prev {
-            if v >= 0 && v < res {
-                res = v;
+        // Minimum over final states
+        let mut res: i32 = 1 << 30;
+        for &v in &dp_prev {
+            if v >= 0 {
+                res = res.min(v);
             }
         }
 
-        // C prints as %d (32-bit). Spec allows undefined behavior on overflow;
-        // we keep i64 internally but print as integer text.
-        out.push_str(&format!("{res}\n"));
+        println!("{res}");
     }
-
-    print!("{out}");
 }

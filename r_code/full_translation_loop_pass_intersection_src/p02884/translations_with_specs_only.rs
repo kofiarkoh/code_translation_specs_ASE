@@ -1,98 +1,87 @@
+use std::cmp::Ordering;
 use std::io::{self, Read};
 
+fn compute_expected(n: usize, adj: &Vec<Vec<usize>>, removed: Option<(usize, usize)>) -> Vec<f64> {
+    let mut e = vec![0.0f64; n + 1];
+    e[n] = 0.0;
+
+    // Recurrence: E[u] = 1 + average(E[v] for v in outgoing(u)), with optional removal of one edge.
+    // We compute in decreasing node index order, matching the implied "well-defined" precondition
+    // (outgoing edges to >= itself ensure no forward dependency on smaller indices is required).
+    for u in (1..n).rev() {
+        let mut sum = 0.0f64;
+        let mut cnt = 0usize;
+
+        for &v in &adj[u] {
+            if let Some((ru, rv)) = removed {
+                if ru == u && rv == v {
+                    continue;
+                }
+            }
+            sum += e[v];
+            cnt += 1;
+        }
+
+        // Per spec, if cnt == 0 behavior is undefined; we do not guard.
+        e[u] = 1.0 + sum / (cnt as f64);
+    }
+
+    e
+}
+
 fn main() {
-    // Read all input; behavior is undefined on parse failure per spec.
-    let mut s = String::new();
-    io::stdin().read_to_string(&mut s).unwrap();
-    let mut it = s.split_whitespace();
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
     let n: usize = it.next().unwrap().parse().unwrap();
     let m: usize = it.next().unwrap().parse().unwrap();
 
-    // Adjacency list; edges are intended to satisfy u < v (DAG by index).
-    let mut g: Vec<Vec<usize>> = vec![Vec::new(); n + 1];
+    // Fixed-size internal storage is implied by the spec, but no explicit bound is given.
+    // We allocate based on input sizes.
+    let mut adj: Vec<Vec<usize>> = vec![Vec::new(); n + 1];
+
     for _ in 0..m {
         let u: usize = it.next().unwrap().parse().unwrap();
         let v: usize = it.next().unwrap().parse().unwrap();
-        g[u].push(v);
+        adj[u].push(v);
     }
 
-    // Compute expected steps for the original graph.
-    let base = expected_with_optional_removal(n, &g, None);
+    // Compute expected values for the original graph.
+    let e0 = compute_expected(n, &adj, None);
+    let mut best = e0[1];
 
-    // Minimum over: original, and for each node with >=2 outgoing edges,
-    // one scenario removing exactly one outgoing edge chosen by internal rule.
-    //
-    // Internal selection rule (narrowest reasonable interpretation given spec):
-    // remove the outgoing edge to the neighbor with the maximum expected value
-    // under the original graph (ties broken by first occurrence in adjacency list).
-    let mut ans = base;
-
-    // Precompute base expectations to drive the removal choice.
-    let base_dp = compute_dp(n, &g, None);
-
+    // Candidate set C: for each u with outdegree > 1, choose the outgoing edge (u,v)
+    // whose destination has the largest expected-step value under the original graph.
+    // If multiple tie, choose the first encountered (narrowest reasonable interpretation).
+    let mut candidates: Vec<(usize, usize)> = Vec::new();
     for u in 1..n {
-        if g[u].len() >= 2 {
-            // Choose edge index to remove: argmax base_dp[v], first in list on ties.
-            let mut best_idx = 0usize;
-            let mut best_val = base_dp[g[u][0]];
-            for (idx, &v) in g[u].iter().enumerate().skip(1) {
-                let val = base_dp[v];
-                if val > best_val {
-                    best_val = val;
-                    best_idx = idx;
+        if adj[u].len() > 1 {
+            let mut best_v = adj[u][0];
+            let mut best_ev = e0[best_v];
+            for &v in &adj[u][1..] {
+                let ev = e0[v];
+                match ev.partial_cmp(&best_ev).unwrap_or(Ordering::Equal) {
+                    Ordering::Greater => {
+                        best_ev = ev;
+                        best_v = v;
+                    }
+                    _ => {}
                 }
             }
-
-            let cand = expected_with_optional_removal(n, &g, Some((u, best_idx)));
-            if cand < ans {
-                ans = cand;
-            }
+            candidates.push((u, best_v));
         }
     }
 
-    // Output a single real number.
-    // No specific formatting mandated; print with reasonable precision.
-    println!("{:.10}", ans);
-}
-
-fn expected_with_optional_removal(
-    n: usize,
-    g: &Vec<Vec<usize>>,
-    removal: Option<(usize, usize)>,
-) -> f64 {
-    let dp = compute_dp(n, g, removal);
-    dp[1]
-}
-
-fn compute_dp(n: usize, g: &Vec<Vec<usize>>, removal: Option<(usize, usize)>) -> Vec<f64> {
-    // dp[i] = expected remaining steps from node i to node n.
-    // dp[n] = 0 always.
-    let mut dp = vec![0.0f64; n + 1];
-    dp[n] = 0.0;
-
-    // Backward evaluation by index; edges go to higher indices.
-    for i in (1..n).rev() {
-        let out = &g[i];
-
-        // Determine which outgoing edges are available in this scenario.
-        // If removal targets this node, remove exactly one edge by index.
-        let (rem_u, rem_idx) = removal.unwrap_or((0, usize::MAX));
-
-        let mut sum = 0.0f64;
-        let mut cnt = 0usize;
-
-        for (idx, &v) in out.iter().enumerate() {
-            if i == rem_u && idx == rem_idx {
-                continue;
-            }
-            sum += dp[v];
-            cnt += 1;
+    // Evaluate each graph with one candidate edge removed and take the minimum E(1).
+    for (u, v) in candidates {
+        let e = compute_expected(n, &adj, Some((u, v)));
+        if e[1] < best {
+            best = e[1];
         }
-
-        // Per spec, if cnt == 0, behavior is undefined (division by zero).
-        dp[i] = 1.0 + sum / (cnt as f64);
     }
 
-    dp
+    // Fixed decimal precision; the spec does not state how many digits.
+    // Use 10 digits after the decimal as a conventional fixed precision.
+    println!("{:.10}", best);
 }

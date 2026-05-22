@@ -1,83 +1,77 @@
 use std::io::{self, Read};
 
-const MOD: i32 = 10007;
+const MOD: u16 = 10007;
 
-fn char_to_bit(c: u8) -> u8 {
-    // The three supported symbols in this problem are 'J', 'O', 'I' (JOI).
-    // Map them to the three participants in that order.
+fn bit_for(c: u8) -> u8 {
     match c {
-        b'J' => 0,
-        b'O' => 1,
-        b'I' => 2,
-        _ => 0, // Unspecified behavior for unsupported symbols; deterministic fallback.
+        b'J' => 1 << 0,
+        b'O' => 1 << 1,
+        b'I' => 1 << 2,
+        // Specification: unsupported characters => undefined behavior in original due to
+        // uninitialized value use. We choose the narrowest reasonable Rust behavior:
+        // treat as unreachable (panic) rather than inventing a mapping.
+        _ => unreachable!("unsupported character"),
     }
 }
 
 fn main() {
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
-
     let mut it = input.split_whitespace();
-    let n: usize = match it.next() {
-        Some(tok) => tok.parse().unwrap(),
-        None => return,
-    };
-    let s = it.next().unwrap_or("");
 
-    if n == 0 {
-        println!("1");
-        return;
-    }
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let s = it.next().unwrap().as_bytes();
 
-    let bytes = s.as_bytes();
+    // DP over subset states (0..=7). State is a bitmask over {J,O,I}.
+    // Initialization corresponds to "before day 0" having only subset {J}.
+    let mut prev = [0u16; 8];
+    prev[1] = 1;
 
-    // dp[mask] = number of valid sequences up to current day ending with subset == mask (mod MOD)
-    let mut dp = [0i32; 8];
-    let mut next = [0i32; 8];
+    for day in 0..n {
+        let req = bit_for(s[day]);
+        let mut next = [0u16; 8];
 
-    // Fixed initially-required participant is the first of the three participants => bit 0 ('J').
-    let initial_bit: u8 = 1 << 0;
-
-    // Day 0: subset must include both initial participant and required participant for day 0.
-    let r0_bit = 1u8 << char_to_bit(bytes[0]);
-    let must0 = initial_bit | r0_bit;
-    for mask in 0u8..8 {
-        if (mask & must0) == must0 {
-            dp[mask as usize] = 1;
-        }
-    }
-
-    // Days 1..N-1 transitions.
-    for d in 1..n {
-        next.fill(0);
-        let rd_bit = 1u8 << char_to_bit(bytes[d]);
-
-        for prev in 0u8..8 {
-            let prev_count = dp[prev as usize];
-            if prev_count == 0 {
+        for prev_mask in 0u8..8 {
+            let ways = prev[prev_mask as usize];
+            if ways == 0 {
                 continue;
             }
-            for cur in 0u8..8 {
-                if (cur & rd_bit) == 0 {
-                    continue; // must include required participant
+
+            for cur_mask in 0u8..8 {
+                // Must include required participant for this day.
+                if (cur_mask & req) == 0 {
+                    continue;
                 }
-                if (cur & prev) == 0 {
-                    continue; // must overlap with previous day
+
+                if day == 0 {
+                    // Day 0 special: must also include J.
+                    if (cur_mask & 1) == 0 {
+                        continue;
+                    }
+                    // No overlap constraint with "before day 0" beyond the initialization
+                    // being {J}; the original program's effect is captured by transitions
+                    // from prev={J} only.
+                } else {
+                    // Day-to-day overlap must be non-empty.
+                    if (cur_mask & prev_mask) == 0 {
+                        continue;
+                    }
                 }
-                let idx = cur as usize;
-                let mut v = next[idx] + prev_count;
-                v %= MOD;
-                next[idx] = v;
+
+                let idx = cur_mask as usize;
+                let sum = next[idx] as u32 + ways as u32;
+                next[idx] = (sum % (MOD as u32)) as u16;
             }
         }
 
-        dp = next;
+        prev = next;
     }
 
-    let mut ans: i32 = 0;
-    for &v in &dp {
-        ans += v;
-        ans %= MOD;
+    let mut ans: u32 = 0;
+    for &v in &prev {
+        ans += v as u32;
     }
+    ans %= MOD as u32;
+
     println!("{}", ans);
 }

@@ -1,28 +1,31 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read all input, parse as integers (no explicit error handling per spec).
-    let mut input = String::new();
-    io::stdin().read_to_string(&mut input).unwrap();
-    let mut it = input.split_whitespace();
+    // Read all input (unspecified behavior on malformed input per spec).
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
-    let x1: i64 = it.next().unwrap().parse().unwrap();
-    let y1: i64 = it.next().unwrap().parse().unwrap();
-    let r1: i64 = it.next().unwrap().parse().unwrap();
-    let x2: i64 = it.next().unwrap().parse().unwrap();
-    let y2: i64 = it.next().unwrap().parse().unwrap();
-    let r2: i64 = it.next().unwrap().parse().unwrap();
+    let mut x = [0i64; 2];
+    let mut y = [0i64; 2];
+    let mut r = [0i64; 2];
 
-    // Use squared comparisons to avoid sqrt, matching the C logic/spec.
-    // Spec assumes no overflow; we use i64 to reduce risk but do not add checks.
-    let dx = x1 - x2;
-    let dy = y1 - y2;
+    for i in 0..2 {
+        x[i] = it.next().unwrap().parse().unwrap();
+        y[i] = it.next().unwrap().parse().unwrap();
+        r[i] = it.next().unwrap().parse().unwrap();
+    }
+
+    // Use squared comparisons only (no floating point), matching the C logic/spec invariant.
+    let dx = x[0] - x[1];
+    let dy = y[0] - y[1];
     let rdistance = dx * dx + dy * dy;
 
-    let sum = r1 + r2;
-    let diff = r1 - r2;
-    let rplus = sum * sum;
-    let rminus = diff * diff;
+    let rp = r[0] + r[1];
+    let rplus = rp * rp;
+
+    let rm = r[0] - r[1];
+    let rminus = rm * rm;
 
     let ans = if rdistance > rplus {
         4

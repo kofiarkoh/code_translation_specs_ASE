@@ -4,61 +4,77 @@ use std::io::{self, Read};
 struct Record {
     label: char,
     key: i32,
-    pos: usize, // original input position (for stability check only)
+    pos: usize, // original input position
+}
+
+fn partition(a: &mut [Record], p: isize, r: isize) -> isize {
+    let x = a[r as usize].key; // pivot key is last element
+    let mut i = p - 1;
+    for j in p..r {
+        if a[j as usize].key <= x {
+            i += 1;
+            a.swap(i as usize, j as usize);
+        }
+    }
+    a.swap((i + 1) as usize, r as usize);
+    i + 1
+}
+
+fn quicksort(a: &mut [Record], p: isize, r: isize) {
+    if p < r {
+        let q = partition(a, p, r);
+        quicksort(a, p, q - 1);
+        quicksort(a, q + 1, r);
+    }
 }
 
 fn main() {
+    // Read entire stdin; specification assumes formatted scanning with whitespace before label.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
     let n: usize = it.next().unwrap().parse().unwrap();
 
-    // Specification: if n == 0, behavior is not inferable (invalid sort bounds).
-    // Narrowest reasonable choice: produce no output.
-    if n == 0 {
-        return;
-    }
-
     let mut a: Vec<Record> = Vec::with_capacity(n);
     for pos in 0..n {
         let label_tok = it.next().unwrap();
-        let label = label_tok.chars().next().unwrap();
+        let label = label_tok.chars().next().unwrap(); // single-character label
         let key: i32 = it.next().unwrap().parse().unwrap();
         a.push(Record { label, key, pos });
     }
 
-    // Emulate the intended behavior of the classic AOJ ALDS1_2_C task:
-    // perform an *unstable* sort (selection sort) by key, then check stability
-    // against the original order.
-    for i in 0..n {
-        let mut minj = i;
-        for j in i..n {
-            if a[j].key < a[minj].key {
-                minj = j;
-            }
-        }
-        if i != minj {
-            a.swap(i, minj);
-        }
+    if n > 0 {
+        quicksort(&mut a, 0, (n as isize) - 1);
+    } else {
+        // Behavior unspecified for n <= 0; keep as-is without inventing extra behavior.
     }
 
-    // Stable iff within each equal-key group, original positions are nondecreasing.
     let mut stable = true;
-    for i in 1..n {
-        if a[i - 1].key == a[i].key && a[i - 1].pos > a[i].pos {
-            stable = false;
+    for i in 0..n {
+        for j in (i + 1)..n {
+            if a[i].key == a[j].key && a[i].pos > a[j].pos {
+                stable = false;
+                break;
+            }
+        }
+        if !stable {
             break;
         }
     }
 
     let mut out = String::new();
-    out.push_str(if stable { "Stable\n" } else { "Not stable\n" });
-    for r in a {
-        out.push(r.label);
+    if stable {
+        out.push_str("Stable\n");
+    } else {
+        out.push_str("Not stable\n");
+    }
+    for rec in &a {
+        out.push(rec.label);
         out.push(' ');
-        out.push_str(&r.key.to_string());
+        out.push_str(&rec.key.to_string());
         out.push('\n');
     }
+
     print!("{out}");
 }

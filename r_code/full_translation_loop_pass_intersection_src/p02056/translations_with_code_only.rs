@@ -8,7 +8,7 @@ type I64 = i64;
 struct Edge {
     vertex: I32,
     next: I32,
-    cost: I32, // edge_weight is int32_t
+    cost: I32, // edge_weight
 }
 
 struct Graph {
@@ -34,12 +34,12 @@ fn new_graph(vertex_num: usize) -> Graph {
 
 fn add_edge(g: &mut Graph, from: I32, to: I32, cost: I32) {
     let from_usize = from as usize;
-    let idx = g.pointer as usize;
+    let ptr = g.pointer as usize;
 
-    // C grows capacity by doubling when pointer == edge_max_size, using realloc.
-    // Here we emulate by ensuring the vector is large enough to write at idx.
-    if idx >= g.edge.len() {
-        // Double size (like edge_max_size *= 2). If len is 0, grow to 1.
+    // C grows when pointer == edge_max_size, doubling capacity.
+    // In Rust Vec grows automatically; we just ensure index exists.
+    if ptr >= g.edge.len() {
+        // mimic realloc growth pattern (at least double)
         let new_len = std::cmp::max(1, g.edge.len() * 2);
         g.edge.resize(
             new_len,
@@ -52,7 +52,7 @@ fn add_edge(g: &mut Graph, from: I32, to: I32, cost: I32) {
     }
 
     let next = g.start[from_usize];
-    g.edge[idx] = Edge {
+    g.edge[ptr] = Edge {
         vertex: to,
         next,
         cost,
@@ -67,31 +67,43 @@ struct Node {
     d: I64,
 }
 
-// Min-heap by d, matching cmp_node in C.
+// C comparator:
+// i64 d = a.d - b.d; return sign(d)
 fn cmp_node(a: &Node, b: &Node) -> Ordering {
-    // C does: i64 d = a.d - b.d; then sign.
-    // That subtraction can overflow in C (UB), but with the values used here it won't.
-    // Still, use comparisons to avoid overflow and preserve intended ordering.
-    a.d.cmp(&b.d)
+    let diff = a.d.wrapping_sub(b.d); // preserve potential overflow behavior
+    if diff == 0 {
+        Ordering::Equal
+    } else if diff < 0 {
+        Ordering::Less
+    } else {
+        Ordering::Greater
+    }
 }
 
-struct BinaryHeap {
-    // 1-based indexing to match the C heap implementation.
-    a: Vec<Node>,
+// A simple binary min-heap with 1-based indexing to match C behavior closely.
+struct BinaryHeapMin {
+    a: Vec<Node>, // a[0] unused
+    size: usize,
 }
 
-impl BinaryHeap {
+impl BinaryHeapMin {
     fn new() -> Self {
-        BinaryHeap {
-            a: vec![Node { v: 0, d: 0 }], // dummy at index 0
+        Self {
+            a: vec![Node { v: 0, d: 0 }],
+            size: 0,
         }
     }
     fn is_empty(&self) -> bool {
-        self.a.len() <= 1
+        self.size == 0
     }
     fn push(&mut self, val: Node) {
-        self.a.push(val);
-        let mut k = self.a.len() - 1;
+        self.size += 1;
+        if self.size >= self.a.len() {
+            self.a.push(val);
+        } else {
+            self.a[self.size] = val;
+        }
+        let mut k = self.size;
         while k > 1 {
             let parent = k / 2;
             if cmp_node(&self.a[parent], &self.a[k]) != Ordering::Greater {
@@ -102,27 +114,26 @@ impl BinaryHeap {
         }
     }
     fn pop(&mut self) -> Node {
-        // Caller ensures non-empty.
+        // Caller ensures non-empty (as in C code).
         let res = self.a[1];
-        let last = self.a.pop().unwrap();
-        if !self.is_empty() {
-            self.a[1] = last;
-            let n = self.a.len() - 1;
-            let mut k = 1usize;
-            while 2 * k + 1 <= n {
-                let left = 2 * k;
-                let right = 2 * k + 1;
-                let c = cmp_node(&self.a[left], &self.a[right]);
-                let next = if c != Ordering::Greater { left } else { right };
-                if cmp_node(&self.a[k], &self.a[next]) != Ordering::Greater {
-                    return res;
-                }
-                self.a.swap(k, next);
-                k = next;
+        self.a[1] = self.a[self.size];
+        self.size -= 1;
+
+        let n = self.size;
+        let mut k = 1usize;
+        while 2 * k + 1 <= n {
+            let left = 2 * k;
+            let right = 2 * k + 1;
+            let c = cmp_node(&self.a[left], &self.a[right]);
+            let next = if c != Ordering::Greater { left } else { right };
+            if cmp_node(&self.a[k], &self.a[next]) != Ordering::Greater {
+                return res;
             }
-            if 2 * k <= n && cmp_node(&self.a[k], &self.a[2 * k]) == Ordering::Greater {
-                self.a.swap(k, 2 * k);
-            }
+            self.a.swap(k, next);
+            k = next;
+        }
+        if 2 * k <= n && cmp_node(&self.a[k], &self.a[2 * k]) == Ordering::Greater {
+            self.a.swap(k, 2 * k);
         }
         res
     }
@@ -134,10 +145,10 @@ struct Scanner {
 }
 impl Scanner {
     fn new() -> Self {
-        let mut input = String::new();
-        io::stdin().read_to_string(&mut input).unwrap();
-        Scanner {
-            input: input.into_bytes(),
+        let mut s = String::new();
+        io::stdin().read_to_string(&mut s).unwrap();
+        Self {
+            input: s.into_bytes(),
             idx: 0,
         }
     }
@@ -152,9 +163,7 @@ impl Scanner {
         }
         let mut x: i32 = 0;
         while self.idx < self.input.len() && !self.input[self.idx].is_ascii_whitespace() {
-            x = x
-                .wrapping_mul(10)
-                .wrapping_add((self.input[self.idx] - b'0') as i32);
+            x = x.wrapping_mul(10).wrapping_add((self.input[self.idx] - b'0') as i32);
             self.idx += 1;
         }
         x.wrapping_mul(sign)
@@ -169,19 +178,19 @@ fn run() {
 
     // C: i32 *p = ALLOC(3*n, i32); c = p+n; t = c+n;
     let nn = n as usize;
-    let mut p_all = vec![0i32; 3 * nn];
+    let mut arr = vec![0i32; 3 * nn];
     for i in 0..(3 * nn) {
-        p_all[i] = sc.next_i32();
+        arr[i] = sc.next_i32();
     }
-    let p = &p_all[0..nn];
-    let c = &p_all[nn..2 * nn];
-    let t_arr = &p_all[2 * nn..3 * nn];
+    let p = &arr[0..nn];
+    let c = &arr[nn..2 * nn];
+    let t = &arr[2 * nn..3 * nn];
 
-    let sup: I32 = 1_000_000_000i32 + 1;
+    let sup: I32 = 1_000_000_000 + 1;
 
-    let mut g = new_graph(2 * nn);
+    let mut g = new_graph((2 * n) as usize);
     for i in 0..nn {
-        add_edge(&mut g, i as i32, (i + nn) as i32, sup - p[i]);
+        add_edge(&mut g, i as I32, (i as I32) + n, sup.wrapping_sub(p[i]));
     }
 
     while m > 0 {
@@ -190,23 +199,28 @@ fn run() {
         let d: I32 = sc.next_i32();
         a -= 1;
         b -= 1;
+
         add_edge(&mut g, a, b, d);
         add_edge(&mut g, b, a, d);
-        a += n;
-        b += n;
+
+        a = a.wrapping_add(n);
+        b = b.wrapping_add(n);
         add_edge(&mut g, a, b, d);
         add_edge(&mut g, b, a, d);
+
         m -= 1;
     }
 
     // dp init: dp[0]=0 (calloc), dp[i]=1000000001*2*n for i>=1
-    let big: I64 = 1_000_000_001i64 * 2i64 * (n as i64);
-    let mut dp = vec![0i64; 2 * nn];
-    for i in 1..2 * nn {
-        dp[i] = big;
+    let mut dp = vec![0i64; (2 * n) as usize];
+    let inf: I64 = (1_000_000_001i64)
+        .wrapping_mul(2)
+        .wrapping_mul(n as i64);
+    for i in 1..dp.len() {
+        dp[i] = inf;
     }
 
-    let mut h = BinaryHeap::new();
+    let mut h = BinaryHeapMin::new();
     h.push(Node { v: 0, d: 0 });
 
     while !h.is_empty() {
@@ -219,27 +233,32 @@ fn run() {
         while eidx != -1 {
             let e = g.edge[eidx as usize];
             let u = e.vertex as usize;
-            let nd = cur.d + e.cost as i64;
-            if nd < dp[u] {
-                dp[u] = nd;
-                h.push(Node {
-                    v: e.vertex,
-                    d: nd,
-                });
+            let nd = cur.d.wrapping_add(e.cost as i64);
+            if nd >= dp[u] {
+                eidx = e.next;
+                continue;
             }
+            dp[u] = nd;
+            h.push(Node {
+                v: e.vertex,
+                d: nd,
+            });
             eidx = e.next;
         }
     }
 
-    // max array: size k+1, max[i]=2 - 1000000001*2*n for i=1..k, max[0]=0 (calloc)
+    // max array: size k+1, max[i]=2 - 1000000001*2*n for i>=1, max[0]=0 (calloc)
     let mut maxv = vec![0i64; (k as usize) + 1];
-    let init_max: I64 = 2i64 - 1_000_000_001i64 * 2i64 * (n as i64);
+    let init_max: I64 = 2i64.wrapping_sub(inf);
     for i in 1..=k as usize {
         maxv[i] = init_max;
     }
 
     for i in 0..nn {
-        let v = (sup as i64 - dp[i + nn]) - dp[i] + t_arr[i] as i64;
+        let v = (sup as i64)
+            .wrapping_sub(dp[i + nn])
+            .wrapping_sub(dp[i])
+            .wrapping_add(t[i] as i64);
         let ci = c[i] as usize;
         if v > maxv[ci] {
             maxv[ci] = v;

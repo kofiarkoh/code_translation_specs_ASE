@@ -1,24 +1,25 @@
 use std::io::{self, Read};
 
-fn print_seq(out: &mut String, a: &[i64]) {
-    for (i, v) in a.iter().enumerate() {
-        if i != 0 {
-            out.push(' ');
+fn print_seq(seq: &[i64]) {
+    for (i, v) in seq.iter().enumerate() {
+        if i > 0 {
+            print!(" ");
         }
-        out.push_str(&v.to_string());
+        print!("{}", v);
     }
-    out.push('\n');
+    println!();
 }
 
-// Returns true if a lexicographically next permutation exists and is applied in-place.
+// Returns true if it transformed `a` into the lexicographically next permutation.
 fn next_permutation(a: &mut [i64]) -> bool {
-    if a.len() < 2 {
+    let n = a.len();
+    if n < 2 {
         return false;
     }
 
-    // Find rightmost i such that a[i] < a[i+1]
+    // Find the largest i such that a[i] < a[i+1]
     let mut i_opt: Option<usize> = None;
-    for i in (0..a.len() - 1).rev() {
+    for i in (0..n - 1).rev() {
         if a[i] < a[i + 1] {
             i_opt = Some(i);
             break;
@@ -26,30 +27,31 @@ fn next_permutation(a: &mut [i64]) -> bool {
     }
     let i = match i_opt {
         Some(i) => i,
-        None => return false, // non-increasing: no next permutation
+        None => return false, // already the last permutation
     };
 
-    // Find rightmost j > i such that a[j] > a[i]
-    let mut j = a.len() - 1;
+    // Find the largest j > i such that a[j] > a[i]
+    let mut j = n - 1;
     while !(a[j] > a[i]) {
         j -= 1;
     }
     a.swap(i, j);
 
-    // Reverse suffix i+1..end to get smallest suffix
+    // Reverse suffix
     a[i + 1..].reverse();
     true
 }
 
-// Returns true if a lexicographically previous permutation exists and is applied in-place.
+// Returns true if it transformed `a` into the lexicographically previous permutation.
 fn prev_permutation(a: &mut [i64]) -> bool {
-    if a.len() < 2 {
+    let n = a.len();
+    if n < 2 {
         return false;
     }
 
-    // Find rightmost i such that a[i] > a[i+1]
+    // Find the largest i such that a[i] > a[i+1]
     let mut i_opt: Option<usize> = None;
-    for i in (0..a.len() - 1).rev() {
+    for i in (0..n - 1).rev() {
         if a[i] > a[i + 1] {
             i_opt = Some(i);
             break;
@@ -57,17 +59,17 @@ fn prev_permutation(a: &mut [i64]) -> bool {
     }
     let i = match i_opt {
         Some(i) => i,
-        None => return false, // non-decreasing: no previous permutation
+        None => return false, // already the first permutation
     };
 
-    // Find rightmost j > i such that a[j] < a[i]
-    let mut j = a.len() - 1;
+    // Find the largest j > i such that a[j] < a[i]
+    let mut j = n - 1;
     while !(a[j] < a[i]) {
         j -= 1;
     }
     a.swap(i, j);
 
-    // Reverse suffix i+1..end to get largest suffix
+    // Reverse suffix
     a[i + 1..].reverse();
     true
 }
@@ -77,43 +79,27 @@ fn main() {
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let n: usize = match it.next() {
-        Some(s) => s.parse().unwrap(),
-        None => return,
-    };
-
-    let mut a: Vec<i64> = Vec::with_capacity(n);
-    for _ in 0..n {
-        let v: i64 = it.next().unwrap().parse().unwrap();
-        a.push(v);
-    }
-
-    let mut out = String::new();
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut a: Vec<i64> = (0..n)
+        .map(|_| it.next().unwrap().parse::<i64>().unwrap())
+        .collect();
 
     if n == 1 {
-        // Specification: for length 1, output exactly one line containing `1`.
-        out.push_str("1\n");
-        print!("{}", out);
+        println!("1");
         return;
     }
 
-    // Preserve original sequence exactly as read for the middle line.
     let original = a.clone();
 
-    // Previous permutation line (if exists)
-    let mut prev = a.clone();
+    let mut prev = original.clone();
     if prev_permutation(&mut prev) {
-        print_seq(&mut out, &prev);
+        print_seq(&prev);
     }
 
-    // Original sequence line
-    print_seq(&mut out, &original);
+    print_seq(&original);
 
-    // Next permutation line (if exists)
-    let mut next = a.clone();
+    let mut next = original.clone();
     if next_permutation(&mut next) {
-        print_seq(&mut out, &next);
+        print_seq(&next);
     }
-
-    print!("{}", out);
 }

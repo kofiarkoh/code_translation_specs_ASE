@@ -22,12 +22,11 @@ fn make_kd_tree(points: &mut [Point], nodes: &mut Vec<Node>, l: usize, r: usize,
         return NIL;
     }
 
-    // Match C behavior: only sort when there are at least 2 elements.
     if r - l >= 2 {
         if depth % 2 == 0 {
-            points[l..r].sort_unstable_by(|a, b| a.x.cmp(&b.x));
+            points[l..r].sort_by(|a, b| a.x.cmp(&b.x));
         } else {
-            points[l..r].sort_unstable_by(|a, b| a.y.cmp(&b.y));
+            points[l..r].sort_by(|a, b| a.y.cmp(&b.y));
         }
     }
 
@@ -91,12 +90,16 @@ fn find(
 }
 
 fn main() {
-    // No explicit error handling per spec; unwrap-like behavior is acceptable.
+    // Read all input (matches C scanf behavior for whitespace-separated ints).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let n: usize = it.next().unwrap().parse().unwrap();
+    let n: usize = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return, // no input
+    };
+
     let mut points: Vec<Point> = Vec::with_capacity(n);
     for i in 0..n {
         let x: i32 = it.next().unwrap().parse().unwrap();
@@ -108,6 +111,7 @@ fn main() {
         });
     }
 
+    // Build KD-tree index.
     let mut nodes: Vec<Node> = Vec::with_capacity(n);
     let root = make_kd_tree(&mut points, &mut nodes, 0, n, 0);
 
@@ -122,12 +126,10 @@ fn main() {
         let ty: i32 = it.next().unwrap().parse().unwrap();
 
         ids.clear();
-        find(root, &points, &nodes, sx, tx, sy, ty, 0, &mut ids);
-
-        ids.sort_unstable_by(|a, b| match a.cmp(b) {
-            Ordering::Equal => Ordering::Equal,
-            other => other,
-        });
+        if root != NIL {
+            find(root, &points, &nodes, sx, tx, sy, ty, 0, &mut ids);
+        }
+        ids.sort_by(|a, b| a.cmp(b));
 
         for id in &ids {
             output.push_str(&format!("{id}\n"));

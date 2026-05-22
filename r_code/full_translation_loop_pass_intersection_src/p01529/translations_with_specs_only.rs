@@ -1,84 +1,80 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin
+    // Read all input tokens as i64.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
-
-    // Parse numeric tokens (assumption: well-formed numeric tokens separated by non-digit delimiters)
     let mut it = input.split_whitespace();
-    let n: usize = match it.next() {
-        Some(t) => t.parse().unwrap(),
-        None => return, // unspecified behavior; keep minimal
-    };
 
+    let n: usize = it.next().unwrap().parse().unwrap();
     let mut w: Vec<i64> = Vec::with_capacity(n);
     for _ in 0..n {
-        let x: i64 = it.next().unwrap().parse().unwrap();
-        w.push(x);
+        w.push(it.next().unwrap().parse().unwrap());
     }
 
     if n <= 1 {
-        print!("0");
+        println!("0");
         return;
     }
 
     // Prefix sums for O(1) range sum queries.
-    let mut pref: Vec<i64> = vec![0; n + 1];
+    // sum(l..=r) = pref[r+1] - pref[l]
+    let mut pref = vec![0i64; n + 1];
     for i in 0..n {
         pref[i + 1] = pref[i] + w[i];
     }
-    let sum = |l: usize, r: usize, pref: &Vec<i64>| -> i64 { pref[r + 1] - pref[l] };
+    let range_sum = |l: usize, r: usize, pref: &Vec<i64>| -> i64 { pref[r + 1] - pref[l] };
 
-    // DP for optimal merge cost with adjacency constraint:
-    // dp[l][r] = min over k in [l, r-1] of dp[l][k] + dp[k+1][r] + sum(l..r)
+    // DP with Knuth optimization:
+    // dp[l][r] = min_{k in [l..r-1]} dp[l][k] + dp[k+1][r] + sum(l..r)
+    // opt[l][r] stores an argmin k.
     //
-    // Use Knuth optimization (valid for this cost structure) to meet intended bounds.
-    // Memory: O(n^2) as specified.
-    let inf: i64 = i64::MAX / 4;
-
-    let mut dp: Vec<Vec<i64>> = vec![vec![0; n]; n];
-    let mut opt: Vec<Vec<usize>> = vec![vec![0; n]; n];
+    // Memory proportional to n^2 as required.
+    let mut dp = vec![vec![0i64; n]; n];
+    let mut opt = vec![vec![0usize; n]; n];
 
     for i in 0..n {
-        dp[i][i] = 0;
         opt[i][i] = i;
+        dp[i][i] = 0;
     }
 
+    // Length from 2 to n
     for len in 2..=n {
         for l in 0..=n - len {
             let r = l + len - 1;
-            dp[l][r] = inf;
+            let s = range_sum(l, r, &pref);
 
-            // Knuth optimization search range:
+            // Knuth optimization bounds:
             // opt[l][r-1] <= opt[l][r] <= opt[l+1][r]
-            let mut start = opt[l][r - 1];
-            let mut end = opt[l + 1][r];
-            if start < l {
-                start = l;
+            let mut k_start = opt[l][r - 1];
+            let mut k_end = opt[l + 1][r];
+            if k_start < l {
+                k_start = l;
             }
-            if end > r - 1 {
-                end = r - 1;
+            if k_end > r - 1 {
+                k_end = r - 1;
             }
-            if start > end {
-                // Fallback to full range if bounds become inconsistent (shouldn't happen under preconditions).
-                start = l;
-                end = r - 1;
+            if k_start > k_end {
+                // Narrowest reasonable fallback if bounds are inconsistent.
+                k_start = l;
+                k_end = r - 1;
             }
 
-            let seg_sum = sum(l, r, &pref);
-            let mut best_k = start;
+            let mut best_cost: i64 = i64::MAX;
+            let mut best_k: usize = k_start;
 
-            for k in start..=end {
-                let cand = dp[l][k] + dp[k + 1][r] + seg_sum;
-                if cand < dp[l][r] {
-                    dp[l][r] = cand;
+            for k in k_start..=k_end {
+                let cost = dp[l][k] + dp[k + 1][r] + s;
+                if cost < best_cost {
+                    best_cost = cost;
                     best_k = k;
                 }
             }
+
+            dp[l][r] = best_cost;
             opt[l][r] = best_k;
         }
     }
 
-    print!("{}", dp[0][n - 1]);
+    println!("{}", dp[0][n - 1]);
 }

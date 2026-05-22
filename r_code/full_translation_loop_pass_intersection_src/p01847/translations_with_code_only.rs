@@ -9,13 +9,16 @@ struct Scanner {
 
 impl Scanner {
     fn new() -> Self {
-        let mut input = String::new();
-        io::stdin().read_to_string(&mut input).unwrap();
-        Self { buf: input.into_bytes(), idx: 0 }
+        let mut input = Vec::new();
+        io::stdin().read_to_end(&mut input).unwrap();
+        Self { buf: input, idx: 0 }
     }
 
-    // Emulates the C in() behavior: reads an integer assuming the stream is well-formed.
-    // It does not skip whitespace explicitly; it relies on the input format (as the C code does).
+    // Emulates the C in() function:
+    // - Reads a leading byte (no skipping of whitespace).
+    // - If it's '-', reads digits until a byte < '0' and returns negative.
+    // - Otherwise, treats the first byte as a digit and reads until byte < '0'.
+    // This matches the original behavior assuming well-formed input.
     fn in_i32(&mut self) -> i32 {
         if self.idx >= self.buf.len() {
             return 0;
@@ -30,25 +33,30 @@ impl Scanner {
             }
             c = self.buf[self.idx];
             self.idx += 1;
-            while c >= b'0' {
-                // (c & 0xf) matches the C code's digit extraction.
+            loop {
                 n = n.wrapping_mul(10).wrapping_add((c & 0x0f) as i32);
                 if self.idx >= self.buf.len() {
                     break;
                 }
                 c = self.buf[self.idx];
                 self.idx += 1;
+                if c < b'0' {
+                    break;
+                }
             }
             return n.wrapping_neg();
         }
 
-        while c >= b'0' {
+        loop {
             n = n.wrapping_mul(10).wrapping_add((c & 0x0f) as i32);
             if self.idx >= self.buf.len() {
                 break;
             }
             c = self.buf[self.idx];
             self.idx += 1;
+            if c < b'0' {
+                break;
+            }
         }
         n
     }

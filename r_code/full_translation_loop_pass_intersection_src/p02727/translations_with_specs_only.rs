@@ -1,99 +1,97 @@
 use std::cmp::Reverse;
+use std::collections::BinaryHeap;
 use std::io::{self, Read};
-use std::process;
 
 fn main() {
-    // Read entire stdin; on any read/parse failure, exit nonzero with no guaranteed output.
+    // Input parsing: if anything is missing or invalid, exit non-zero with no guaranteed output.
     let mut input = String::new();
     if io::stdin().read_to_string(&mut input).is_err() {
-        process::exit(1);
+        std::process::exit(1);
     }
     let mut it = input.split_whitespace();
 
     let x: usize = match it.next().and_then(|s| s.parse().ok()) {
         Some(v) => v,
-        None => process::exit(1),
+        None => std::process::exit(1),
     };
     let y: usize = match it.next().and_then(|s| s.parse().ok()) {
         Some(v) => v,
-        None => process::exit(1),
+        None => std::process::exit(1),
     };
     let a: usize = match it.next().and_then(|s| s.parse().ok()) {
         Some(v) => v,
-        None => process::exit(1),
+        None => std::process::exit(1),
     };
     let b: usize = match it.next().and_then(|s| s.parse().ok()) {
         Some(v) => v,
-        None => process::exit(1),
+        None => std::process::exit(1),
     };
     let c: usize = match it.next().and_then(|s| s.parse().ok()) {
         Some(v) => v,
-        None => process::exit(1),
+        None => std::process::exit(1),
     };
 
-    // Read multisets; preconditions guarantee enough values exist.
     let mut p: Vec<i64> = Vec::with_capacity(a);
     for _ in 0..a {
         let v: i64 = match it.next().and_then(|s| s.parse().ok()) {
             Some(v) => v,
-            None => process::exit(1),
+            None => std::process::exit(1),
         };
         p.push(v);
     }
+
     let mut q: Vec<i64> = Vec::with_capacity(b);
     for _ in 0..b {
         let v: i64 = match it.next().and_then(|s| s.parse().ok()) {
             Some(v) => v,
-            None => process::exit(1),
+            None => std::process::exit(1),
         };
         q.push(v);
     }
+
     let mut r: Vec<i64> = Vec::with_capacity(c);
     for _ in 0..c {
         let v: i64 = match it.next().and_then(|s| s.parse().ok()) {
             Some(v) => v,
-            None => process::exit(1),
+            None => std::process::exit(1),
         };
         r.push(v);
     }
 
-    // Initial selection: highest-valued required-count elements from first two multisets.
-    // We sort descending and take the first x/y elements.
-    p.sort_unstable_by_key(|&v| Reverse(v));
-    q.sort_unstable_by_key(|&v| Reverse(v));
+    // Selection state: choose the best X from first group and best Y from second group.
+    // We sort descending and take prefixes.
+    p.sort_unstable_by(|u, v| v.cmp(u));
+    q.sort_unstable_by(|u, v| v.cmp(u));
+    r.sort_unstable_by(|u, v| v.cmp(u));
 
-    // Maintain the currently selected multiset (size x+y) as a min-heap so we can replace
-    // the smallest selected element when a better replacement candidate exists.
-    let mut selected = std::collections::BinaryHeap::<Reverse<i64>>::new();
+    // Maintain "currently chosen" items as a min-heap so we can replace the smallest chosen item
+    // with a better third-group item, never decreasing total.
+    let mut chosen: BinaryHeap<Reverse<i64>> = BinaryHeap::new();
     let mut sum: i64 = 0;
 
     for &v in p.iter().take(x) {
-        selected.push(Reverse(v));
+        chosen.push(Reverse(v));
         sum += v;
     }
     for &v in q.iter().take(y) {
-        selected.push(Reverse(v));
+        chosen.push(Reverse(v));
         sum += v;
     }
 
-    // Replacement candidates: consider in descending order; replace only if strictly improves sum.
-    r.sort_unstable_by_key(|&v| Reverse(v));
-    for &cand in &r {
-        if let Some(&Reverse(min_sel)) = selected.peek() {
-            if cand > min_sel {
-                selected.pop();
-                selected.push(Reverse(cand));
-                sum += cand - min_sel; // strictly increases sum
-            } else {
-                // Since candidates are non-increasing, no further candidate can improve.
-                break;
+    // Replacement state: iterate third group in descending order; apply improving replacements.
+    for &v in &r {
+        if let Some(&Reverse(min_chosen)) = chosen.peek() {
+            if v > min_chosen {
+                chosen.pop();
+                chosen.push(Reverse(v));
+                sum += v - min_chosen;
             }
         } else {
-            // Should not happen under preconditions (x+y could be 0, then heap is empty).
-            // If x+y == 0, sum is 0 and replacements are irrelevant.
+            // If X+Y == 0, nothing is chosen; no replacements are meaningful.
             break;
         }
     }
 
-    println!("{sum}");
+    // Output: maximum total sum as signed 64-bit integer.
+    println!("{}", sum);
 }

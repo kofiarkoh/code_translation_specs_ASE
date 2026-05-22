@@ -4,7 +4,7 @@ use std::io::{self, Read};
 struct Card {
     c: char,
     val: i32,
-    num: usize, // original input position (used only for stability check)
+    num: usize, // original input position
 }
 
 fn partition(a: &mut [Card], p: isize, r: isize) -> isize {
@@ -30,43 +30,44 @@ fn quicksort(a: &mut [Card], p: isize, r: isize) {
 }
 
 fn main() {
-    // Read all input; no explicit error handling per spec.
+    // Read entire stdin, then parse as whitespace-separated tokens.
+    // This matches the C scanf behavior for " %c%d" (whitespace before char allowed).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
     let n: usize = it.next().unwrap().parse().unwrap();
-
     let mut a: Vec<Card> = Vec::with_capacity(n);
+
     for i in 0..n {
-        let c_str = it.next().unwrap();
-        let c = c_str.chars().next().unwrap();
+        let c_token = it.next().unwrap();
+        let c = c_token.chars().next().unwrap();
         let val: i32 = it.next().unwrap().parse().unwrap();
         a.push(Card { c, val, num: i });
     }
 
-    // Spec note: if n == 0, behavior is not inferable from the C code due to invalid sort bounds.
-    // We mirror the C behavior by calling quicksort with r = n-1, which becomes -1 for n==0.
-    // The quicksort base condition (p < r) prevents any access in that case.
-    let r = n as isize - 1;
-    quicksort(&mut a, 0, r);
+    // Spec says behavior is unspecified for n <= 0; we follow the C behavior for n==0
+    // by simply not calling quicksort on an invalid range.
+    if n >= 1 {
+        quicksort(&mut a, 0, (n as isize) - 1);
+    }
 
-    // Stability check exactly as in C: look for any inversion among equal keys by original position.
-    let mut flag = false;
+    // Stability check as specified: find i<j with equal keys but inverted original positions.
+    let mut not_stable = false;
     for i in 0..n.saturating_sub(1) {
         for j in (i + 1)..n {
             if a[i].val == a[j].val && a[i].num > a[j].num {
-                flag = true;
+                not_stable = true;
                 break;
             }
         }
-        if flag {
+        if not_stable {
             break;
         }
     }
 
     let mut out = String::new();
-    if flag {
+    if not_stable {
         out.push_str("Not stable\n");
     } else {
         out.push_str("Stable\n");

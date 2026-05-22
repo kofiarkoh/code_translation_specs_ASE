@@ -1,20 +1,18 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin (matches typical competitive-programming style; no extra output).
+    // Read entire stdin (no explicit error handling per spec).
     let mut input = String::new();
-    io::stdin().read_to_string(&mut input).unwrap();
+    let _ = io::stdin().read_to_string(&mut input);
 
     let mut it = input.split_whitespace();
     let a: i32 = it.next().unwrap().parse().unwrap();
     let b: i32 = it.next().unwrap().parse().unwrap();
 
-    // Spec/C: output max(0, a - 2*b).
-    // Note: In C, signed overflow is undefined. In Rust, debug builds panic on overflow.
-    // We use wrapping arithmetic to avoid introducing a panic and to keep behavior
-    // unspecified-but-non-panicking, closer to C's "undefined" nature.
-    let expr = a.wrapping_sub(b.wrapping_mul(2));
+    // Per spec, overflow/underflow is undefined; use normal i32 arithmetic.
+    let expr = a - 2 * b;
     let out = if expr > 0 { expr } else { 0 };
 
+    // Match C output formatting: no trailing newline.
     print!("{out}");
 }

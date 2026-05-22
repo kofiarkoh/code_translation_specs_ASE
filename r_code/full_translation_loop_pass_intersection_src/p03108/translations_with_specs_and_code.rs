@@ -1,11 +1,11 @@
 use std::io::{self, Read};
 
-struct Dsu {
+struct DSU {
     parent: Vec<usize>,
-    size: Vec<i64>, // component sizes (64-bit to match pair-count arithmetic)
+    size: Vec<i64>, // component sizes (i64 to avoid repeated casting in products)
 }
 
-impl Dsu {
+impl DSU {
     fn new(n: usize) -> Self {
         let mut parent = Vec::with_capacity(n);
         let mut size = Vec::with_capacity(n);
@@ -16,95 +16,88 @@ impl Dsu {
         Self { parent, size }
     }
 
-    fn root(&mut self, x: usize) -> usize {
+    fn find(&mut self, x: usize) -> usize {
         if self.parent[x] == x {
             return x;
         }
-        let r = self.root(self.parent[x]);
+        let r = self.find(self.parent[x]);
         self.parent[x] = r;
         r
     }
 
-    fn same(&mut self, x: usize, y: usize) -> bool {
-        self.root(x) == self.root(y)
+    fn same(&mut self, a: usize, b: usize) -> bool {
+        self.find(a) == self.find(b)
     }
 
-    /// Union by attaching rx under ry (to mirror the C code's `par[rx] = ry` behavior).
-    /// Returns true if merged, false if already in same component.
-    fn unite_attach_x_to_y(&mut self, x: usize, y: usize) -> bool {
-        let rx = self.root(x);
-        let ry = self.root(y);
-        if rx == ry {
-            return false;
+    /// Unites components containing a and b. Returns the decrease in disconnected pairs:
+    /// size(ra) * size(rb) if merged, else 0.
+    fn unite_and_delta(&mut self, a: usize, b: usize) -> i64 {
+        let mut ra = self.find(a);
+        let mut rb = self.find(b);
+        if ra == rb {
+            return 0;
         }
-        // Merge sizes: rx -> ry
-        self.parent[rx] = ry;
-        self.size[ry] += self.size[rx];
-        self.size[rx] = 0;
-        true
-    }
-
-    fn comp_size(&mut self, x: usize) -> i64 {
-        let r = self.root(x);
-        self.size[r]
+        // Union by size (safe/idiomatic; spec does not constrain which root becomes parent).
+        if self.size[ra] > self.size[rb] {
+            std::mem::swap(&mut ra, &mut rb);
+        }
+        let delta = self.size[ra] * self.size[rb];
+        self.parent[ra] = rb;
+        self.size[rb] += self.size[ra];
+        self.size[ra] = 0;
+        delta
     }
 }
 
 fn main() {
-    // Parse all input as whitespace-separated integers.
-    let mut input = String::new();
-    io::stdin().read_to_string(&mut input).unwrap();
-    let mut it = input.split_whitespace();
+    // Read all input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
     let n: usize = it.next().unwrap().parse().unwrap();
     let m: usize = it.next().unwrap().parse().unwrap();
 
+    // Per spec, m >= 1 is assumed; behavior for m=0 is undefined.
     let mut a = vec![0usize; m];
     let mut b = vec![0usize; m];
     for i in 0..m {
         let ai: usize = it.next().unwrap().parse().unwrap();
         let bi: usize = it.next().unwrap().parse().unwrap();
-        // Spec indicates 1-based input; shift to 0-based.
-        a[i] = ai - 1;
+        a[i] = ai - 1; // input is 1-based
         b[i] = bi - 1;
     }
 
-    // We follow the SPEC's intended behavior:
-    // ans[i] = number of disconnected unordered pairs after removing edges 0..i,
-    // i.e., considering edges (i+1..m-1). This is computed by adding edges in reverse.
-    //
-    // Note: The provided C code has indexing/initialization issues (e.g., writes ans[i-1] when i=0,
-    // and special-cases ans[m-2] = n*(n-1)/2 - 1), which conflicts with the SPEC.
-    // We implement the SPEC-correct reverse-addition algorithm.
-
+    // We compute answers for each i: graph with edges j > i.
+    // Standard approach: process edges in reverse, maintaining disconnected pair count.
     let total_pairs: i64 = (n as i64) * ((n as i64) - 1) / 2;
-    let mut dsu = Dsu::new(n);
+    let mut dsu = DSU::new(n);
 
     let mut ans = vec![0i64; m];
-
-    // State after incorporating edges with indices (i+1..m-1):
-    // Start with no edges incorporated => corresponds to i = m-1.
     let mut cur = total_pairs;
+
+    // For i = m-1, no edges are present (since j > m-1 is none).
     ans[m - 1] = cur;
 
-    // Add edges from the end down to index 1; after adding edge i, we can fill ans[i-1].
+    // Add edges from the end towards the start; after adding edge i, we obtain state for i-1.
     for i in (1..m).rev() {
-        let u = a[i];
-        let v = b[i];
-        if !dsu.same(u, v) {
-            let su = dsu.comp_size(u);
-            let sv = dsu.comp_size(v);
-            cur -= su * sv;
-            // Attach u's root under v's root to match the C's directionality,
-            // though direction doesn't affect the pair-count semantics.
-            dsu.unite_attach_x_to_y(u, v);
-        }
+        let delta = dsu.unite_and_delta(a[i], b[i]);
+        cur -= delta;
         ans[i - 1] = cur;
     }
 
+    // Output in order
     let mut out = String::new();
     for i in 0..m {
         out.push_str(&format!("{}\n", ans[i]));
     }
     print!("{out}");
 }
+
+/*
+Note on C code mismatch:
+The provided C implementation has out-of-bounds writes (e.g., ans[i-1] when i==0) and
+hard-coded special cases (ans[m-2] = total_pairs - 1) that do not follow the spec.
+This Rust translation follows the SPEC: reverse-add edges, starting from no edges,
+and update disconnected-pair count by subtracting size(u_comp)*size(v_comp) on merges.
+*/

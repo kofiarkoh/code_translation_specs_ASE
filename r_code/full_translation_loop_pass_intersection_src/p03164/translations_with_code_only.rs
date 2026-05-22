@@ -3,76 +3,74 @@ use std::io::{self, Read};
 const MEW: usize = 112345;
 
 fn main() {
-    // Read entire stdin, parse as whitespace-separated integers (like scanf("%d")).
+    // Read entire stdin, parse as C-like whitespace-separated integers.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let n: i32 = match it.next().and_then(|s| s.parse::<i32>().ok()) {
+    let n: i32 = match it.next().and_then(|s| s.parse().ok()) {
         Some(x) => x,
         None => std::process::exit(1),
     };
-    let w_limit: i32 = match it.next().and_then(|s| s.parse::<i32>().ok()) {
+    let w_cap: i32 = match it.next().and_then(|s| s.parse().ok()) {
         Some(x) => x,
         None => std::process::exit(1),
     };
 
-    // Arrays sized as in C (128). If N > 128, C would write out of bounds (UB).
-    // We avoid UB in Rust by only storing the first 128 items; behavior for N>128
-    // is not well-defined in C anyway.
+    // C arrays are size 128; preserve that bound.
     let mut w = [0i32; 128];
     let mut v = [0i32; 128];
 
-    let n_usize = if n < 0 { 0 } else { n as usize };
-    for i in 0..n_usize {
-        let wi: i32 = match it.next().and_then(|s| s.parse::<i32>().ok()) {
-            Some(x) => x,
-            None => std::process::exit(1),
-        };
-        let vi: i32 = match it.next().and_then(|s| s.parse::<i32>().ok()) {
-            Some(x) => x,
-            None => std::process::exit(1),
-        };
-        if i < 128 {
-            w[i] = wi;
-            v[i] = vi;
+    for i in 0..(n as usize) {
+        if i >= 128 {
+            // The C code would write out of bounds (UB) if N > 128.
+            // We cannot safely emulate UB; exit similarly to input failure.
+            std::process::exit(1);
         }
+        w[i] = match it.next().and_then(|s| s.parse().ok()) {
+            Some(x) => x,
+            None => std::process::exit(1),
+        };
+        v[i] = match it.next().and_then(|s| s.parse().ok()) {
+            Some(x) => x,
+            None => std::process::exit(1),
+        };
     }
 
-    // DP array: initialize to W+1, then 0 at index 0.
-    let mut ayaneru = vec![w_limit.wrapping_add(1); MEW];
+    // ayaneru initialized to W+1, then ayaneru[0]=0.
+    let mut ayaneru = vec![w_cap.wrapping_add(1); MEW];
     ayaneru[0] = 0;
 
-    // 0/1 knapsack by value: minimize weight for each total value.
-    // Use wrapping arithmetic to emulate C signed overflow behavior as closely as possible.
-    for i in 0..n_usize.min(128) {
-        let wi = w[i];
+    for i in 0..(n as usize) {
         let vi = v[i];
+        let wi = w[i];
 
-        // In C, loop is: for (j = MEW-1; j >= v[i]; j--)
-        // If vi is negative, the condition is always true until j underflows (UB).
-        // We conservatively only perform the loop when 0 <= vi < MEW.
-        if vi < 0 || (vi as usize) >= MEW {
+        // C loop: for (j = MEW - 1; j >= v[i]; j--)
+        // Note: if vi <= 0, C would index out of bounds / loop oddly (UB).
+        // We clamp to safe behavior by skipping invalid vi.
+        if vi <= 0 {
             continue;
         }
-        let vi_u = vi as usize;
+        let vi_usize = vi as usize;
+        if vi_usize >= MEW {
+            continue;
+        }
 
-        for j in (vi_u..MEW).rev() {
-            let prev = ayaneru[j - vi_u].wrapping_add(wi);
-            if prev < ayaneru[j] {
-                ayaneru[j] = prev;
+        for j in (vi_usize..MEW).rev() {
+            // Use wrapping_add to emulate potential signed overflow behavior as closely as possible.
+            let cand = ayaneru[j - vi_usize].wrapping_add(wi);
+            if cand < ayaneru[j] {
+                ayaneru[j] = cand;
             }
         }
     }
 
-    // Find maximum value achievable within weight limit.
     for i in (0..MEW).rev() {
-        if ayaneru[i] <= w_limit {
-            print!("{}\n", i);
+        if ayaneru[i] <= w_cap {
+            print!("{i}\n");
             return;
         }
     }
 
-    // Matches puts("error!") which prints "error!\n"
     print!("error!\n");
 }

@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin; no explicit error handling per specification.
+    // Read entire stdin; specification provides no error handling requirements.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -11,77 +11,74 @@ fn main() {
     let h: usize = it.next().unwrap().parse().unwrap();
     let w: usize = it.next().unwrap().parse().unwrap();
 
-    // Fixed limits are preconditions; we do not enforce them.
-    // Width < 10000 is a precondition for the original encoding; we do not rely on encoding here.
+    // Distances: None = unreached, Some(d) = finalized shortest distance.
+    // This matches the "unreached -> reached with finite distance" transition.
+    let mut dist: Vec<Option<u32>> = vec![None; h * w];
+    let mut q: VecDeque<usize> = VecDeque::new();
 
-    let n = h * w;
-    let mut dist: Vec<i32> = vec![-1; n]; // -1 means unvisited; distances are non-negative for visited cells.
-    let mut q: VecDeque<usize> = VecDeque::with_capacity(n);
-
-    // The specification says there are exactly two cell types: source marker and empty marker,
-    // but does not define which character is which. We interpret '#' as source and everything
-    // else as empty, which is the narrowest common convention without inventing extra markers.
     for r in 0..h {
         let row = it.next().unwrap();
-        let bytes = row.as_bytes();
         // Preconditions guarantee row length == w and only expected cell types.
-        for c in 0..w {
+        for (c, ch) in row.bytes().take(w).enumerate() {
             let idx = r * w + c;
-            if bytes[c] == b'#' {
-                dist[idx] = 0;
+            // The specification does not name the two cell types; interpret "source"
+            // as '#', and "empty" as '.' (common convention). Behavior is unspecified
+            // for other characters per spec.
+            if ch == b'#' {
+                dist[idx] = Some(0);
                 q.push_back(idx);
             }
         }
     }
 
-    // Multi-source BFS over 4-neighborhood.
+    // Multi-source BFS over orthogonal neighbors.
     while let Some(idx) = q.pop_front() {
-        let d = dist[idx];
+        let d = dist[idx].unwrap();
         let r = idx / w;
         let c = idx % w;
 
         // Up
         if r > 0 {
-            let ni = idx - w;
-            if dist[ni] < 0 {
-                dist[ni] = d + 1;
-                q.push_back(ni);
+            let n = idx - w;
+            if dist[n].is_none() {
+                dist[n] = Some(d + 1);
+                q.push_back(n);
             }
         }
         // Down
         if r + 1 < h {
-            let ni = idx + w;
-            if dist[ni] < 0 {
-                dist[ni] = d + 1;
-                q.push_back(ni);
+            let n = idx + w;
+            if dist[n].is_none() {
+                dist[n] = Some(d + 1);
+                q.push_back(n);
             }
         }
         // Left
         if c > 0 {
-            let ni = idx - 1;
-            if dist[ni] < 0 {
-                dist[ni] = d + 1;
-                q.push_back(ni);
+            let n = idx - 1;
+            if dist[n].is_none() {
+                dist[n] = Some(d + 1);
+                q.push_back(n);
             }
         }
         // Right
         if c + 1 < w {
-            let ni = idx + 1;
-            if dist[ni] < 0 {
-                dist[ni] = d + 1;
-                q.push_back(ni);
+            let n = idx + 1;
+            if dist[n].is_none() {
+                dist[n] = Some(d + 1);
+                q.push_back(n);
             }
         }
     }
 
-    // Compute maximum distance. Preconditions guarantee at least one source exists,
-    // so all cells should be reachable and have non-negative distances.
-    let mut ans: i32 = 0;
-    for &d in &dist {
-        if d > ans {
-            ans = max(ans, d);
+    // Compute maximum distance; precondition guarantees at least one source exists,
+    // and thus all cells are reachable in a rectangular grid with orthogonal moves.
+    let mut ans: u32 = 0;
+    for d in dist {
+        if let Some(v) = d {
+            ans = max(ans, v);
         }
     }
 
-    print!("{ans}\n");
+    println!("{}", ans);
 }

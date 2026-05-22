@@ -1,25 +1,7 @@
 use std::io::{self, Read};
 
-fn next_pow2_ge(mut x: usize) -> usize {
-    // Narrow interpretation: for positive sizes, pad to next power of two >= x.
-    // If x == 0, return 1 to avoid zero-sized derived structures.
-    if x == 0 {
-        return 1;
-    }
-    x -= 1;
-    x |= x >> 1;
-    x |= x >> 2;
-    x |= x >> 4;
-    x |= x >> 8;
-    x |= x >> 16;
-    if usize::BITS == 64 {
-        x |= x >> 32;
-    }
-    x + 1
-}
-
 fn main() {
-    // Read entire stdin; no explicit malformed-input handling per spec.
+    // Read entire stdin as whitespace-separated tokens.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -27,147 +9,111 @@ fn main() {
     let mut out = String::new();
 
     loop {
-        let r_opt = it.next();
-        if r_opt.is_none() {
-            break;
+        let rows_tok = match it.next() {
+            Some(t) => t,
+            None => break,
+        };
+        let rows_i32: i32 = rows_tok.parse().unwrap();
+        if rows_i32 <= 0 {
+            break; // terminates when the provided row count is non-positive
         }
-        let rows_i64: i64 = r_opt.unwrap().parse().unwrap();
-        let cols_i64: i64 = it.next().unwrap().parse().unwrap();
-        let q_i64: i64 = it.next().unwrap().parse().unwrap();
+        let cols: usize = it.next().unwrap().parse().unwrap();
+        let q: usize = it.next().unwrap().parse().unwrap();
 
-        // Stop when row count is not positive.
-        if rows_i64 <= 0 {
-            break;
-        }
+        let rows = rows_i32 as usize;
 
-        // Preconditions say positive rows/cols and non-negative queries.
-        // We keep narrow behavior: parse as i64 then cast; negative values would wrap if cast,
-        // but preconditions exclude them.
-        let rows = rows_i64 as usize;
-        let cols = cols_i64 as usize;
-        let q = if q_i64 < 0 { 0usize } else { q_i64 as usize };
-
-        // Read grid values (row-major).
-        let mut grid: Vec<i64> = Vec::with_capacity(rows.saturating_mul(cols));
-        for _ in 0..rows.saturating_mul(cols) {
+        // Read grid values into a flat array: idx = r * cols + c.
+        let mut grid: Vec<i64> = Vec::with_capacity(rows * cols);
+        for _ in 0..(rows * cols) {
             let v: i64 = it.next().unwrap().parse().unwrap();
             grid.push(v);
         }
 
-        // Build a 2D segment tree (segment tree of segment trees) with power-of-two padding.
-        // This matches the non-functional constraint: memory grows with next power-of-two padding.
-        let rsize = next_pow2_ge(rows);
-        let csize = next_pow2_ge(cols);
+        // 2D Sparse Table for static range minimum queries.
+        // st[k1][k2] is a flat Vec<i64> storing minima for rectangles of size
+        // (2^k1 x 2^k2) starting at (i,j), at index i*cols + j.
+        let max_k1 = (usize::BITS - (rows as u32).leading_zeros()) as usize; // floor(log2(rows)) + 1
+        let max_k2 = (usize::BITS - (cols as u32).leading_zeros()) as usize; // floor(log2(cols)) + 1
 
-        // tree is indexed as tree[vx][vy] flattened: (2*rsize) x (2*csize)
-        // Use i64::MAX as sentinel for padded cells and for empty-rectangle behavior.
-        let mut tree = vec![i64::MAX; (2 * rsize) * (2 * csize)];
+        let mut st: Vec<Vec<Vec<i64>>> = vec![vec![Vec::new(); max_k2]; max_k1];
 
-        let idx = |vx: usize, vy: usize, csize: usize| -> usize { vx * (2 * csize) + vy };
+        // Base level.
+        st[0][0] = grid.clone();
 
-        // Initialize leaves for rows.
-        for i in 0..rows {
-            let vx = rsize + i;
-            // Initialize leaves for columns.
-            for j in 0..cols {
-                let vy = csize + j;
-                tree[idx(vx, vy, csize)] = grid[i * cols + j];
-            }
-            // Build column segment tree for this row leaf.
-            for vy in (1..csize).rev() {
-                let a = tree[idx(vx, vy * 2, csize)];
-                let b = tree[idx(vx, vy * 2 + 1, csize)];
-                tree[idx(vx, vy, csize)] = a.min(b);
-            }
-        }
-
-        // For padded row leaves beyond `rows`, their values remain i64::MAX; build their column trees.
-        for i in rows..rsize {
-            let vx = rsize + i;
-            for vy in (1..csize).rev() {
-                let a = tree[idx(vx, vy * 2, csize)];
-                let b = tree[idx(vx, vy * 2 + 1, csize)];
-                tree[idx(vx, vy, csize)] = a.min(b);
-            }
-        }
-
-        // Build internal nodes over rows: for each vx, merge children column trees.
-        for vx in (1..rsize).rev() {
-            let left = vx * 2;
-            let right = vx * 2 + 1;
-            for vy in 1..(2 * csize) {
-                let a = tree[idx(left, vy, csize)];
-                let b = tree[idx(right, vy, csize)];
-                tree[idx(vx, vy, csize)] = a.min(b);
-            }
-        }
-
-        // Query helper: range min on columns for a fixed row-node vx.
-        let mut query_col = |vx: usize, mut ly: usize, mut ry: usize| -> i64 {
-            // Inclusive bounds expected by spec; convert to half-open [ly, ry+1).
-            // If inverted/empty, return sentinel i64::MAX as allowed by spec.
-            if ly > ry {
-                return i64::MAX;
-            }
-            let mut res = i64::MAX;
-            ly += csize;
-            ry += csize + 1;
-            while ly < ry {
-                if (ly & 1) == 1 {
-                    res = res.min(tree[idx(vx, ly, csize)]);
-                    ly += 1;
+        // Build along columns for k1 = 0.
+        for k2 in 1..max_k2 {
+            let w = 1usize << k2;
+            let half = w >> 1;
+            let mut level = vec![i64::MAX; rows * cols];
+            for i in 0..rows {
+                for j in 0..cols {
+                    if j + w <= cols {
+                        let a = st[0][k2 - 1][i * cols + j];
+                        let b = st[0][k2 - 1][i * cols + (j + half)];
+                        level[i * cols + j] = a.min(b);
+                    }
                 }
-                if (ry & 1) == 1 {
-                    ry -= 1;
-                    res = res.min(tree[idx(vx, ry, csize)]);
-                }
-                ly >>= 1;
-                ry >>= 1;
             }
-            res
-        };
+            st[0][k2] = level;
+        }
+
+        // Build along rows for all k2.
+        for k1 in 1..max_k1 {
+            let h = 1usize << k1;
+            let half = h >> 1;
+            for k2 in 0..max_k2 {
+                let w = 1usize << k2;
+                let mut level = vec![i64::MAX; rows * cols];
+                for i in 0..rows {
+                    if i + h > rows {
+                        continue;
+                    }
+                    for j in 0..cols {
+                        if j + w > cols {
+                            continue;
+                        }
+                        let a = st[k1 - 1][k2][i * cols + j];
+                        let b = st[k1 - 1][k2][(i + half) * cols + j];
+                        level[i * cols + j] = a.min(b);
+                    }
+                }
+                st[k1][k2] = level;
+            }
+        }
+
+        // Precompute floor(log2) up to max(rows, cols).
+        let max_n = rows.max(cols);
+        let mut lg = vec![0usize; max_n + 1];
+        for i in 2..=max_n {
+            lg[i] = lg[i / 2] + 1;
+        }
 
         // Answer queries.
         for _ in 0..q {
-            let r1: i64 = it.next().unwrap().parse().unwrap();
-            let c1: i64 = it.next().unwrap().parse().unwrap();
-            let r2: i64 = it.next().unwrap().parse().unwrap();
-            let c2: i64 = it.next().unwrap().parse().unwrap();
+            let top: usize = it.next().unwrap().parse().unwrap();
+            let left: usize = it.next().unwrap().parse().unwrap();
+            let bottom: usize = it.next().unwrap().parse().unwrap();
+            let right: usize = it.next().unwrap().parse().unwrap();
 
-            // Spec assumes coordinates are within range and rectangle is non-empty with r1<=r2,c1<=c2.
-            // If not, we follow the allowed exceptional behavior: may output sentinel max.
-            if r1 < 0 || c1 < 0 || r2 < 0 || c2 < 0 {
-                out.push_str(&format!("{}\n", i64::MAX));
-                continue;
-            }
-            let mut lx = r1 as usize;
-            let mut rx = r2 as usize;
-            let ly = c1 as usize;
-            let ry = c2 as usize;
+            let h = bottom - top + 1;
+            let w = right - left + 1;
+            let k1 = lg[h];
+            let k2 = lg[w];
 
-            if lx > rx {
-                out.push_str(&format!("{}\n", i64::MAX));
-                continue;
-            }
+            let i1 = top;
+            let i2 = bottom + 1 - (1usize << k1);
+            let j1 = left;
+            let j2 = right + 1 - (1usize << k2);
 
-            // Convert to half-open [lx, rx+1) over row segment tree.
-            let mut res = i64::MAX;
-            lx += rsize;
-            rx += rsize + 1;
-            while lx < rx {
-                if (lx & 1) == 1 {
-                    res = res.min(query_col(lx, ly, ry));
-                    lx += 1;
-                }
-                if (rx & 1) == 1 {
-                    rx -= 1;
-                    res = res.min(query_col(rx, ly, ry));
-                }
-                lx >>= 1;
-                rx >>= 1;
-            }
+            // Combine four blocks.
+            let a = st[k1][k2][i1 * cols + j1];
+            let b = st[k1][k2][i1 * cols + j2];
+            let c = st[k1][k2][i2 * cols + j1];
+            let d = st[k1][k2][i2 * cols + j2];
 
-            out.push_str(&format!("{}\n", res));
+            let ans = a.min(b).min(c).min(d);
+            out.push_str(&ans.to_string());
+            out.push('\n');
         }
     }
 

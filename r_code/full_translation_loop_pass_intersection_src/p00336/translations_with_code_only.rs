@@ -7,8 +7,8 @@ fn main() {
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
-    let t = it.next().unwrap_or("");
-    let b = it.next().unwrap_or("");
+    let t = it.next().unwrap_or("").as_bytes().to_vec();
+    let b = it.next().unwrap_or("").as_bytes().to_vec();
 
     let st = t.len();
     let sb = b.len();
@@ -21,20 +21,14 @@ fn main() {
         a[i][0] = 1;
     }
 
-    let tb = t.as_bytes();
-    let bb = b.as_bytes();
-
     for i in 1..=st {
         for j in 0..sb {
-            // a[i][j+1] = a[i-1][j+1] % M;
             a[i][j + 1] = a[i - 1][j + 1] % M;
-            if tb[i - 1] == bb[j] {
-                // a[i][j+1] = (a[i-1][j+1] + a[i-1][j]) % M;
+            if t[i - 1] == b[j] {
                 a[i][j + 1] = (a[i - 1][j + 1] + a[i - 1][j]) % M;
             }
         }
     }
 
-    // Match C's printf("%lld\n", ...)
     println!("{}", a[st][sb]);
 }

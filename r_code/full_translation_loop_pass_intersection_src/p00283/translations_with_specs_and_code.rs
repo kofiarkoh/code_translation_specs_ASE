@@ -3,48 +3,56 @@ use std::process;
 
 const INF: i32 = 1000;
 
+#[derive(Clone, Copy)]
+struct Action {
+    reduction: i32, // a[i] (positive)
+    gain: i32,      // e[i] (nonnegative)
+    req: i32,       // r[i] (nonnegative)
+}
+
 fn search(
-    tkrk: i32,
-    kkt: usize,
-    n: usize,
-    a: &[i32],
-    e: &[i32],
-    r: &[i32],
+    t: i32,
+    k: usize,
+    actions: &[Action],
     memo: &mut [[i32; 101]; 101],
 ) -> i32 {
-    if tkrk <= 0 {
+    if t <= 0 {
         return 0;
     }
-    // Per spec/preconditions, initial target is within 0..=100, and we only recurse by subtracting
-    // nonnegative reductions, so tkrk stays within 1..=100 until it becomes <= 0.
-    let t = tkrk as usize;
+    // Spec precondition: t is within 0..=100; behavior outside is undefined.
+    let t_usize = t as usize;
 
-    // C memo encoding: 0 = uncomputed, otherwise stored_value = (answer + 1)
-    if memo[t][kkt] > 0 {
-        return memo[t][kkt] - 1;
+    // C memo encoding:
+    // 0 => uncomputed
+    // >0 => stored value is (ret + 1)
+    if memo[t_usize][k] > 0 {
+        return memo[t_usize][k] - 1;
     }
 
     let mut ret = INF;
-    memo[t][kkt] = INF + 1; // mark as "in progress"/unreachable sentinel, matching C behavior
+    // Mark as "in progress" with INF+1 (matches C; not strictly needed for acyclic t,
+    // but preserves semantics).
+    memo[t_usize][k] = INF + 1;
 
-    for i in 0..n {
-        if (kkt as i32) >= r[i] {
-            let mut next_kkt = kkt as i32 + e[i];
-            if next_kkt > 100 {
-                next_kkt = 100;
+    for &act in actions {
+        if (k as i32) >= act.req {
+            let mut next_k = (k as i32) + act.gain;
+            if next_k > 100 {
+                next_k = 100;
             }
-            let candidate = search(tkrk - a[i], next_kkt as usize, n, a, e, r, memo) + 1;
+            let candidate = search(t - act.reduction, next_k as usize, actions, memo) + 1;
             if candidate < ret {
                 ret = candidate;
             }
         }
     }
 
-    memo[t][kkt] = ret + 1;
+    memo[t_usize][k] = ret + 1;
     ret
 }
 
 fn main() {
+    // Read entire stdin; parse as whitespace-separated integers.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -55,7 +63,7 @@ fn main() {
         let d_opt = it.next();
         let n_opt = it.next();
         if d_opt.is_none() || n_opt.is_none() {
-            break; // no more complete headers
+            break; // no more complete datasets
         }
         let d: i32 = d_opt.unwrap().parse().unwrap();
         let n: usize = n_opt.unwrap().parse().unwrap();
@@ -64,25 +72,29 @@ fn main() {
             break;
         }
 
-        let mut a = vec![0i32; n];
-        let mut e = vec![0i32; n];
-        let mut r = vec![0i32; n];
-
-        for i in 0..n {
-            let aa = it.next().and_then(|s| s.parse::<i32>().ok());
-            let ee = it.next().and_then(|s| s.parse::<i32>().ok());
-            let rr = it.next().and_then(|s| s.parse::<i32>().ok());
-            if aa.is_none() || ee.is_none() || rr.is_none() {
-                // Spec: terminate immediately with nonzero exit status if action data incomplete.
-                process::exit(1);
-            }
-            a[i] = aa.unwrap();
-            e[i] = ee.unwrap();
-            r[i] = rr.unwrap();
+        let mut actions = Vec::with_capacity(n);
+        for _ in 0..n {
+            let a = match it.next() {
+                Some(v) => v.parse::<i32>().unwrap(),
+                None => process::exit(1), // incomplete/malformed dataset
+            };
+            let e = match it.next() {
+                Some(v) => v.parse::<i32>().unwrap(),
+                None => process::exit(1),
+            };
+            let r = match it.next() {
+                Some(v) => v.parse::<i32>().unwrap(),
+                None => process::exit(1),
+            };
+            actions.push(Action {
+                reduction: a,
+                gain: e,
+                req: r,
+            });
         }
 
         let mut memo = [[0i32; 101]; 101];
-        let ret = search(d, 0, n, &a, &e, &r, &mut memo);
+        let ret = search(d, 0, &actions, &mut memo);
 
         if ret == INF {
             out.push_str("NA\n");

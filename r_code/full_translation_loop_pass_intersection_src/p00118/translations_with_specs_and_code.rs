@@ -1,41 +1,7 @@
 use std::io::{self, Read};
 
-fn dfs(i: usize, j: usize, h: usize, w: usize, grid: &[Vec<u8>], area_id: &mut [Vec<usize>]) {
-    let cur_ch = grid[i][j];
-    let cur_id = area_id[i][j];
-
-    // Down
-    if i + 1 < h {
-        if grid[i + 1][j] == cur_ch && area_id[i + 1][j] == (i + 1) * w + j {
-            area_id[i + 1][j] = cur_id;
-            dfs(i + 1, j, h, w, grid, area_id);
-        }
-    }
-    // Up
-    if i >= 1 {
-        if grid[i - 1][j] == cur_ch && area_id[i - 1][j] == (i - 1) * w + j {
-            area_id[i - 1][j] = cur_id;
-            dfs(i - 1, j, h, w, grid, area_id);
-        }
-    }
-    // Right
-    if j + 1 < w {
-        if grid[i][j + 1] == cur_ch && area_id[i][j + 1] == i * w + (j + 1) {
-            area_id[i][j + 1] = cur_id;
-            dfs(i, j + 1, h, w, grid, area_id);
-        }
-    }
-    // Left
-    if j >= 1 {
-        if grid[i][j - 1] == cur_ch && area_id[i][j - 1] == i * w + (j - 1) {
-            area_id[i][j - 1] = cur_id;
-            dfs(i, j - 1, h, w, grid, area_id);
-        }
-    }
-}
-
 fn main() {
-    // Read entire stdin; behavior on malformed input is intentionally unspecified (per spec/C).
+    // Read entire stdin, then parse as whitespace-separated tokens (matches scanf("%d %d") and scanf("%s")).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -45,7 +11,7 @@ fn main() {
     loop {
         let h_opt = it.next();
         if h_opt.is_none() {
-            break; // no more input
+            break; // unspecified behavior in spec for malformed input; we just stop.
         }
         let h: usize = h_opt.unwrap().parse().unwrap();
         let w: usize = it.next().unwrap().parse().unwrap();
@@ -54,43 +20,56 @@ fn main() {
             break;
         }
 
-        // Read grid rows (each token is a row, like scanf("%s")).
-        let mut grid: Vec<Vec<u8>> = Vec::with_capacity(h);
-        for _ in 0..h {
-            let row = it.next().unwrap();
-            // Spec: each row contains at least W characters; we take the first W bytes.
-            grid.push(row.as_bytes()[0..w].to_vec());
-        }
-
-        // Initialize area_id[i][j] = i*W + j
-        let mut area_id: Vec<Vec<usize>> = (0..h)
-            .map(|i| (0..w).map(|j| i * w + j).collect())
-            .collect();
-
-        // Equivalent to C's area_num[128*128] = {0}; but we only need H*W.
-        let mut area_num = vec![0u8; h * w];
-
-        // Run DFS from every cell (matches C behavior).
+        // Read grid rows; each row has at least w meaningful characters; extra ignored.
+        let mut grid: Vec<Vec<u8>> = vec![vec![0u8; w]; h];
         for i in 0..h {
+            let row = it.next().unwrap_or("");
+            let bytes = row.as_bytes();
             for j in 0..w {
-                dfs(i, j, h, w, &grid, &mut area_id);
+                grid[i][j] = bytes[j];
             }
         }
 
-        // Mark which region identifiers are present.
-        for i in 0..h {
-            for j in 0..w {
-                let id = area_id[i][j];
-                area_num[id] = 1;
-            }
-        }
+        // Count 4-connected same-character regions.
+        // The C code uses recursive DFS and an "area_id" propagation scheme.
+        // Here we implement equivalent region counting via iterative flood fill to avoid recursion depth issues.
+        // Note: Spec allows recursion and leaves stack overflow unspecified; using an explicit stack preserves
+        // functional behavior while being safer.
+        let mut visited = vec![vec![false; w]; h];
+        let mut cnt: i32 = 0;
 
-        // Count distinct ids among the original id positions (i*W+j), as in C.
-        let mut cnt = 0usize;
         for i in 0..h {
             for j in 0..w {
-                if area_num[i * w + j] == 1 {
-                    cnt += 1;
+                if visited[i][j] {
+                    continue;
+                }
+                cnt += 1;
+                let ch = grid[i][j];
+                let mut stack = Vec::new();
+                stack.push((i, j));
+                visited[i][j] = true;
+
+                while let Some((x, y)) = stack.pop() {
+                    // Down
+                    if x + 1 < h && !visited[x + 1][y] && grid[x + 1][y] == ch {
+                        visited[x + 1][y] = true;
+                        stack.push((x + 1, y));
+                    }
+                    // Up
+                    if x > 0 && !visited[x - 1][y] && grid[x - 1][y] == ch {
+                        visited[x - 1][y] = true;
+                        stack.push((x - 1, y));
+                    }
+                    // Right
+                    if y + 1 < w && !visited[x][y + 1] && grid[x][y + 1] == ch {
+                        visited[x][y + 1] = true;
+                        stack.push((x, y + 1));
+                    }
+                    // Left
+                    if y > 0 && !visited[x][y - 1] && grid[x][y - 1] == ch {
+                        visited[x][y - 1] = true;
+                        stack.push((x, y - 1));
+                    }
                 }
             }
         }

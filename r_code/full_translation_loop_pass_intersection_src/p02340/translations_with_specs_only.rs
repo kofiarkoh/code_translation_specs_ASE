@@ -5,42 +5,40 @@ const MAX: usize = 1000;
 
 fn main() {
     // Read entire stdin; if parsing fails, behavior is unspecified by the spec.
-    // We choose a narrow interpretation: default missing/invalid values to 0.
+    // We choose a narrow, deterministic fallback: missing/invalid values become 0.
     let mut input = String::new();
     let _ = io::stdin().read_to_string(&mut input);
     let mut it = input.split_whitespace();
 
-    let target: usize = it.next().and_then(|s| s.parse::<i64>().ok()).unwrap_or(0) as usize;
-    let bound: usize = it.next().and_then(|s| s.parse::<i64>().ok()).unwrap_or(0) as usize;
+    let n: usize = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+    let k: usize = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
 
-    // Precompute dp[sum][max_part] for sum,max_part in 0..=1000.
-    // dp[s][k] = number of partitions of s using parts in [1..=k], order irrelevant.
+    // Precompute dp[kk][nn] for all kk, nn in [0..=1000]:
+    // dp[kk][nn] = number of partitions of nn using parts in [1..=kk], modulo MOD.
+    //
     // Recurrence:
-    //   dp[0][k] = 1 for all k
-    //   dp[s][0] = 0 for s>0
-    //   dp[s][k] = dp[s][k-1] + (s>=k ? dp[s-k][k] : 0)  (mod MOD)
-    let mut dp = vec![vec![0u64; MAX + 1]; MAX + 1];
+    // dp[0][0] = 1; dp[0][n>0] = 0
+    // dp[k][n] = dp[k-1][n] + (n>=k ? dp[k][n-k] : 0)
+    //
+    // This matches "order not significant" and "each summand at most k".
+    let mut dp = vec![vec![0u32; MAX + 1]; MAX + 1];
+    dp[0][0] = 1;
 
-    for k in 0..=MAX {
-        dp[0][k] = 1;
-    }
-
-    for s in 1..=MAX {
-        dp[s][0] = 0;
-    }
-
-    for k in 1..=MAX {
-        for s in 1..=MAX {
-            let mut v = dp[s][k - 1];
-            if s >= k {
-                v = (v + dp[s - k][k]) % MOD;
+    for kk in 1..=MAX {
+        dp[kk][0] = 1;
+        for nn in 1..=MAX {
+            let mut val = dp[kk - 1][nn] as u64;
+            if nn >= kk {
+                val += dp[kk][nn - kk] as u64;
             }
-            dp[s][k] = v;
+            dp[kk][nn] = (val % MOD) as u32;
         }
     }
 
-    // Preconditions guarantee target,bound in [0,1000]; outside is undefined.
-    // We do not add checks to preserve the "undefined" nature; indexing may panic in Rust.
-    let ans = dp[target][bound] % MOD;
-    println!("{ans}");
+    // Inputs are within bounds by precondition; if not, behavior is unspecified.
+    // We still guard indexing to keep the program well-defined.
+    let nn = n.min(MAX);
+    let kk = k.min(MAX);
+
+    println!("{}", dp[kk][nn]);
 }

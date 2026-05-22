@@ -1,7 +1,7 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin (no explicit error handling per spec).
+    // Read entire stdin (matches typical competitive-programming style; no extra prompts).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
 
@@ -9,10 +9,8 @@ fn main() {
     let a: i32 = it.next().unwrap().parse().unwrap();
     let b: i32 = it.next().unwrap().parse().unwrap();
 
-    // Matches the C code semantics:
-    // - Integer division truncates toward zero.
-    // - If there is a non-zero remainder, increment the quotient.
-    // Note: Per spec, b is assumed positive; if b <= 0, behavior may not match mathematical ceiling.
+    // Spec assumes non-negative inputs and non-zero divisor; no explicit error handling.
+    // Match C semantics: integer division truncates toward zero; remainder non-zero => increment.
     let mut c = a / b;
     if a % b != 0 {
         c += 1;

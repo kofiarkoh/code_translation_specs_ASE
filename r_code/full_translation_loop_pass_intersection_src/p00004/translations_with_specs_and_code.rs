@@ -1,51 +1,47 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, then parse whitespace-separated floating-point numbers.
+    // Read entire stdin, then parse as whitespace-separated real numbers.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
 
     let mut it = input.split_whitespace();
 
     loop {
-        // The C code loops while scanf(...) != EOF; it will attempt to process
-        // a group whenever it can read six numbers. We stop cleanly if we can't
-        // read a full group (EOF or incomplete trailing data).
+        // Stop cleanly if we can't read a full sextuple.
         let a: f64 = match it.next() {
-            Some(s) => match s.parse() {
-                Ok(v) => v,
-                Err(_) => break, // unspecified in spec; stop
-            },
+            Some(s) => s.parse().unwrap(),
+            None => break,
+        };
+        let b: f64 = match it.next() {
+            Some(s) => s.parse().unwrap(),
+            None => break,
+        };
+        let c: f64 = match it.next() {
+            Some(s) => s.parse().unwrap(),
+            None => break,
+        };
+        let d: f64 = match it.next() {
+            Some(s) => s.parse().unwrap(),
+            None => break,
+        };
+        let e: f64 = match it.next() {
+            Some(s) => s.parse().unwrap(),
+            None => break,
+        };
+        let f: f64 = match it.next() {
+            Some(s) => s.parse().unwrap(),
             None => break,
         };
 
-        let b: f64 = match it.next().and_then(|s| s.parse().ok()) {
-            Some(v) => v,
-            None => break,
-        };
-        let c: f64 = match it.next().and_then(|s| s.parse().ok()) {
-            Some(v) => v,
-            None => break,
-        };
-        let d: f64 = match it.next().and_then(|s| s.parse().ok()) {
-            Some(v) => v,
-            None => break,
-        };
-        let e: f64 = match it.next().and_then(|s| s.parse().ok()) {
-            Some(v) => v,
-            None => break,
-        };
-        let f: f64 = match it.next().and_then(|s| s.parse().ok()) {
-            Some(v) => v,
-            None => break,
-        };
-
-        // Preserve the C computation order/structure:
-        // bai = d/a; bb = b*bai; cc = c*bai; y = (f-cc)/(e-bb); x = (c-b*y)/a;
+        // Same computation as the C code (Gaussian elimination style):
+        // bai = d/a
+        // y = (f - c*bai) / (e - b*bai)
+        // x = (c - b*y) / a
         let bai = d / a;
-        let _aa = a * bai; // computed in C but unused; keep for semantic parity
         let bb = b * bai;
         let cc = c * bai;
+
         let y = (f - cc) / (e - bb);
         let x = (c - b * y) / a;
 

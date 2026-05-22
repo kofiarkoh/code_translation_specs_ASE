@@ -1,114 +1,102 @@
 use std::cmp::Ordering;
 use std::io::{self, Read};
 
-const EPS: f64 = 1e-10;
-
 #[derive(Clone, Copy, Debug)]
-struct P {
+struct Ins {
     x: f64,
     y: f64,
     o: i32,
     l: i32,
 }
 
-// The C comparator is buggy/ill-formed (uses abs on double, compares to <0, etc.).
-// Spec says ordering ties are not meaningfully defined and may be inconsistent.
-// We implement a reasonable lexicographic (x, then y) ordering to preserve the
-// intended "nondecreasing along the reference segment" behavior.
-fn cmp_p(a: &P, b: &P) -> Ordering {
-    match a.x.partial_cmp(&b.x).unwrap_or(Ordering::Equal) {
-        Ordering::Equal => a.y.partial_cmp(&b.y).unwrap_or(Ordering::Equal),
-        other => other,
-    }
-}
+const EPS: f64 = 1e-10;
 
 fn main() {
-    // Read all input
+    // Read entire stdin
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let c_cases: usize = match it.next() {
+    let c: usize = match it.next() {
         Some(v) => v.parse().unwrap(),
         None => return,
     };
 
-    let mut out = String::new();
-
-    for _ in 0..c_cases {
-        let xa: i32 = it.next().unwrap().parse().unwrap();
-        let ya: i32 = it.next().unwrap().parse().unwrap();
-        let xb: i32 = it.next().unwrap().parse().unwrap();
-        let yb: i32 = it.next().unwrap().parse().unwrap();
+    for _case in 0..c {
+        let xa: i64 = it.next().unwrap().parse().unwrap();
+        let ya: i64 = it.next().unwrap().parse().unwrap();
+        let xb: i64 = it.next().unwrap().parse().unwrap();
+        let yb: i64 = it.next().unwrap().parse().unwrap();
         let n: usize = it.next().unwrap().parse().unwrap();
 
-        let mut st: Vec<P> = Vec::new();
-        // Spec precondition: considered intersections <= 1e5; C had fixed 105.
-        // We use Vec to avoid overflow; behavior for >1e5 is unspecified anyway.
+        let mut st: Vec<Ins> = Vec::new();
+        st.reserve(n.min(105)); // spec says capacity <= 105; no explicit error handling.
 
         for _ in 0..n {
-            let xs: i32 = it.next().unwrap().parse().unwrap();
-            let ys: i32 = it.next().unwrap().parse().unwrap();
-            let xt: i32 = it.next().unwrap().parse().unwrap();
-            let yt: i32 = it.next().unwrap().parse().unwrap();
+            let xs: i64 = it.next().unwrap().parse().unwrap();
+            let ys: i64 = it.next().unwrap().parse().unwrap();
+            let xt: i64 = it.next().unwrap().parse().unwrap();
+            let yt: i64 = it.next().unwrap().parse().unwrap();
             let o: i32 = it.next().unwrap().parse().unwrap();
             let l: i32 = it.next().unwrap().parse().unwrap();
 
-            let tx: i32 = xs - xa;
-            let ty: i32 = ys - ya;
+            // Compute intersection parameters r (along AB) and s (along ST) using integer arithmetic for b.
+            let tx = xs - xa;
+            let ty = ys - ya;
 
-            // b = (XB-XA)*(YT-YS) - (YB-YA)*(XT-XS)
-            let b: i32 = (xb - xa) * (yt - ys) - (yb - ya) * (xt - xs);
+            let b = (xb - xa) * (yt - ys) - (yb - ya) * (xt - xs);
             if b == 0 {
-                continue; // parallel or collinear: ignore
+                // Parallel (including collinear) => ignored per spec.
+                continue;
             }
 
-            // r = ((YT-YS)*tx - (XT-XS)*ty) / b
-            // s = ((YB-YA)*tx - (XB-XA)*ty) / b
-            let r: f64 = ((yt - ys) as f64 * tx as f64 - (xt - xs) as f64 * ty as f64) / b as f64;
-            let s: f64 = ((yb - ya) as f64 * tx as f64 - (xb - xa) as f64 * ty as f64) / b as f64;
+            let r = ((yt - ys) * tx - (xt - xs) * ty) as f64 / (b as f64);
+            let s = ((yb - ya) * tx - (xb - xa) * ty) as f64 / (b as f64);
 
-            // Strict interior intersection on both segments
+            // Proper interior intersection only: r,s strictly in (0,1).
             if r < EPS || s < EPS || (1.0 - r) < EPS || (1.0 - s) < EPS {
                 continue;
             }
 
-            // C always takes the r-based point due to the same condition; keep that.
-            let ins = P {
-                x: xa as f64 + r * (xb - xa) as f64,
-                y: ya as f64 + r * (yb - ya) as f64,
-                o,
-                l,
-            };
-            st.push(ins);
+            // C code has a redundant branch; for proper interior intersections it always takes the first.
+            // We follow the C behavior (and spec) by computing point on reference segment using r.
+            let x = (xa as f64) + r * ((xb - xa) as f64);
+            let y = (ya as f64) + r * ((yb - ya) as f64);
+            st.push(Ins { x, y, o, l });
         }
 
-        st.sort_by(cmp_p);
+        // Sort by position along the reference segment.
+        // The C comparator is buggy (uses abs(...)<0), effectively sorting by x then y.
+        // This is consistent with "arbitrary but consistent order" for ties; we preserve that behavior.
+        st.sort_by(|a, b| {
+            match a.x.partial_cmp(&b.x).unwrap_or(Ordering::Equal) {
+                Ordering::Equal => a.y.partial_cmp(&b.y).unwrap_or(Ordering::Equal),
+                other => other,
+            }
+        });
 
-        let mut best: i32 = 999;
-
-        for init_state in 0..2 {
-            let mut t: i32 = init_state;
-            let mut changes: i32 = 0;
-
-            for p in &st {
-                if p.o == 1 && p.l != t {
-                    changes += 1;
-                    t ^= 1;
-                }
-                if p.o != 1 && p.l == t {
-                    changes += 1;
-                    t ^= 1;
+        let mut best = i32::MAX;
+        for init in 0..=1 {
+            let mut t = init;
+            let mut toggles = 0i32;
+            for ins in &st {
+                if ins.o == 1 {
+                    if ins.l != t {
+                        toggles += 1;
+                        t ^= 1;
+                    }
+                } else {
+                    if ins.l == t {
+                        toggles += 1;
+                        t ^= 1;
+                    }
                 }
             }
-
-            if changes < best {
-                best = changes;
+            if toggles < best {
+                best = toggles;
             }
         }
 
-        out.push_str(&format!("{best}\n"));
+        println!("{}", best);
     }
-
-    print!("{out}");
 }

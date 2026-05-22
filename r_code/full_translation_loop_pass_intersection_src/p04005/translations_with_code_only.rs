@@ -1,51 +1,52 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, like scanf would consume whitespace-separated tokens.
+    // Read entire stdin, parse as signed integers (C: long).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    // C: long (commonly 64-bit on LP64, 32-bit on LLP64). We choose i64 as a practical match
-    // for typical judge environments; behavior for out-of-range inputs is unspecified in C anyway.
-    let mut x = [0i64; 3];
-    for i in 0..3 {
-        if let Some(tok) = it.next() {
-            x[i] = tok.parse::<i64>().unwrap();
-        } else {
-            // If input is missing, C's scanf would leave values uninitialized (UB on use).
-            // Here we keep default 0; this path shouldn't occur in valid test data.
-            x[i] = 0;
-        }
-    }
+    // In the C code, scanf expects exactly 3 longs; if fewer are provided,
+    // behavior is undefined. Here we unwrap to mirror "must be present".
+    let mut x: [i64; 3] = [
+        it.next().unwrap().parse::<i64>().unwrap(),
+        it.next().unwrap().parse::<i64>().unwrap(),
+        it.next().unwrap().parse::<i64>().unwrap(),
+    ];
 
     if x[0] % 2 == 0 || x[1] % 2 == 0 || x[2] % 2 == 0 {
         // puts adds a newline.
         println!("0");
     } else {
-        // Replicate C logic: max is int, initialized to 0; m is uninitialized but will be set
-        // because all x[i] are odd, hence non-zero, and at least one will be > 0 in typical inputs.
-        // If all x[i] <= 0, C would have UB due to uninitialized m; we avoid UB by defaulting m=0.
+        // C uses: int m, max=0; and compares max < X[i] (with X[i] as long).
+        // This means if all X[i] <= 0, m is never initialized (UB in C).
+        // We emulate the intended behavior for normal inputs by selecting the
+        // first index with the maximum value, starting from max=0.
+        let mut max_val: i64 = 0;
         let mut m: usize = 0;
-        let mut max_i32: i32 = 0;
+        let mut m_set = false;
 
         for i in 0..3 {
-            // C compares int max with long X[i] after usual arithmetic conversions.
-            // We emulate by converting X[i] to i32 with wrapping (implementation-defined in C if out of range).
-            let xi_i32 = x[i] as i32;
-            if max_i32 < xi_i32 {
-                max_i32 = xi_i32;
+            if max_val < x[i] {
+                max_val = x[i];
                 m = i;
+                m_set = true;
             }
+        }
+
+        // If m was never set (all x[i] <= 0), C has undefined behavior.
+        // We choose to keep m=0 in that case (deterministic fallback).
+        if !m_set {
+            m = 0;
         }
 
         x[m] = 1;
 
-        // C signed overflow is UB; in Rust we use wrapping to avoid panics and approximate
+        // C's long multiplication may overflow (UB). Use wrapping to emulate
         // typical two's-complement wraparound behavior.
         let prod = x[0].wrapping_mul(x[1]).wrapping_mul(x[2]);
 
-        // C printf("%ld", ...) prints without a trailing newline.
+        // printf("%ld", ...) prints without a trailing newline.
         print!("{}", prod);
     }
 }

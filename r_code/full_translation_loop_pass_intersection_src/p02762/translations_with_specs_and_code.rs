@@ -1,14 +1,14 @@
 use std::io::{self, Read};
 
 struct Dsu {
-    // If parent_or_size[x] < 0, x is a root and -parent_or_size[x] is the set size.
-    // Otherwise parent_or_size[x] is the parent index (>= 1).
+    // If parent_or_size[x] < 0, x is a root and -value is the component size.
+    // If parent_or_size[x] >= 1, it is the parent index.
     parent_or_size: Vec<i32>,
 }
 
 impl Dsu {
     fn new(n: usize) -> Self {
-        // 1-based indexing; index 0 unused.
+        // 1-indexed; index 0 unused.
         let mut v = vec![0i32; n + 1];
         for i in 1..=n {
             v[i] = -1;
@@ -16,8 +16,10 @@ impl Dsu {
         Self { parent_or_size: v }
     }
 
-    fn find(&mut self, mut x: usize) -> usize {
-        // Safe path compression without relying on a fixed stack depth.
+    fn find_root(&mut self, mut x: usize) -> usize {
+        // The C code uses a fixed stack of length 21 and has undefined behavior
+        // if the parent-chain depth exceeds 20. We implement safe path compression
+        // without that fixed bound; this preserves intended behavior for all valid inputs.
         let mut path: Vec<usize> = Vec::new();
         while self.parent_or_size[x] >= 1 {
             path.push(x);
@@ -30,24 +32,28 @@ impl Dsu {
     }
 
     fn unite(&mut self, x: usize, y: usize) {
-        let mut rx = self.find(x);
-        let mut ry = self.find(y);
+        let mut rx = self.find_root(x);
+        let mut ry = self.find_root(y);
         if rx == ry {
             return;
         }
-        // Union by size: more negative means larger.
+        // Union by size (more negative => larger).
         if self.parent_or_size[rx] < self.parent_or_size[ry] {
             // rx is larger
-            self.parent_or_size[rx] += self.parent_or_size[ry];
+            let size_ry = self.parent_or_size[ry];
+            self.parent_or_size[rx] += size_ry;
             self.parent_or_size[ry] = rx as i32;
         } else {
-            self.parent_or_size[ry] += self.parent_or_size[rx];
+            let size_rx = self.parent_or_size[rx];
+            self.parent_or_size[ry] += size_rx;
             self.parent_or_size[rx] = ry as i32;
+            // keep roots consistent with C's behavior (not required by spec)
+            rx = ry;
         }
     }
 
     fn set_size(&mut self, x: usize) -> i32 {
-        let r = self.find(x);
+        let r = self.find_root(x);
         -self.parent_or_size[r]
     }
 }
@@ -64,46 +70,50 @@ fn main() {
 
     let mut dsu = Dsu::new(n);
 
-    // rmv[i] starts at 1 (exclude itself)
+    // rmv[i] starts at 1 (exclude self), then increments per incident edge occurrence,
+    // and per incident disallowed-pair occurrence that is within the same component.
     let mut rmv = vec![0i32; n + 1];
     for i in 1..=n {
         rmv[i] = 1;
     }
 
-    // Process connections: union (if different components) and increment direct-connection counts
     while m > 0 {
         m -= 1;
         let a: usize = it.next().unwrap().parse().unwrap();
         let b: usize = it.next().unwrap().parse().unwrap();
 
-        // C code checks roots before calling unite; unite itself also handles same-root safely.
-        if dsu.find(a) != dsu.find(b) {
+        // The C code checks roots before uniting; unite() already handles same-root,
+        // but we keep the check to match behavior closely.
+        let ra = dsu.find_root(a);
+        let rb = dsu.find_root(b);
+        if ra != rb {
             dsu.unite(a, b);
         }
+
+        // Count duplicates as separate exclusions (spec requirement).
         rmv[a] += 1;
         rmv[b] += 1;
     }
 
-    // Process incompatible pairs: only count if within same connected component
     while k > 0 {
         k -= 1;
         let c: usize = it.next().unwrap().parse().unwrap();
         let d: usize = it.next().unwrap().parse().unwrap();
 
-        if dsu.find(c) == dsu.find(d) {
+        if dsu.find_root(c) == dsu.find_root(d) {
+            // Count duplicates as separate exclusions (spec requirement).
             rmv[c] += 1;
             rmv[d] += 1;
         }
     }
 
-    // Output: |C(i)| - rmv[i]
     let mut out = String::new();
     for i in 1..=n {
-        let val = dsu.set_size(i) - rmv[i];
+        let ans = dsu.set_size(i) - rmv[i];
         if i == n {
-            out.push_str(&format!("{val}\n"));
+            out.push_str(&format!("{ans}\n"));
         } else {
-            out.push_str(&format!("{val} "));
+            out.push_str(&format!("{ans} "));
         }
     }
     print!("{out}");

@@ -5,9 +5,8 @@ fn main() {
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
 
-    // Mimic scanf("%d", &n): parse the first integer token if present.
-    // If parsing fails (no integer), C would leave n uninitialized (UB);
-    // here we default to 0 to keep behavior defined in Rust.
+    // Mimic `scanf("%d", &n)` behavior: parse the first integer token if present.
+    // If parsing fails (no integer), C would leave `n` uninitialized (UB). Here we default to 0.
     let n: i32 = input.split_whitespace().next().and_then(|t| t.parse().ok()).unwrap_or(0);
 
     if n == 25 {

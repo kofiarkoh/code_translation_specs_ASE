@@ -1,65 +1,59 @@
+use std::cmp::min;
 use std::io::{self, Read};
 
-fn next_usize(it: &mut std::str::SplitWhitespace<'_>) -> usize {
-    it.next().unwrap().parse::<usize>().unwrap()
-}
-
-fn next_i64(it: &mut std::str::SplitWhitespace<'_>) -> i64 {
-    it.next().unwrap().parse::<i64>().unwrap()
-}
+const INF: i64 = 1_000_000_000_000i64; // large sentinel; exact value not specified
 
 fn main() {
-    // Read all input as whitespace-separated tokens.
+    // Read all input as whitespace-separated integers.
     let mut s = String::new();
     io::stdin().read_to_string(&mut s).unwrap();
     let mut it = s.split_whitespace();
 
-    let n = next_usize(&mut it);
-    let m = next_usize(&mut it);
-    let r = next_usize(&mut it);
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let m: usize = it.next().unwrap().parse().unwrap();
+    let r: usize = it.next().unwrap().parse().unwrap();
 
-    // Specified vertices to visit (indices are assumed valid per spec).
-    // The specification does not state 0-based vs 1-based explicitly.
-    // We choose the narrowest common interpretation for such problems: 1-based input.
-    // If input is actually 0-based, behavior is unspecified by the spec.
-    let mut special = Vec::with_capacity(r);
+    let mut req: Vec<usize> = Vec::with_capacity(r);
     for _ in 0..r {
-        let v = next_usize(&mut it);
-        special.push(v - 1);
+        let v: usize = it.next().unwrap().parse().unwrap();
+        // Inputs are intended 1..N; no validation per spec.
+        req.push(v - 1);
     }
 
-    // Large sentinel for unreachable distances.
-    // Must be large enough to dominate any real path sum under the spec's "no overflow" precondition.
-    let inf: i64 = 1_i64 << 60;
-
-    // Initialize all-pairs distances.
-    let mut dist = vec![vec![inf; n]; n];
+    // All-pairs distance table initialized to INF, diagonal 0.
+    let mut dist = vec![vec![INF; n]; n];
     for i in 0..n {
         dist[i][i] = 0;
     }
 
-    // Read edges; undirected; keep the minimum cost if multiple edges exist.
+    // Read edges; keep only smallest weight among multiple edges.
     for _ in 0..m {
-        let a = next_usize(&mut it) - 1;
-        let b = next_usize(&mut it) - 1;
-        let c = next_i64(&mut it);
-        if c < dist[a][b] {
-            dist[a][b] = c;
-            dist[b][a] = c;
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        let c: i64 = it.next().unwrap().parse().unwrap();
+        let u = a - 1;
+        let v = b - 1;
+        if c < dist[u][v] {
+            dist[u][v] = c;
+            dist[v][u] = c;
         }
     }
 
-    // Floyd–Warshall all-pairs shortest paths.
-    // Use sentinel-aware addition to avoid inf + x overflow; spec says no overflow for valid inputs.
+    // Floyd-Warshall all-pairs shortest paths.
+    // Use saturating-like behavior to avoid panics; spec says overflow is undefined,
+    // but Rust must remain defined. We keep INF large and guard additions.
     for k in 0..n {
         for i in 0..n {
             let dik = dist[i][k];
-            if dik >= inf {
+            if dik >= INF {
                 continue;
             }
             for j in 0..n {
                 let dkj = dist[k][j];
-                if dkj >= inf {
+                if dkj >= INF {
                     continue;
                 }
                 let cand = dik + dkj;
@@ -70,48 +64,52 @@ fn main() {
         }
     }
 
-    // Evaluate all permutations of the specified vertices; r <= 8.
-    // Minimum sum of consecutive shortest-path distances; no return to start.
-    special.sort_unstable();
-    let mut best = inf;
-
-    loop {
-        let mut sum = 0_i64;
-        for i in 0..r.saturating_sub(1) {
-            let u = special[i];
-            let v = special[i + 1];
-            sum += dist[u][v];
-        }
-        if sum < best {
-            best = sum;
-        }
-
-        if !next_permutation(&mut special) {
-            break;
+    // Build distance matrix among required vertices.
+    let mut rd = vec![vec![INF; r]; r];
+    for i in 0..r {
+        for j in 0..r {
+            rd[i][j] = dist[req[i]][req[j]];
         }
     }
+
+    // DFS over permutations using shared mutable state, mirroring the intended structure.
+    fn dfs(
+        r: usize,
+        rd: &Vec<Vec<i64>>,
+        used: &mut Vec<bool>,
+        last: Option<usize>,
+        depth: usize,
+        acc: i64,
+        best: &mut i64,
+    ) {
+        if depth == r {
+            if acc < *best {
+                *best = acc;
+            }
+            return;
+        }
+        for i in 0..r {
+            if used[i] {
+                continue;
+            }
+            used[i] = true;
+            let next_acc = match last {
+                None => acc,
+                Some(p) => acc + rd[p][i],
+            };
+            if next_acc < *best {
+                dfs(r, rd, used, Some(i), depth + 1, next_acc, best);
+            } else {
+                // Even if pruning is not mentioned, it does not change observable output.
+                // It only reduces work.
+            }
+            used[i] = false;
+        }
+    }
+
+    let mut used = vec![false; r];
+    let mut best = INF;
+    dfs(r, &rd, &mut used, None, 0, 0, &mut best);
 
     println!("{}", best);
-}
-
-// Lexicographic next_permutation for usize slice.
-// Returns false if it was the last permutation (i.e., now unchanged).
-fn next_permutation(a: &mut [usize]) -> bool {
-    if a.len() < 2 {
-        return false;
-    }
-    let mut i = a.len() - 2;
-    while a[i] >= a[i + 1] {
-        if i == 0 {
-            return false;
-        }
-        i -= 1;
-    }
-    let mut j = a.len() - 1;
-    while a[i] >= a[j] {
-        j -= 1;
-    }
-    a.swap(i, j);
-    a[i + 1..].reverse();
-    true
 }

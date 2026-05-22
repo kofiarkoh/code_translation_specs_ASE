@@ -4,17 +4,17 @@ const INF: i32 = 1_000_000_000;
 
 fn dfs(
     c: usize,
-    last: Option<usize>,
+    last: isize,
     dist: i32,
-    r: &[usize],          // 1-based: r[1..=R]
-    d: &Vec<Vec<i32>>,    // 1-based: d[1..=N][1..=N]
-    used: &mut [bool],    // 1-based: used[1..=R]
-    res: &mut i32,
     r_count: usize,
+    r: &[usize],          // 1-based: r[1..=R]
+    used: &mut [bool],    // 1-based: used[1..=R]
+    d: &Vec<Vec<i32>>,    // 1-based: d[1..=N][1..=N]
+    best: &mut i32,
 ) {
     if c == r_count + 1 {
-        if *res > dist {
-            *res = dist;
+        if *best > dist {
+            *best = dist;
         }
         return;
     }
@@ -22,11 +22,12 @@ fn dfs(
     for i in 1..=r_count {
         if !used[i] {
             used[i] = true;
-            if let Some(las) = last {
-                let add = d[r[las]][r[i]];
-                dfs(c + 1, Some(i), dist + add, r, d, used, res, r_count);
+            if last == -1 {
+                dfs(c + 1, i as isize, 0, r_count, r, used, d, best);
             } else {
-                dfs(c + 1, Some(i), 0, r, d, used, res, r_count);
+                let last_u = last as usize;
+                let nd = dist + d[r[last_u]][r[i]];
+                dfs(c + 1, i as isize, nd, r_count, r, used, d, best);
             }
             used[i] = false;
         }
@@ -34,7 +35,7 @@ fn dfs(
 }
 
 fn main() {
-    // Read all input as whitespace-separated integers.
+    // Read all input (no explicit error handling, matching the C program's spirit).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -43,7 +44,7 @@ fn main() {
     let m: usize = it.next().unwrap().parse().unwrap();
     let r_count: usize = it.next().unwrap().parse().unwrap();
 
-    // Distances: 1..=N used. Initialize d[i][j] = INF for i!=j, and 0 on diagonal.
+    // Distance matrix, 1-based indexing.
     let mut d = vec![vec![0i32; n + 1]; n + 1];
     for i in 1..=n {
         for j in 1..=n {
@@ -53,13 +54,13 @@ fn main() {
         }
     }
 
-    // Specified vertices to visit: 1-based indexing to match C code.
+    // Required vertices, 1-based indexing.
     let mut r = vec![0usize; r_count + 1];
     for i in 1..=r_count {
         r[i] = it.next().unwrap().parse().unwrap();
     }
 
-    // Read edges; keep the minimum cost for parallel edges.
+    // Edges: keep only the smallest weight among multiple edges.
     for _ in 0..m {
         let a: usize = it.next().unwrap().parse().unwrap();
         let b: usize = it.next().unwrap().parse().unwrap();
@@ -70,7 +71,7 @@ fn main() {
         }
     }
 
-    // Floyd-Warshall all-pairs shortest paths.
+    // Floyd–Warshall all-pairs shortest paths.
     for k in 1..=n {
         for i in 1..=n {
             for j in 1..=n {
@@ -82,9 +83,9 @@ fn main() {
         }
     }
 
-    let mut res: i32 = INF;
+    let mut best = INF;
     let mut used = vec![false; r_count + 1];
-    dfs(1, None, 0, &r, &d, &mut used, &mut res, r_count);
+    dfs(1, -1, 0, r_count, &r, &mut used, &d, &mut best);
 
-    print!("{res}\n");
+    print!("{best}\n");
 }

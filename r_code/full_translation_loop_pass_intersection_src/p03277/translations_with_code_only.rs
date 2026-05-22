@@ -15,8 +15,7 @@ fn inc(bit: &mut [i32], x: usize) {
     while i <= n {
         bit[i] += 1;
         // i += i & -i  (Fenwick lowbit)
-        let lowbit = i & (!i + 1);
-        i += lowbit;
+        i += i & (!i + 1);
     }
 }
 
@@ -25,33 +24,21 @@ fn get_sum(bit: &[i32], x: usize) -> i32 {
     let mut i = x;
     while i > 0 {
         res += bit[i];
-        let lowbit = i & (!i + 1);
-        i -= lowbit;
+        i -= i & (!i + 1);
     }
     res
 }
 
-fn count(m: i32, a: &[i32], bit: &mut Vec<i32>) -> Int64 {
-    // C uses a static BIT allocated once sized by the first n.
-    // Here we allocate/resize per call to match current n (safe and semantically equivalent
-    // for this program, which calls count with a fixed n).
-    let n = a.len();
-    let size = 2 * n + 1;
-    if bit.len() != size + 1 {
-        bit.clear();
-        bit.resize(size + 1, 0);
-        bit[0] = size as i32;
-    } else {
-        bit[0] = size as i32;
-    }
-
+fn count(m: i32, a: &[i32], n: usize, bit: &mut Vec<i32>) -> Int64 {
+    // C uses a static bit allocated once with size based on first n.
+    // Here we allocate/resize once in run() and reuse; semantics match for single run.
     init_bit(bit);
 
     let mut cnt: Int64 = 0;
     let mut sum: i32 = n as i32 + 1;
-    inc(bit, sum as usize);
 
-    for &ai in a {
+    inc(bit, sum as usize);
+    for &ai in a.iter().take(n) {
         sum += if ai < m { -1 } else { 1 };
         cnt += get_sum(bit, sum as usize) as Int64;
         inc(bit, sum as usize);
@@ -59,8 +46,8 @@ fn count(m: i32, a: &[i32], bit: &mut Vec<i32>) -> Int64 {
     cnt
 }
 
-fn main() {
-    // Read all input (scanf-style whitespace separated integers)
+fn run() {
+    // Read all input, parse as ints (scanf-like whitespace handling).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -72,20 +59,30 @@ fn main() {
 
     let mut a = vec![0i32; n];
     for i in 0..n {
-        a[i] = it.next().unwrap().parse().unwrap();
+        if let Some(s) = it.next() {
+            a[i] = s.parse().unwrap();
+        } else {
+            a[i] = 0; // if input is short, mimic uninitialized read as best-effort (won't happen in valid tests)
+        }
     }
+
+    // Fenwick tree size: 2*n+1, plus index 0 => length 2*n+2
+    let size = 2 * n + 1;
+    let mut bit = vec![0i32; size + 1];
+    bit[0] = size as i32;
 
     let mut l: i32 = 1;
     let mut r: i32 = 1_000_000_000 + 1;
 
-    let mut bit: Vec<i32> = Vec::new();
-
     while (r - l) > 1 {
         let m = (l + r) / 2;
-        let cnt = count(m, &a, &mut bit);
+        let cnt = count(m, &a, n, &mut bit);
 
-        // Preserve C's integer behavior: use i64 for products to avoid overflow.
-        if 4i64 * cnt >= (n as i64) * ((n as i64) + 1) {
+        // Use i128 to avoid overflow; C uses int64 and stays within range for typical constraints.
+        let left = 4i128 * cnt as i128;
+        let right = (n as i128) * ((n + 1) as i128);
+
+        if left >= right {
             l = m;
         } else {
             r = m;
@@ -93,4 +90,8 @@ fn main() {
     }
 
     print!("{l}\n");
+}
+
+fn main() {
+    run();
 }

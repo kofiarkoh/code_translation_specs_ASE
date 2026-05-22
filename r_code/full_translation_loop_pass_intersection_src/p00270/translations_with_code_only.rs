@@ -1,34 +1,27 @@
 use std::io::{self, Read};
 
 const QMAX: usize = 200000;
-const INF: i32 = 0x10101010;
+const INF: i32 = 0x1010_1010;
 
-#[derive(Clone, Copy, Default)]
-struct QueItem {
+#[derive(Clone, Copy)]
+struct Que {
     t: i32,
-    s: usize,
+    s: i32,
 }
 
 struct MinHeap {
-    a: Vec<QueItem>,
+    a: Vec<Que>,
 }
 impl MinHeap {
     fn new() -> Self {
         Self { a: Vec::new() }
     }
-    fn clear(&mut self) {
-        self.a.clear();
-    }
     fn is_empty(&self) -> bool {
         self.a.is_empty()
     }
-    fn push(&mut self, s: usize, t: i32) {
-        // C code uses a fixed array of size QMAX+2; we emulate capacity but allow growth safely.
-        if self.a.len() < QMAX + 2 {
-            // ok
-        }
+    fn push(&mut self, s: i32, t: i32) {
         let mut i = self.a.len();
-        self.a.push(QueItem { s, t });
+        self.a.push(Que { s, t });
         while i > 0 {
             let p = (i - 1) >> 1;
             if self.a[p].t <= self.a[i].t {
@@ -38,34 +31,31 @@ impl MinHeap {
             i = p;
         }
     }
-    fn pop_min(&mut self) -> Option<QueItem> {
-        if self.a.is_empty() {
-            return None;
-        }
-        let min = self.a[0];
+    fn pop_min(&mut self) -> Que {
+        let ret = self.a[0];
         let last = self.a.pop().unwrap();
         if !self.a.is_empty() {
             self.a[0] = last;
             self.min_heapify(0);
         }
-        Some(min)
+        ret
     }
     fn min_heapify(&mut self, mut i: usize) {
         loop {
             let l = (i << 1) + 1;
             let r = l + 1;
-            let mut m = i;
-            if l < self.a.len() && self.a[l].t < self.a[m].t {
-                m = l;
+            let mut min = i;
+            if l < self.a.len() && self.a[l].t < self.a[min].t {
+                min = l;
             }
-            if r < self.a.len() && self.a[r].t < self.a[m].t {
-                m = r;
+            if r < self.a.len() && self.a[r].t < self.a[min].t {
+                min = r;
             }
-            if m == i {
+            if min == i {
                 break;
             }
-            self.a.swap(i, m);
-            i = m;
+            self.a.swap(i, min);
+            i = min;
         }
     }
 }
@@ -83,53 +73,41 @@ impl Scanner {
             idx: 0,
         }
     }
-    fn next_u32(&mut self) -> u32 {
-        // The C in() assumes digits start immediately (no skipping) and stops at first non-digit.
-        // AOJ inputs are well-formed; we still skip non-digits to be robust.
+    fn next_usize(&mut self) -> usize {
+        // C in(): assumes digits; we skip non-digits to be robust with whitespace.
         while self.idx < self.buf.len() && (self.buf[self.idx] < b'0' || self.buf[self.idx] > b'9')
         {
             self.idx += 1;
         }
-        let mut n: u32 = 0;
+        let mut n: usize = 0;
         while self.idx < self.buf.len() {
             let c = self.buf[self.idx];
             if c < b'0' || c > b'9' {
                 break;
             }
-            n = n * 10 + (c - b'0') as u32;
+            n = n * 10 + (c - b'0') as usize;
             self.idx += 1;
         }
         n
     }
-    fn next_usize(&mut self) -> usize {
-        self.next_u32() as usize
-    }
-    fn next_i32(&mut self) -> i32 {
-        self.next_u32() as i32
-    }
 }
 
 fn dijkstra(start: usize, adj: &Vec<Vec<(usize, i32)>>, dist: &mut Vec<i32>) {
-    // memset(dist, INF, S<<2) in C sets each byte to 0x10, yielding 0x10101010.
-    for d in dist.iter_mut() {
-        *d = INF;
-    }
+    let s = adj.len();
+    dist.fill(INF);
     let mut heap = MinHeap::new();
-    heap.clear();
+    heap.push(start as i32, 0);
     dist[start] = 0;
-    heap.push(start, 0);
 
     while !heap.is_empty() {
-        let item = heap.pop_min().unwrap();
-        let s = item.s;
-        // Note: C code does not discard stale heap entries; we preserve that behavior.
-        for &(e, w) in &adj[s] {
-            // C uses int arithmetic; overflow is UB in C, but likely not reached.
-            // Use wrapping_add to emulate typical 2's complement wrap if it happens.
-            let nd = dist[s].wrapping_add(w);
-            if dist[e] > nd {
-                dist[e] = nd;
-                heap.push(e, nd);
+        let q = heap.pop_min();
+        let u = q.s as usize;
+        // Note: original C does not discard stale heap entries; we preserve that behavior.
+        for &(v, w) in &adj[u] {
+            let d = dist[u].wrapping_add(w); // preserve potential i32 wraparound
+            if dist[v] > d {
+                dist[v] = d;
+                heap.push(v as i32, d);
             }
         }
     }
@@ -143,52 +121,54 @@ fn tsort(
     to2: &mut Vec<Vec<usize>>,
     ord: &mut Vec<usize>,
 ) {
-    let s_len = adj.len();
-    let mut mk = vec![0u8; s_len];
-    let mut q = vec![0usize; s_len + 5];
+    let s = adj.len();
+    let mut mk = vec![0u8; s];
+    let mut q = vec![0usize; s];
     let mut top = 0usize;
     let mut tail = 0usize;
 
-    // Build reverse edges of shortest-path DAG: e -> s when s can be reached from e on a shortest path.
-    q[0] = goal;
-    top = 0;
-    tail = 1;
+    // Build reverse edges of shortest-path DAG reachable backwards from goal.
+    q[tail] = goal;
+    tail += 1;
     while top < tail {
-        let s = q[top];
+        let u = q[top];
         top += 1;
-        if mk[s] != 0 {
+        if mk[u] != 0 {
             continue;
         }
-        for &(e, w) in &adj[s] {
-            if dist[s] == dist[e].wrapping_add(w) {
+        for &(e, w) in &adj[u] {
+            // Condition from C: dist[s] == dist[e] + w[s][i]
+            if dist[u] == dist[e].wrapping_add(w) {
                 q[tail] = e;
                 tail += 1;
-                to2[e].push(s);
+                to2[e].push(u); // edge e -> u in DAG
             }
         }
-        mk[s] = 1;
+        mk[u] = 1;
     }
 
-    // Kahn topological order from start over this DAG.
-    let mut deg = vec![0i32; s_len];
-    for s in 0..s_len {
-        for &v in &to2[s] {
+    // Kahn topological order from start over the constructed DAG.
+    let mut deg = vec![0i32; s];
+    for u in 0..s {
+        for &v in &to2[u] {
             deg[v] += 1;
         }
     }
 
-    ord.clear();
-    q[0] = start;
     top = 0;
-    tail = 1;
+    tail = 0;
+    q[tail] = start;
+    tail += 1;
+
+    ord.clear();
     while top < tail {
-        let s = q[top];
+        let u = q[top];
         top += 1;
-        ord.push(s);
-        for &e in &to2[s] {
-            deg[e] -= 1;
-            if deg[e] == 0 {
-                q[tail] = e;
+        ord.push(u);
+        for &v in &to2[u] {
+            deg[v] -= 1;
+            if deg[v] == 0 {
+                q[tail] = v;
                 tail += 1;
             }
         }
@@ -201,19 +181,18 @@ fn main() {
     let s = sc.next_usize();
     let r = sc.next_usize();
 
+    // First pass: count degrees to size adjacency lists.
     let mut hi = vec![0usize; s];
     let mut memo: Vec<(usize, usize, i32)> = Vec::with_capacity(r);
-
     for _ in 0..r {
         let u = sc.next_usize() - 1;
         let v = sc.next_usize() - 1;
-        let w = sc.next_i32();
+        let w = sc.next_usize() as i32;
         hi[u] += 1;
         hi[v] += 1;
         memo.push((u, v, w));
     }
 
-    // Build undirected adjacency lists with exact sizes.
     let mut adj: Vec<Vec<(usize, i32)>> = (0..s).map(|i| Vec::with_capacity(hi[i])).collect();
     for (u, v, w) in memo {
         adj[u].push((v, w));
@@ -234,21 +213,19 @@ fn main() {
     let mut dist = vec![INF; s];
     dijkstra(a, &adj, &mut dist);
 
+    // to2 is the shortest-path DAG edges (forward), built by tsort.
     let mut to2: Vec<Vec<usize>> = vec![Vec::new(); s];
     let mut ord: Vec<usize> = Vec::new();
     tsort(a, b, &adj, &dist, &mut to2, &mut ord);
 
     let mut out = String::new();
+
     let blocks = (qn + 63) >> 6;
     let mut dp = vec![0u64; s];
-
     for bi in 0..blocks {
-        // memset(dp, 0, sizeof(dp))
-        for x in dp.iter_mut() {
-            *x = 0;
-        }
+        dp.fill(0);
 
-        for j in 0..64 {
+        for j in 0..64usize {
             let idx = (bi << 6) + j;
             if idx < qn {
                 dp[c[idx]] |= 1u64 << j;
@@ -257,12 +234,15 @@ fn main() {
 
         for &u in &ord {
             let val = dp[u];
+            if val == 0 {
+                continue;
+            }
             for &v in &to2[u] {
                 dp[v] |= val;
             }
         }
 
-        for j in 0..64 {
+        for j in 0..64usize {
             let idx = (bi << 6) + j;
             if idx < qn {
                 if (dp[d[idx]] & (1u64 << j)) != 0 {

@@ -1,6 +1,7 @@
 use std::io::{self, Read};
 
 fn s(mut x: i64) -> i32 {
+    // Mirrors C: int S(long int x) with x assumed non-negative in usage.
     let mut r: i32 = 0;
     while x > 0 {
         r += (x % 10) as i32;
@@ -10,11 +11,13 @@ fn s(mut x: i64) -> i32 {
 }
 
 fn main() {
-    // Read entire stdin, parse one long int (%ld). If missing/invalid, do nothing (like scanf failure).
+    // Read entire stdin, parse one integer like scanf("%ld",&n)
     let mut input = String::new();
-    io::stdin().read_to_string(&mut input).ok();
-    let n_opt = input.split_whitespace().next().and_then(|t| t.parse::<i64>().ok());
-    let Some(n) = n_opt else { return };
+    io::stdin().read_to_string(&mut input).unwrap();
+    let n: i64 = match input.split_whitespace().next() {
+        Some(tok) => tok.parse::<i64>().unwrap(),
+        None => return, // If no input, C would leave n uninitialized; we just exit.
+    };
 
     let mut x: i64 = 1;
 
@@ -27,22 +30,21 @@ fn main() {
         let mut r: i64 = x;
 
         // m = (double)x / S(x);
-        // Note: if S(x)==0 (possible when x==0), C would do division by zero in double (inf/NaN).
-        // We emulate by using f64 division; Rust yields +/-inf or NaN similarly.
+        // In C, if S(x)==0 this would be division by zero (UB/inf). Here x>=2 in normal flow.
         let mut m: f64 = (x as f64) / (s(x) as f64);
 
-        // for (j=0, s=10; j<15; j++, s*=10L) { ... }
+        // for(j=0,s=10; j<15; j++, s*=10L)
         let mut s_pow: i64 = 10;
         for _j in 0..15 {
             // y = s*(x/s+1)-1;
-            // Use wrapping ops to emulate C signed overflow behavior as closely as possible.
-            let div = x.wrapping_div(s_pow);
+            // Use wrapping to emulate potential signed overflow behavior as closely as possible.
             let y = s_pow
-                .wrapping_mul(div.wrapping_add(1))
+                .wrapping_mul(x.wrapping_div(s_pow).wrapping_add(1))
                 .wrapping_sub(1);
 
             // o = (double)y / S(y);
-            let o: f64 = (y as f64) / (s(y) as f64);
+            let denom = s(y) as f64;
+            let o = (y as f64) / denom;
 
             if o < m {
                 m = o;

@@ -25,135 +25,170 @@ fn new_cell(data: i32) -> Rc<RefCell<Cell>> {
     }))
 }
 
+fn is_end(cursor: &Link) -> bool {
+    cursor
+        .as_ref()
+        .map(|c| c.borrow().data == END)
+        .unwrap_or(false)
+}
+
+fn is_front(cursor: &Link) -> bool {
+    cursor
+        .as_ref()
+        .map(|c| c.borrow().prev.is_none())
+        .unwrap_or(false)
+}
+
 fn insert(cursor: Link, data: i32) -> Link {
     let cur = cursor.expect("cursor should never be NULL in this program");
     let new = new_cell(data);
 
-    // If cursor is at front, insert before it and return new head.
-    if cur.borrow().prev.is_none() {
+    if is_front(&Some(cur.clone())) {
+        // Insert before front
         new.borrow_mut().next = Some(cur.clone());
         cur.borrow_mut().prev = Some(new.clone());
         return Some(new);
     }
 
-    // General case: splice between prev and cursor.
-    let prev = cur.borrow().prev.as_ref().unwrap().clone();
+    // Insert between prev and cursor
+    let prev = cur
+        .borrow()
+        .prev
+        .as_ref()
+        .cloned()
+        .expect("non-front cursor must have prev");
+
     {
-        let mut n = new.borrow_mut();
-        n.prev = Some(prev.clone());
-        n.next = Some(cur.clone());
+        let mut nb = new.borrow_mut();
+        nb.prev = Some(prev.clone());
+        nb.next = Some(cur.clone());
     }
     prev.borrow_mut().next = Some(new.clone());
     cur.borrow_mut().prev = Some(new.clone());
-
     Some(new)
 }
 
-fn move_cursor(cursor: Link, mut d: i32) -> Link {
+fn move_cursor(cursor: Link, d: i32) -> Link {
     if d == 0 {
         return cursor;
     }
-
     let mut cur = cursor.expect("cursor should never be NULL in this program");
 
     if d < 0 {
-        while d < 0 {
-            // Ensure the RefCell borrow ends before reassigning `cur`.
-            let prev_opt = { cur.borrow().prev.clone() };
-            if prev_opt.is_none() {
+        // for (; d < 0; d++)
+        let mut dd = d;
+        while dd < 0 {
+            if is_front(&Some(cur.clone())) {
                 print!("Cursor is already front.\n");
                 process::exit(1);
             }
-            cur = prev_opt.unwrap();
-            d += 1;
+            let prev = cur
+                .borrow()
+                .prev
+                .as_ref()
+                .cloned()
+                .expect("checked not front");
+            cur = prev;
+            dd += 1;
         }
         return Some(cur);
     }
 
-    while d > 0 {
-        let next_opt = { cur.borrow().next.clone() };
-        if next_opt.is_none() {
+    // for (; d > 0; d--)
+    let mut dd = d;
+    while dd > 0 {
+        let next = cur.borrow().next.as_ref().cloned();
+        if next.is_none() {
             print!("Cursor has no next.\n");
             process::exit(2);
         }
-        cur = next_opt.unwrap();
-        d -= 1;
+        cur = next.unwrap();
+        dd -= 1;
     }
-
     Some(cur)
 }
 
 fn erase(cursor: Link) -> Link {
     let cur = cursor.expect("cursor should never be NULL in this program");
 
-    if cur.borrow().data == END {
+    if is_end(&Some(cur.clone())) {
         return Some(cur);
     }
 
-    // If front: remove it, return next.
-    if cur.borrow().prev.is_none() {
-        let next = cur.borrow().next.as_ref().unwrap().clone();
+    if is_front(&Some(cur.clone())) {
+        let next = cur
+            .borrow()
+            .next
+            .as_ref()
+            .cloned()
+            .expect("non-END front must have next");
         next.borrow_mut().prev = None;
+        // Dropping `cur` here emulates free(); Rc cycles are avoided by design.
         return Some(next);
     }
 
-    // General case: unlink and return next.
-    let prev = cur.borrow().prev.as_ref().unwrap().clone();
-    let next = cur.borrow().next.as_ref().unwrap().clone();
+    let prev = cur
+        .borrow()
+        .prev
+        .as_ref()
+        .cloned()
+        .expect("non-front must have prev");
+    let next = cur
+        .borrow()
+        .next
+        .as_ref()
+        .cloned()
+        .expect("non-END must have next");
 
     prev.borrow_mut().next = Some(next.clone());
     next.borrow_mut().prev = Some(prev);
-
     Some(next)
 }
 
-fn print_list(cursor: Link) {
-    let mut cur = cursor.expect("cursor should never be NULL in this program");
+fn print_list(cell: Link) {
+    let mut cur = cell.expect("cursor should never be NULL in this program");
 
-    // Move to head. Avoid holding a Ref across `cur = ...`.
+    // Move to head
     loop {
-        let prev_opt = { cur.borrow().prev.clone() };
-        match prev_opt {
+        let prev = cur.borrow().prev.as_ref().cloned();
+        match prev {
             Some(p) => cur = p,
             None => break,
         }
     }
 
-    // Replicate the C do-while structure and its quirks:
-    // - It prints only when data != END, and advances only in that case.
-    // - Loop condition checks `cell->next != NULL` after the body.
+    // Mirror the C do-while structure:
+    // do { if (cell->data != END) { print; cell = cell->next; } } while (cell->next != NULL);
     loop {
-        let (data, next_opt) = {
-            let b = cur.borrow();
-            (b.data, b.next.clone())
-        };
-
+        let data = cur.borrow().data;
         if data != END {
-            println!("{}", data);
-            if let Some(n) = next_opt.clone() {
-                cur = n;
-            }
+            print!("{}\n", data);
+            let next = cur
+                .borrow()
+                .next
+                .as_ref()
+                .cloned()
+                .expect("non-END nodes must have next");
+            cur = next;
         }
-
-        if next_opt.is_none() {
+        let has_next = cur.borrow().next.is_some();
+        if !has_next {
             break;
         }
     }
 }
 
-// C's atoi behavior: parse optional sign and digits; stop at first non-digit;
-// if no digits, return 0. (We clamp to i32 to avoid panics; C overflow is UB.)
-fn atoi_like(s: &str) -> i32 {
+fn atoi_like_c(s: &str) -> i32 {
+    // Emulate C's atoi loosely: parse optional whitespace and sign, then digits.
+    // If no valid conversion, return 0.
     let bytes = s.as_bytes();
-    let mut i = 0usize;
+    let mut i = 0;
 
-    while i < bytes.len()
-        && (bytes[i] == b' ' || bytes[i] == b'\t' || bytes[i] == b'\n' || bytes[i] == b'\r')
-    {
+    while i < bytes.len() && (bytes[i] as char).is_ascii_whitespace() {
         i += 1;
     }
 
-    let mut sign: i32 = 1;
+    let mut sign: i64 = 1;
     if i < bytes.len() {
         if bytes[i] == b'+' {
             i += 1;
@@ -165,31 +200,35 @@ fn atoi_like(s: &str) -> i32 {
 
     let mut any = false;
     let mut val: i64 = 0;
-    while i < bytes.len() {
-        let b = bytes[i];
-        if !(b'0'..=b'9').contains(&b) {
-            break;
-        }
+    while i < bytes.len() && bytes[i].is_ascii_digit() {
         any = true;
-        val = val * 10 + (b - b'0') as i64;
+        val = val * 10 + (bytes[i] - b'0') as i64;
         i += 1;
     }
 
     if !any {
-        0
+        return 0;
+    }
+
+    // C atoi overflow is undefined; we clamp to i32 range to keep behavior deterministic.
+    let val = val * sign;
+    if val > i32::MAX as i64 {
+        i32::MAX
+    } else if val < i32::MIN as i64 {
+        i32::MIN
     } else {
-        let v = (val * sign as i64).clamp(i32::MIN as i64, i32::MAX as i64);
-        v as i32
+        val as i32
     }
 }
 
-fn main() {
-    let mut input = String::new();
-    io::stdin().read_to_string(&mut input).unwrap();
+fn answer(input: &str) {
+    // The C code uses fgets(a, 15, stdin) repeatedly; we approximate by line-based parsing.
+    // This preserves output behavior; for extremely long lines, C would truncate, but commands
+    // here are short and the program's semantics depend only on the prefix and atoi(a+2).
     let mut lines = input.lines();
 
     let q_line = lines.next().unwrap_or("");
-    let mut q = atoi_like(q_line);
+    let mut q = atoi_like_c(q_line);
 
     let mut cursor: Link = Some(new_cell(END));
 
@@ -199,16 +238,22 @@ fn main() {
         let b0 = line.as_bytes().get(0).copied().unwrap_or(0);
 
         if b0 == INSERT {
-            // C uses atoi(a+2): skip "0 " (or similar), so take from index 2 if present.
+            // atoi(a+2)
             let arg = if line.len() >= 2 { &line[2..] } else { "" };
-            cursor = insert(cursor, atoi_like(arg));
+            cursor = insert(cursor, atoi_like_c(arg));
         } else if b0 == MOVE {
             let arg = if line.len() >= 2 { &line[2..] } else { "" };
-            cursor = move_cursor(cursor, atoi_like(arg));
+            cursor = move_cursor(cursor, atoi_like_c(arg));
         } else if b0 == ERASE {
             cursor = erase(cursor);
         }
     }
 
     print_list(cursor);
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    answer(&input);
 }

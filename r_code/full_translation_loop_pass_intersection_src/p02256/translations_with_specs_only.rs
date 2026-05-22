@@ -1,9 +1,9 @@
 use std::io::{self, Read};
 use std::process;
 
-fn gcd(mut a: u64, mut b: u64) -> u64 {
-    // Euclidean algorithm; terminates when divisor becomes zero.
-    // If b becomes zero, return current divisor value (b == 0), per spec note.
+fn gcd_euclid(mut a: u64, mut b: u64) -> u64 {
+    // Euclidean algorithm: (a, b) := (b, a mod b) until remainder is zero.
+    // Additional specified behavior: if divisor becomes zero, stop and return current divisor.
     while b != 0 {
         let r = a % b;
         a = b;
@@ -13,23 +13,34 @@ fn gcd(mut a: u64, mut b: u64) -> u64 {
 }
 
 fn main() {
+    // Read entire stdin; malformed/missing input is unspecified by the spec,
+    // so we do not add explicit error handling beyond what parsing naturally does.
     let mut input = String::new();
-    // Spec: behavior when input does not contain two successfully readable integers
-    // is not inferable; we therefore do not add explicit validation beyond parsing.
-    let _ = io::stdin().read_to_string(&mut input);
+    io::stdin().read_to_string(&mut input).unwrap();
 
     let mut it = input.split_whitespace();
-    let a: u64 = it.next().unwrap().parse().unwrap();
-    let b: u64 = it.next().unwrap().parse().unwrap();
+    let a_str = it.next().unwrap();
+    let b_str = it.next().unwrap();
 
-    const MIN: u64 = 1;
-    const MAX: u64 = 1_000_000_000;
+    let a: i64 = a_str.parse().unwrap();
+    let b: i64 = b_str.parse().unwrap();
 
-    if !(MIN <= a && a <= MAX && MIN <= b && b <= MAX) {
+    // Range validation: inclusive [1, 1_000_000_000]
+    const LO: i64 = 1;
+    const HI: i64 = 1_000_000_000;
+
+    if a < LO || a > HI || b < LO || b > HI {
+        // No output on failure.
         process::exit(1);
     }
 
-    let g = gcd(a, b);
+    // Order so first is larger (or equal), second is smaller (or equal).
+    let (mut x, mut y) = (a as u64, b as u64);
+    if x < y {
+        std::mem::swap(&mut x, &mut y);
+    }
+
+    let g = gcd_euclid(x, y);
     println!("{g}");
     process::exit(0);
 }

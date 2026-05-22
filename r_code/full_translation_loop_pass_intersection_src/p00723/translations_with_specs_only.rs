@@ -1,91 +1,11 @@
 use std::collections::HashSet;
 use std::io::{self, Read};
 
-fn reverse_range(v: &mut [u8], l: usize, r: usize) {
-    // Reverse v[l..r] (half-open). Safe for all l<=r<=len.
-    v[l..r].reverse();
-}
-
-fn add_candidate(set: &mut HashSet<Vec<u8>>, cand: &[u8]) {
-    // The specification bounds unique results to <= 1024; we do not enforce it.
-    set.insert(cand.to_vec());
-}
-
-fn process_one(s: &[u8]) -> usize {
-    let l = s.len();
-    if l <= 1 {
-        return 0;
+fn reverse_range(v: &mut [u8], start: usize, end_exclusive: usize) {
+    if end_exclusive <= start + 1 {
+        return;
     }
-
-    let mut uniq: HashSet<Vec<u8>> = HashSet::new();
-
-    for i in 1..l {
-        // For each split i, generate a fixed pattern of deterministic transformations.
-        //
-        // The specification does not fully define the exact pattern; the narrowest
-        // reasonable interpretation is to enumerate all combinations of:
-        // - optional reversal of the prefix [0..i)
-        // - optional reversal of the suffix [i..l)
-        // applied:
-        //   (A) without swapping parts
-        //   (B) after swapping the two parts around the split
-        //
-        // For each base (A/B), we collect each intermediate result in a fixed order:
-        //   base -> after prefix reversal -> after suffix reversal -> after both
-        // where "after both" is reached by applying the second reversal to the
-        // "after prefix reversal" state (i.e., sequentially).
-        //
-        // This yields up to 8 candidates per split, with duplicates deduplicated globally.
-
-        // (A) No swap base
-        {
-            let mut cur = s.to_vec();
-            add_candidate(&mut uniq, &cur);
-
-            // Reverse prefix
-            let mut p = cur.clone();
-            reverse_range(&mut p, 0, i);
-            add_candidate(&mut uniq, &p);
-
-            // Reverse suffix (from base)
-            let mut q = cur.clone();
-            reverse_range(&mut q, i, l);
-            add_candidate(&mut uniq, &q);
-
-            // Reverse both sequentially: prefix then suffix
-            let mut r = p;
-            reverse_range(&mut r, i, l);
-            add_candidate(&mut uniq, &r);
-        }
-
-        // (B) Swap base: suffix + prefix
-        {
-            let mut base = Vec::with_capacity(l);
-            base.extend_from_slice(&s[i..l]);
-            base.extend_from_slice(&s[0..i]);
-            add_candidate(&mut uniq, &base);
-
-            // After swap, the "prefix" length is (l - i), "suffix" length is i.
-            let left_len = l - i;
-
-            // Reverse prefix (left part)
-            let mut p = base.clone();
-            reverse_range(&mut p, 0, left_len);
-            add_candidate(&mut uniq, &p);
-
-            // Reverse suffix (right part) from base
-            let mut q = base.clone();
-            reverse_range(&mut q, left_len, l);
-            add_candidate(&mut uniq, &q);
-
-            // Reverse both sequentially: prefix then suffix
-            let mut r = p;
-            reverse_range(&mut r, left_len, l);
-            add_candidate(&mut uniq, &r);
-        }
-    }
-
-    uniq.len()
+    v[start..end_exclusive].reverse();
 }
 
 fn main() {
@@ -93,17 +13,72 @@ fn main() {
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let t: usize = match it.next() {
+    let n: usize = match it.next() {
         Some(x) => x.parse().unwrap(),
         None => return,
     };
 
-    let mut out = String::new();
-    for _ in 0..t {
-        let s = it.next().unwrap().as_bytes().to_vec();
-        let ans = process_one(&s);
-        out.push_str(&format!("{ans}\n"));
+    let mut outputs = Vec::with_capacity(n);
+
+    for _case in 0..n {
+        let t = it.next().unwrap_or("");
+        let bytes = t.as_bytes();
+        let l = bytes.len();
+
+        if l <= 1 {
+            outputs.push("0".to_string());
+            continue;
+        }
+
+        // Per-test-case unique set; capacity constraints are assumed by the spec.
+        let mut seen: HashSet<Vec<u8>> = HashSet::new();
+
+        for i in 1..=l - 1 {
+            // A. Reversal-based sequence on split (i, L-i)
+            let mut s = bytes.to_vec();
+
+            // 2. Consider s itself as a candidate (once per split position).
+            seen.insert(s.clone());
+
+            // 3. Reverse prefix [0..i)
+            reverse_range(&mut s, 0, i);
+            seen.insert(s.clone());
+
+            // 4. Reverse suffix [i..L)
+            reverse_range(&mut s, i, l);
+            seen.insert(s.clone());
+
+            // 5. Reverse prefix [0..i) again
+            reverse_range(&mut s, 0, i);
+            seen.insert(s.clone());
+
+            // 6. Reset s := t (implicit by reinitialization below)
+
+            // B. Rotation-then-reversal sequence
+            // 1-2. Rotate: t[i..L) + t[0..i)
+            let mut s = Vec::with_capacity(l);
+            s.extend_from_slice(&bytes[i..]);
+            s.extend_from_slice(&bytes[..i]);
+            seen.insert(s.clone());
+
+            // 3. Reverse prefix of length L-i => [0..L-i)
+            let left_len = l - i;
+            reverse_range(&mut s, 0, left_len);
+            seen.insert(s.clone());
+
+            // 4. Reverse suffix of length i => [L-i..L)
+            reverse_range(&mut s, left_len, l);
+            seen.insert(s.clone());
+
+            // 5. Reverse prefix of length L-i again
+            reverse_range(&mut s, 0, left_len);
+            seen.insert(s.clone());
+
+            // 6. Reset s := t (end for this i)
+        }
+
+        outputs.push(seen.len().to_string());
     }
 
-    print!("{out}");
+    print!("{}", outputs.join("\n"));
 }

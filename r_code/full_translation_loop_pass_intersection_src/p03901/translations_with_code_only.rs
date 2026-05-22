@@ -2,127 +2,80 @@ use std::cell::RefCell;
 use std::io::{self, Read};
 
 thread_local! {
-    // Equivalent to C's static double sdRate;
+    // C's static double sdRate;
     static SD_RATE: RefCell<f64> = RefCell::new(0.0);
 }
 
-/// Read next line from a vector of lines (keeps C-like "fgets" behavior: includes '\n' if present).
-fn next_line(lines: &[String], idx: &mut usize) -> String {
-    if *idx >= lines.len() {
-        // C's fgets would return NULL; the C code doesn't check, so we emulate "empty buffer".
-        return String::new();
-    }
-    let s = lines[*idx].clone();
-    *idx += 1;
-    s
+/// Read next line from `lines` (like fgets into a 1024-byte buffer).
+/// - Returns `None` on EOF (C's fgets would return NULL; the C code doesn't check).
+fn next_line(lines: &mut std::str::Lines<'_>) -> Option<String> {
+    lines.next().map(|s| {
+        // `fgets` keeps the trailing '\n' if present; `lines()` strips it.
+        // The C code uses sscanf on the line, so newline presence doesn't matter.
+        // Still, we can mimic a typical line by re-adding '\n' (harmless for sscanf-like parsing).
+        let mut t = String::with_capacity(s.len() + 1);
+        t.push_str(s);
+        t.push('\n');
+        t
+    })
 }
 
-/// Parse an int like `sscanf(buf, "%d", &liPos)`:
-/// - skips leading whitespace
-/// - parses optional sign and digits
-/// - if no number, returns 0 (since C would leave liPos uninitialized; but here we must pick something;
-///   the C code assumes valid input, so this is a best-effort fallback).
-fn parse_i32_sscanf_d(s: &str) -> i32 {
-    let t = s.trim_start();
-    let mut chars = t.chars().peekable();
-    let mut sign: i64 = 1;
-    if let Some(&c) = chars.peek() {
-        if c == '-' {
-            sign = -1;
-            chars.next();
-        } else if c == '+' {
-            chars.next();
-        }
-    }
-    let mut any = false;
-    let mut val: i64 = 0;
-    while let Some(&c) = chars.peek() {
-        if let Some(d) = c.to_digit(10) {
-            any = true;
-            val = val * 10 + d as i64;
-            chars.next();
-        } else {
-            break;
-        }
-    }
-    if !any {
-        0
+/// Equivalent to C's fGetVal(int piPos).
+/// Note: This is naive recursion exactly like the C code (no memoization),
+/// and can overflow the stack for large |piPos|, matching the C behavior.
+fn f_get_val(pi_pos: i32) -> f64 {
+    if pi_pos % 2 == 0 {
+        // C: return (double)(piPos / 2) / sdRate;
+        // Integer division truncates toward zero in C for C99+; Rust matches.
+        let half = (pi_pos / 2) as f64;
+        SD_RATE.with(|r| half / *r.borrow())
     } else {
-        // C's %d overflow is undefined; we clamp to i32 range as a conservative choice.
-        let v = sign * val;
-        if v > i32::MAX as i64 {
-            i32::MAX
-        } else if v < i32::MIN as i64 {
-            i32::MIN
-        } else {
-            v as i32
-        }
-    }
-}
-
-/// Parse a double like `sscanf(buf, "%lf", &sdRate)`:
-/// Uses Rust's float parsing after trimming leading whitespace.
-/// If parsing fails, returns 0.0 (best-effort fallback).
-fn parse_f64_sscanf_lf(s: &str) -> f64 {
-    let t = s.trim_start();
-    // sscanf accepts "nan", "inf" etc. Rust does too (case-insensitive for "inf"/"nan" in practice).
-    t.split_whitespace()
-        .next()
-        .and_then(|tok| tok.parse::<f64>().ok())
-        .unwrap_or(0.0)
-}
-
-/// Equivalent to C's fGetVal (recursive).
-fn f_get_val(pos: i32) -> f64 {
-    // Even
-    if pos % 2 == 0 {
-        return SD_RATE.with(|r| {
+        // C:
+        // double ldVal = 1.0;
+        // ldVal += fGetVal(piPos - 1) * sdRate;
+        // ldVal += fGetVal(piPos + 1) * (1.0 - sdRate);
+        SD_RATE.with(|r| {
             let rate = *r.borrow();
-            (pos / 2) as f64 / rate
-        });
+            let mut ld_val = 1.0f64;
+            ld_val += f_get_val(pi_pos - 1) * rate;
+            ld_val += f_get_val(pi_pos + 1) * (1.0 - rate);
+            ld_val
+        })
     }
-
-    // Odd
-    let mut val = 1.0;
-    SD_RATE.with(|r| {
-        let rate = *r.borrow();
-        val += f_get_val(pos - 1) * rate;
-        val += f_get_val(pos + 1) * (1.0 - rate);
-    });
-    val
 }
 
 fn main() {
-    // Read entire stdin, then split into lines keeping '\n' like fgets.
+    // In non-test mode, C uses stdin and prints to stdout.
+    // We'll read all stdin, then parse line-by-line similarly to fgets+sscanf.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
+    let mut lines = input.lines();
 
-    let mut lines: Vec<String> = Vec::new();
-    if input.is_empty() {
-        // no lines
-    } else {
-        // split_inclusive keeps '\n' on each line, matching fgets behavior.
-        lines.extend(input.split_inclusive('\n').map(|s| s.to_string()));
-        // If input doesn't end with '\n', split_inclusive still returns the last fragment without '\n',
-        // which matches fgets behavior for the last line.
-    }
+    // Read position line
+    let pos_line = next_line(&mut lines).unwrap_or_else(|| "\n".to_string());
+    let li_pos: i32 = pos_line
+        .split_whitespace()
+        .next()
+        .unwrap_or("0")
+        .parse::<i32>()
+        .unwrap_or(0);
 
-    let mut idx = 0;
+    // Read rate line
+    let rate_line = next_line(&mut lines).unwrap_or_else(|| "\n".to_string());
+    let mut sd_rate: f64 = rate_line
+        .split_whitespace()
+        .next()
+        .unwrap_or("0")
+        .parse::<f64>()
+        .unwrap_or(0.0);
+    sd_rate /= 100.0;
 
-    // Position
-    let buf = next_line(&lines, &mut idx);
-    let pos = parse_i32_sscanf_d(&buf);
+    SD_RATE.with(|r| *r.borrow_mut() = sd_rate);
 
-    // Rate (%)
-    let buf = next_line(&lines, &mut idx);
-    let mut rate = parse_f64_sscanf_lf(&buf);
-    rate /= 100.0;
-    SD_RATE.with(|r| *r.borrow_mut() = rate);
+    // Compute expected value
+    let ld_val = f_get_val(li_pos);
 
-    // Expected value
-    let val = f_get_val(pos);
-
-    // Output: "%.7lf\n"
-    // C's printf rounds to 7 digits after decimal; Rust's formatting matches for finite values.
-    print!("{:.7}\n", val);
+    // Output: C uses sprintf("%.7lf\n", ldVal) then printf("%s", buf)
+    // Rust formatting matches: 7 digits after decimal, newline.
+    print!("{:.7}\n", ld_val);
 }

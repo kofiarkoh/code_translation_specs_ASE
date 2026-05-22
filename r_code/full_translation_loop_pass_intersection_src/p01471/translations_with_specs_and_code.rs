@@ -1,19 +1,18 @@
 use std::cmp::Ordering;
 use std::io::{self, Read};
 
+const EPS_W_ZERO: f64 = 1e-7;
+const EPS_RATIO_TIE: f64 = 1e-8;
+
 #[derive(Clone, Copy)]
 struct Item {
     w: i32,
     v: i32,
-    r: f64, // value/weight ratio
-}
-
-fn zero(a: f64) -> bool {
-    a.abs() < 1e-7
+    r: f64,
 }
 
 fn main() {
-    // Read entire stdin, parse as integers (C code uses a fast int reader).
+    // Fast input: read all bytes, parse signed integers.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -21,47 +20,43 @@ fn main() {
     let n: i32 = it.next().unwrap().parse().unwrap();
     let mut w_cap: f64 = it.next().unwrap().parse::<i32>().unwrap() as f64;
 
-    let mut items: Vec<Item> = Vec::new();
     let mut ans: f64 = 0.0;
+    let mut items: Vec<Item> = Vec::new();
 
     for _ in 0..n {
         let mut w: i32 = it.next().unwrap().parse().unwrap();
         let mut v: i32 = it.next().unwrap().parse().unwrap();
 
-        // Spec: items with nonnegative weight and nonpositive value are ignored.
+        // Rule 1: ignore
         if w >= 0 && v <= 0 {
             continue;
         }
 
-        // Spec: items with negative weight and positive value are always taken in full.
+        // Rule 2: always take fully
         if w < 0 && v > 0 {
             ans += v as f64;
-            // subtracting a negative weight increases capacity
-            w_cap -= w as f64;
+            w_cap -= w as f64; // subtracting negative increases capacity
             continue;
         }
 
-        // Remaining cases are eligible for fractional selection after transformation.
-        // This matches the C code's transformation:
-        // if w < 0 then flip signs and adjust ans and capacity.
+        // Rule 3: candidate, possibly normalized
         if w < 0 {
+            // Here implies v <= 0 per spec.
             w = -w;
             v = -v;
-            // C does: ans -= v (after v is negated), which equals ans += original_v.
             ans -= v as f64;
             w_cap += w as f64;
         }
 
-        // Preconditions: effective weight for eligible items must be nonzero.
-        // We do not add extra error handling; behavior is undefined if violated (per spec).
+        // Preconditions say candidate weight is non-zero; we follow spec (no explicit error handling).
         let r = (v as f64) / (w as f64);
         items.push(Item { w, v, r });
     }
 
-    // Sort by descending ratio r, with tolerance similar to C comparator.
+    // Sort by non-increasing ratio r. Ties are treated as equal (no further defined order).
     items.sort_by(|a, b| {
         let diff = b.r - a.r;
-        if diff.abs() < 1e-8 {
+        if diff.abs() < EPS_RATIO_TIE {
             Ordering::Equal
         } else if a.r <= b.r {
             Ordering::Greater // a after b
@@ -71,7 +66,7 @@ fn main() {
     });
 
     for item in items {
-        if zero(w_cap) {
+        if w_cap.abs() < EPS_W_ZERO {
             break;
         }
         let mut x = w_cap / (item.w as f64);
@@ -82,6 +77,6 @@ fn main() {
         ans += x * (item.v as f64);
     }
 
-    // Match C's printf("%lf\n", ans);
+    // Match C printf("%lf\n", ans): default 6 digits after decimal.
     println!("{:.6}", ans);
 }

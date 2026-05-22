@@ -3,7 +3,7 @@ use std::io::{self, Read};
 const MOD: i64 = 1_000_000_007;
 
 fn main() {
-    // Read all input as whitespace-separated tokens.
+    // Read all input (no explicit error handling per spec).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -11,8 +11,8 @@ fn main() {
     let n: usize = it.next().unwrap().parse().unwrap();
     let m: usize = it.next().unwrap().parse().unwrap();
 
-    let mut s = vec![0i64; n];
-    let mut t = vec![0i64; m];
+    let mut s = vec![0i32; n];
+    let mut t = vec![0i32; m];
 
     for i in 0..n {
         s[i] = it.next().unwrap().parse().unwrap();
@@ -21,7 +21,7 @@ fn main() {
         t[j] = it.next().unwrap().parse().unwrap();
     }
 
-    // dp[i][j] = number of common subsequences between s[0..i) and t[0..j), modulo MOD.
+    // dp[i][j] = number of distinct common subsequences between s[0..i) and t[0..j), mod MOD.
     // Base: dp[0][*] = dp[*][0] = 1 (only empty subsequence).
     let mut dp = vec![vec![0i64; m + 1]; n + 1];
 

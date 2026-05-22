@@ -1,41 +1,63 @@
 use std::io::{self, Read};
 use std::process;
 
+const CONNECT: [[usize; 4]; 12] = [
+    // {pos, h/w index, pos, h/w index}
+    [0, 1, 1, 1],
+    [0, 0, 2, 0],
+    [0, 1, 3, 1],
+    [0, 0, 4, 0],
+    [1, 0, 2, 1],
+    [2, 1, 3, 0],
+    [3, 0, 4, 1],
+    [4, 1, 1, 0],
+    [5, 1, 1, 1],
+    [5, 0, 4, 0],
+    [5, 1, 3, 1],
+    [5, 0, 4, 0], // duplicated in the C code; preserved for exact semantics
+];
+
 fn next_permutation(a: &mut [usize]) -> bool {
-    // Lexicographic next permutation; returns false if already at last permutation.
-    if a.len() < 2 {
+    // Matches the C implementation's behavior: generates next lexicographic permutation.
+    let n = a.len();
+    if n < 2 {
         return false;
     }
 
-    // Find rightmost i such that a[i] < a[i+1]
+    // Find rightmost i with a[i] < a[i+1]
     let mut i_opt: Option<usize> = None;
-    for i in (0..a.len() - 1).rev() {
+    for i in (0..=n - 2).rev() {
         if a[i] < a[i + 1] {
             i_opt = Some(i);
             break;
         }
     }
-    let i = match i_opt {
-        Some(v) => v,
+    let target = match i_opt {
+        Some(t) => t,
         None => return false,
     };
 
-    // Reverse suffix a[i+1..]
-    a[i + 1..].reverse();
+    // Reverse suffix [target+1, n)
+    let mut l = target + 1;
+    let mut r = n - 1;
+    while l < r {
+        a.swap(l, r);
+        l += 1;
+        r -= 1;
+    }
 
-    // Find first element in suffix greater than a[i] (suffix is now increasing)
-    let pivot = a[i];
-    let mut j = i + 1;
-    while j < a.len() && a[j] <= pivot {
+    // Find first element in suffix greater than a[target]
+    let mut j = target + 1;
+    while j < n && a[j] <= a[target] {
         j += 1;
     }
-    // j must exist because there was an increasing pair before reversal.
-    a.swap(i, j);
+    // In valid next-permutation state, such j must exist.
+    a.swap(target, j);
     true
 }
 
 fn main() {
-    // Read all input; if fewer than 12 integers, exit non-zero with no guaranteed output.
+    // Read all input; require exactly 12 integers (6 pairs). If not, exit non-zero and print nothing.
     let mut input = String::new();
     if io::stdin().read_to_string(&mut input).is_err() {
         process::exit(1);
@@ -56,23 +78,6 @@ fn main() {
         hw[i][1] = b;
     }
 
-    // Fixed adjacency constraints from the C code (source-of-truth for topology).
-    // Each row: {pos1, side1, pos2, side2}, where side is 0/1 and may be XORed with rotation bit.
-    const CONNECT: [[usize; 4]; 12] = [
-        [0, 1, 1, 1],
-        [0, 0, 2, 0],
-        [0, 1, 3, 1],
-        [0, 0, 4, 0],
-        [1, 0, 2, 1],
-        [2, 1, 3, 0],
-        [3, 0, 4, 1],
-        [4, 1, 1, 0],
-        [5, 1, 1, 1],
-        [5, 0, 4, 0],
-        [5, 1, 3, 1],
-        [5, 0, 4, 0],
-    ];
-
     let mut perm: [usize; 6] = [0, 1, 2, 3, 4, 5];
 
     loop {
@@ -80,16 +85,12 @@ fn main() {
             let mut ok = true;
             for c in CONNECT.iter() {
                 let p1 = c[0];
-                let s1 = c[1];
+                let idx1 = c[1] ^ (((rotate >> p1) & 1) as usize);
                 let p2 = c[2];
-                let s2 = c[3];
+                let idx2 = c[3] ^ (((rotate >> p2) & 1) as usize);
 
-                let r1 = ((rotate >> p1) & 1) as usize;
-                let r2 = ((rotate >> p2) & 1) as usize;
-
-                let len1 = hw[perm[p1]][s1 ^ r1];
-                let len2 = hw[perm[p2]][s2 ^ r2];
-
+                let len1 = hw[perm[p1]][idx1];
+                let len2 = hw[perm[p2]][idx2];
                 if len1 != len2 {
                     ok = false;
                     break;

@@ -10,38 +10,34 @@ fn main() {
     let y: i32 = it.next().unwrap().parse().unwrap();
 
     // Compute using i64 to match C's `long long` for `ans`.
-    // Note: In the original C, expressions like `-x` can overflow for x == INT_MIN (UB).
-    // Here we emulate typical two's-complement wraparound for those i32 operations
-    // by using wrapping arithmetic where needed.
-    let mut ans: i64 = 0;
+    // Note: In C, intermediate `int` arithmetic could overflow (UB). We emulate
+    // typical two's-complement wrapping by doing all arithmetic in i64.
+    let x64 = x as i64;
+    let y64 = y as i64;
 
+    let ans: i64;
     if x >= 0 {
         if y >= x {
-            ans = (-(x as i64)) + (y as i64);
+            ans = -x64 + y64;
         } else if y > 0 {
-            ans = (x as i64) - (y as i64) + 2;
+            ans = x64 - y64 + 2;
+        } else if y >= -x {
+            ans = x64 + y64 + 1;
         } else {
-            // Conditions involve -x in C; use wrapping negation on i32 to mimic common behavior.
-            let neg_x = x.wrapping_neg();
-            if y >= neg_x {
-                ans = (x as i64) + (y as i64) + 1;
-            } else {
-                ans = (-(y as i64)) - (x as i64) + 1;
-            }
+            ans = -y64 - x64 + 1;
         }
     } else {
-        let neg_x = x.wrapping_neg();
-        if y >= neg_x {
-            ans = (x as i64) + (y as i64) + 1;
+        if y >= -x {
+            ans = x64 + y64 + 1;
         } else if y > 0 {
-            ans = (-(x as i64)) - (y as i64) + 1;
+            ans = -x64 - y64 + 1;
         } else if y >= x {
-            ans = (-(x as i64)) + (y as i64);
+            ans = -x64 + y64;
         } else {
-            ans = (x as i64) - (y as i64) + 2;
+            ans = x64 - y64 + 2;
         }
     }
 
-    // Output exactly like printf("%lld", ans); (no trailing newline)
+    // No trailing newline, matching printf("%lld", ans);
     print!("{}", ans);
 }

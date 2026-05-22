@@ -3,7 +3,7 @@ use std::io::{self, Read};
 #[derive(Clone, Copy)]
 struct Edge {
     to: i32,
-    next: i32, // index of next edge in adjacency list, -1 means nil
+    next: Option<usize>,
 }
 
 fn main() {
@@ -14,36 +14,30 @@ fn main() {
 
     let n: usize = match it.next() {
         Some(v) => v.parse().unwrap(),
-        None => return, // no input
+        None => return,
     };
     let m: usize = it.next().unwrap().parse().unwrap();
 
-    // C uses fixed-size arrays of 1<<17; we mirror that capacity.
+    // C uses fixed-size arrays of size 1<<17. Keep the same capacity.
     const MAX: usize = 1 << 17;
 
-    // d initialized to -1; later d[1]=0 and for visited nodes d[j]=parent i.
+    // d[] initialized to -1 for i=0..=N; others unused.
     let mut d = vec![-1i32; MAX];
-    let mut head = vec![-1i32; MAX]; // G[i].next, -1 is nil
 
-    // Queue array and indices l,r (no wraparound in C; assume fits).
-    let mut que = vec![0i32; MAX];
-    let mut l: usize = 0;
-    let mut r: usize = 0;
-
-    // Edge pool to emulate malloc'ed linked list nodes.
+    // Adjacency list: head index into `edges` (None == nil).
+    let mut head: Vec<Option<usize>> = vec![None; MAX];
     let mut edges: Vec<Edge> = Vec::with_capacity(2 * m);
 
-    // push(i, j): insert at head of adjacency list for i.
-    let mut push = |i: usize, j: i32, head: &mut [i32], edges: &mut Vec<Edge>| {
-        let next = head[i];
-        edges.push(Edge { to: j, next });
-        head[i] = (edges.len() as i32) - 1;
+    // push(i, j): insert at head (like C malloc + pointer linking).
+    let mut push = |i: usize, j: i32, head: &mut [Option<usize>], edges: &mut Vec<Edge>| {
+        let idx = edges.len();
+        edges.push(Edge { to: j, next: head[i] });
+        head[i] = Some(idx);
     };
 
-    // Initialize for i=0..=N
     for i in 0..=n {
         d[i] = -1;
-        head[i] = -1; // nil
+        head[i] = None; // G[i].next = nil
     }
 
     for _ in 0..m {
@@ -53,21 +47,26 @@ fn main() {
         push(b, a as i32, &mut head, &mut edges);
     }
 
+    // BFS with fixed-size queue like C.
+    let mut que = vec![0usize; MAX];
+    let mut l: usize = 0;
+    let mut r: usize = 0;
+
     d[1] = 0;
     que[r] = 1;
     r += 1;
 
     while l != r {
-        let i = que[l] as usize;
+        let i = que[l];
         l += 1;
 
         let mut x = head[i];
-        while x != -1 {
-            let e = edges[x as usize];
+        while let Some(eidx) = x {
+            let e = edges[eidx];
             let j = e.to as usize;
             if d[j] == -1 {
                 d[j] = i as i32;
-                que[r] = j as i32;
+                que[r] = j;
                 r += 1;
             }
             x = e.next;

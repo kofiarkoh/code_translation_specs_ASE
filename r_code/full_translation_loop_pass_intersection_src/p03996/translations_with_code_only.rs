@@ -1,54 +1,45 @@
 use std::io::{self, Read};
 
-#[derive(Clone, Copy)]
-struct Node {
-    prev: Option<usize>,
-    next: Option<usize>,
-    id: usize,
+#[derive(Clone, Copy, Default)]
+struct Data {
+    prev: Option<usize>, // index into d
+    next: Option<usize>, // index into d
+    id: i32,
     count: i32,
 }
 
 fn main() {
-    // Read entire stdin, parse as ints like scanf("%d")
+    // Read all input
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
     let n: i32 = match it.next() {
-        Some(x) => x.parse().unwrap(),
+        Some(v) => v.parse().unwrap(),
         None => return,
     };
-    let m: usize = it.next().unwrap().parse().unwrap();
-    let q: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse::<i32>().unwrap() as usize;
+    let q: usize = it.next().unwrap().parse::<i32>().unwrap() as usize;
 
     // a[1..=q]
     let mut a = vec![0usize; q + 1];
     for i in 1..=q {
-        a[i] = it.next().unwrap().parse().unwrap();
+        a[i] = it.next().unwrap().parse::<i32>().unwrap() as usize;
     }
 
-    // Prepare nodes d[0..=m]
-    let mut d = vec![
-        Node {
-            prev: None,
-            next: None,
-            id: 0,
-            count: 0
-        };
-        m + 1
-    ];
+    // Prepare d[0..=m]
+    let mut d = vec![Data::default(); m + 1];
     for i in 0..=m {
-        d[i].id = i;
+        d[i].id = i as i32;
     }
 
-    // p = d (points to d[0])
+    // p is an index into d; start at d[0]
     let mut p: usize = 0;
     d[0].count = n;
 
-    // Build linked list via indices.
-    // Note: The original C has UB when accessing d[a[i]].prev->count before prev is set.
-    // We emulate the *intended* behavior by treating "no prev" as pointing to d[0],
-    // which is consistent with the list being anchored at d[0] and p starting at d[0].
+    // Build linked list via indices, emulating the C pointer logic.
+    // Note: The C code reads d[a[i]].prev->count even when prev is NULL for the first inserted node,
+    // which is undefined behavior. We emulate the *intended* behavior by treating "no prev" as d[0].
     for i in (1..=q).rev() {
         let idx = a[i];
         if d[idx].count == 0 {
@@ -58,7 +49,7 @@ fn main() {
         }
         let prev_idx = d[idx].prev.unwrap_or(0);
         let prev_count = d[prev_idx].count;
-        let new_count = d[idx].count.saturating_add(1);
+        let new_count = d[idx].count + 1;
         d[idx].count = if new_count < prev_count { new_count } else { prev_count };
     }
 
@@ -73,7 +64,7 @@ fn main() {
         if d[ci].count != n {
             break;
         }
-        complete[d[ci].id] = true;
+        complete[d[ci].id as usize] = true;
         while allow <= m && complete[allow] {
             allow += 1;
         }
@@ -81,7 +72,7 @@ fn main() {
     }
 
     while let Some(ci) = cur {
-        if d[ci].id != allow {
+        if d[ci].id as usize != allow {
             print!("No\n");
             return;
         }

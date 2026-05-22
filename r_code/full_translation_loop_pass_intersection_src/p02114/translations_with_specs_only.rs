@@ -1,50 +1,79 @@
+use std::collections::VecDeque;
 use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin; input is assumed well-formed per specification, but the
+    // grid may be provided as n lines of length n without whitespace between cells.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
-    let mut it = input.split_whitespace();
 
-    let n: usize = match it.next() {
-        Some(s) => s.parse().unwrap(),
-        None => return,
-    };
+    // Parse n from the beginning, then parse the grid as raw characters.
+    let bytes = input.as_bytes();
+    let mut idx: usize = 0;
 
-    const MAXN: usize = 300; // includes 1-cell padding; precondition implies n <= 298
-    let mut grid = vec![vec![0u8; MAXN]; MAXN];
+    // Skip leading whitespace
+    while idx < bytes.len() && bytes[idx].is_ascii_whitespace() {
+        idx += 1;
+    }
+    // Parse integer n
+    let mut n: usize = 0;
+    while idx < bytes.len() && !bytes[idx].is_ascii_whitespace() {
+        let b = bytes[idx];
+        if b.is_ascii_digit() {
+            n = n * 10 + (b - b'0') as usize;
+        }
+        idx += 1;
+    }
 
-    // The grid is provided as n tokens, each typically a string of length n (e.g., "oxooo").
-    // Read n rows; if a token is shorter than n, missing cells become non-'o'.
-    for i in 1..=n {
-        let row = it.next().unwrap_or("");
-        let bytes = row.as_bytes();
-        for j in 1..=n {
-            grid[i][j] = *bytes.get(j - 1).unwrap_or(&b'\0');
+    // Collect next n*n non-whitespace bytes as cells.
+    let need = n.saturating_mul(n);
+    let mut cells: Vec<u8> = Vec::with_capacity(need);
+    while idx < bytes.len() && cells.len() < need {
+        let b = bytes[idx];
+        if !b.is_ascii_whitespace() {
+            cells.push(b);
+        }
+        idx += 1;
+    }
+
+    // If insufficient cells are present, behavior is undefined per spec; avoid panic.
+    if cells.len() < need {
+        return;
+    }
+
+    let mut grid: Vec<Vec<u8>> = vec![vec![b'.'; n]; n];
+    for i in 0..n {
+        for j in 0..n {
+            grid[i][j] = cells[i * n + j];
         }
     }
 
-    const STACK_CAP: usize = 100_010; // precondition: any single region <= this many cells
-    let mut stack: Vec<(usize, usize)> = Vec::with_capacity(STACK_CAP);
+    let mut visited = vec![vec![false; n]; n];
+    let mut components: i64 = 0;
 
-    let mut regions: i64 = 0;
+    let dirs: [(isize, isize); 4] = [(-1, 0), (1, 0), (0, -1), (0, 1)];
 
-    for i in 1..=n {
-        for j in 1..=n {
-            if grid[i][j] == b'o' {
-                regions += 1;
+    for i in 0..n {
+        for j in 0..n {
+            if !visited[i][j] && grid[i][j] == b'o' {
+                components += 1;
+                visited[i][j] = true;
 
-                grid[i][j] = 0;
-                stack.clear();
-                stack.push((i, j));
+                let mut q = VecDeque::new();
+                q.push_back((i, j));
 
-                while let Some((x, y)) = stack.pop() {
-                    // Use padding to avoid bounds checks; indices stay within 0..MAXN under preconditions.
-                    let neighbors = [(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)];
-                    for (nx, ny) in neighbors {
-                        if grid[nx][ny] == b'o' {
-                            grid[nx][ny] = 0;
-                            // If this exceeds STACK_CAP, preconditions are violated; behavior is undefined.
-                            stack.push((nx, ny));
+                while let Some((x, y)) = q.pop_front() {
+                    for (dx, dy) in dirs {
+                        let nx = x as isize + dx;
+                        let ny = y as isize + dy;
+                        if nx < 0 || ny < 0 || nx >= n as isize || ny >= n as isize {
+                            continue;
+                        }
+                        let nxu = nx as usize;
+                        let nyu = ny as usize;
+                        if !visited[nxu][nyu] && grid[nxu][nyu] == b'o' {
+                            visited[nxu][nyu] = true;
+                            q.push_back((nxu, nyu));
                         }
                     }
                 }
@@ -52,7 +81,7 @@ fn main() {
         }
     }
 
-    // Output floor((regions - 1) / 3). For regions >= 0, Rust's truncating division matches floor.
-    let ans: i64 = (regions - 1) / 3;
-    println!("{ans}");
+    // Output floor((C-1)/3) as integer division on signed integers.
+    let ans = (components - 1) / 3;
+    println!("{}", ans);
 }

@@ -11,7 +11,7 @@ fn main() {
     loop {
         let n_opt = it.next();
         if n_opt.is_none() {
-            break; // No explicit error handling per spec; just stop if input ends.
+            break; // Unspecified behavior in spec; we just stop if input ends.
         }
         let n: usize = n_opt.unwrap().parse().unwrap();
         let m: usize = it.next().unwrap().parse().unwrap();
@@ -20,9 +20,9 @@ fn main() {
             break;
         }
 
-        // Spec preconditions guarantee n>0 and m>0 for non-terminating cases.
-        // We do not need to store the whole matrix; only column sums are required.
-        let mut cnt = vec![0i64; m];
+        // Compute column sums while reading; no need to store the full matrix.
+        // Spec allows any approach as long as behavior matches.
+        let mut cnt: Vec<i64> = vec![0; m];
         for _ in 0..n {
             for j in 0..m {
                 let v: i64 = it.next().unwrap().parse().unwrap();
@@ -30,14 +30,10 @@ fn main() {
             }
         }
 
-        // Order columns by:
-        // 1) descending column sum
-        // 2) ascending column index (1-based) for ties
+        // Order columns by non-increasing sum; tie-break by smaller index first.
+        // This matches the spec's stable tie-breaking requirement.
         let mut idx: Vec<usize> = (0..m).collect();
-        idx.sort_by(|&a, &b| {
-            // Descending sum, then ascending index.
-            cnt[b].cmp(&cnt[a]).then_with(|| a.cmp(&b))
-        });
+        idx.sort_by(|&a, &b| cnt[b].cmp(&cnt[a]).then_with(|| a.cmp(&b)));
 
         for (k, &col) in idx.iter().enumerate() {
             if k > 0 {

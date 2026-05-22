@@ -2,38 +2,49 @@ use std::io::{self, Read};
 
 fn main() {
     // Read all input as whitespace-separated integers.
-    let mut s = String::new();
-    io::stdin().read_to_string(&mut s).unwrap();
-    let mut it = s.split_whitespace();
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
     let n: usize = match it.next() {
         Some(v) => v.parse().unwrap(),
-        None => return, // Undefined by spec if missing; keep minimal behavior.
+        None => return, // No explicit error handling required by spec.
     };
     let k: usize = match it.next() {
         Some(v) => v.parse().unwrap(),
-        None => return, // Undefined by spec if missing.
+        None => return,
     };
 
-    // Fixed internal capacity per spec; behavior undefined if exceeded.
-    // We do not enforce it with explicit error handling.
     let mut a: Vec<i64> = Vec::with_capacity(n);
     for _ in 0..n {
-        let v: i64 = it.next().unwrap().parse().unwrap();
-        a.push(v);
+        if let Some(v) = it.next() {
+            a.push(v.parse::<i64>().unwrap());
+        } else {
+            // Spec: no explicit error handling; insufficient input => undefined.
+            // We return to keep code safe/compilable.
+            return;
+        }
     }
 
-    // Apply up to K transformations, stopping early if all elements become N.
-    for _step in 0..k {
-        // Difference array for range add; length n+1 to allow r+1 decrement.
-        let mut diff = vec![0i64; n + 1];
+    // Apply up to K iterations, stopping early if all values become N.
+    for _ in 0..k {
+        // Early termination condition: pointwise maximal (all N).
+        if a.iter().all(|&x| x == n as i64) {
+            break;
+        }
 
-        for (i0, &val) in a.iter().enumerate() {
-            // Indices are 0-based here; spec is 1-based but semantics identical.
-            // Influence range: [i - val, i + val] clipped to [0, n-1].
-            let i = i0 as i64;
-            let mut l = i - val;
-            let mut r = i + val;
+        // Difference array for range add; length n+1 to allow r+1 decrement.
+        let mut diff = vec![0i32; n + 1];
+
+        for (j, &aj) in a.iter().enumerate() {
+            // Preconditions assume non-negative aj; if violated, behavior is undefined.
+            // We still compute with a narrow interpretation: negative yields empty/odd ranges.
+            let reach = aj;
+
+            // Compute inclusive range [l, r] in 0-based indices, clamped to [0, n-1].
+            let mut l = j as i64 - reach;
+            let mut r = j as i64 + reach;
+
             if l < 0 {
                 l = 0;
             }
@@ -42,35 +53,28 @@ fn main() {
                 r = n1;
             }
 
-            let l_usize = l as usize;
-            let r_usize = r as usize;
-
-            diff[l_usize] += 1;
-            if r_usize + 1 < diff.len() {
-                diff[r_usize + 1] -= 1;
+            if l <= r {
+                let li = l as usize;
+                let ri = r as usize;
+                diff[li] += 1;
+                if ri + 1 < diff.len() {
+                    diff[ri + 1] -= 1;
+                }
             }
         }
 
+        // Prefix sum to build next array; values are in [0, N] by construction.
         let mut next = vec![0i64; n];
-        let mut cur = 0i64;
-        let mut all_n = true;
-        let n_i64 = n as i64;
-
-        for j in 0..n {
-            cur += diff[j];
-            next[j] = cur;
-            if cur != n_i64 {
-                all_n = false;
-            }
+        let mut cur: i32 = 0;
+        for i in 0..n {
+            cur += diff[i];
+            next[i] = cur as i64;
         }
 
         a = next;
-        if all_n {
-            break;
-        }
     }
 
-    // Output final sequence.
+    // Output final sequence, space-separated, newline-terminated.
     let mut out = String::new();
     for i in 0..n {
         if i > 0 {

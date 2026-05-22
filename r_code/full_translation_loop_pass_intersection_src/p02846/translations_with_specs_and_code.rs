@@ -1,19 +1,19 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read all input as i64 values.
-    let mut s = String::new();
-    io::stdin().read_to_string(&mut s).unwrap();
-    let mut it = s.split_whitespace().map(|x| x.parse::<i64>().unwrap());
+    // Read all input as whitespace-separated signed integers (C long long semantics assumed).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let t1 = it.next().unwrap();
-    let t2 = it.next().unwrap();
-    let mut a1 = it.next().unwrap();
-    let mut a2 = it.next().unwrap();
-    let mut b1 = it.next().unwrap();
-    let mut b2 = it.next().unwrap();
+    let t1: i64 = it.next().unwrap().parse().unwrap();
+    let t2: i64 = it.next().unwrap().parse().unwrap();
+    let mut a1: i64 = it.next().unwrap().parse().unwrap();
+    let mut a2: i64 = it.next().unwrap().parse().unwrap();
+    let mut b1: i64 = it.next().unwrap().parse().unwrap();
+    let mut b2: i64 = it.next().unwrap().parse().unwrap();
 
-    // Equality check is on original inputs (swapping does not affect it).
+    // 5.1 Total-equality check
     let total_a = a1 * t1 + a2 * t2;
     let total_b = b1 * t1 + b2 * t2;
     if total_a == total_b {
@@ -21,25 +21,26 @@ fn main() {
         return;
     }
 
-    // Normalize so that a1 <= b1 by swapping the per-time-unit pairs if needed.
+    // 5.2 Normalization (possible swap)
     if a1 > b1 {
         std::mem::swap(&mut a1, &mut b1);
         std::mem::swap(&mut a2, &mut b2);
     }
 
+    // 5.3 Derived quantities and integer result
     let x = (b1 - a1) * t1;
     let y = (a2 - b2) * t2;
 
     if x > y {
         print!("0\n");
     } else {
-        // Precondition (from spec): divisor must be non-zero on this path.
-        let denom = y - x;
-        let q = x / denom;
-        if x % denom == 0 {
-            print!("{}\n", q * 2);
+        let d = y - x;
+        // Per spec: if d == 0, division/modulo by zero is undefined in C.
+        // We intentionally do not guard against it to preserve semantics.
+        if x % d == 0 {
+            print!("{}\n", 2 * (x / d));
         } else {
-            print!("{}\n", q * 2 + 1);
+            print!("{}\n", 2 * (x / d) + 1);
         }
     }
 }

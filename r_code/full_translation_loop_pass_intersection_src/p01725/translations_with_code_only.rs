@@ -14,55 +14,65 @@ struct T {
     id: i8,
 }
 
-fn token(c: u8) -> i8 {
-    match c {
-        b'+' => PLUS,
-        b'-' => MINUS,
-        _ => MUL, // only '*'
-    }
-}
-
-fn rank(op: i8, rid: usize, tbl: &[[i32; 3]; 13]) -> i32 {
-    if op == LEFT {
-        LEFT as i32
-    } else {
-        tbl[rid][op as usize]
-    }
-}
+static TBL: [[i32; 3]; 13] = [
+    [1, 2, 3],
+    [1, 3, 2],
+    [2, 1, 3],
+    [2, 3, 1],
+    [3, 1, 2],
+    [3, 2, 1],
+    [1, 1, 1],
+    [1, 1, 2],
+    [2, 2, 1],
+    [1, 2, 1],
+    [2, 1, 2],
+    [1, 2, 2],
+    [2, 1, 1],
+];
 
 fn is_digit(b: u8) -> bool {
     b'0' <= b && b <= b'9'
 }
 
+fn get_int(bytes: &[u8], p: &mut usize) -> i64 {
+    let mut n: i64 = 0;
+    while *p < bytes.len() && is_digit(bytes[*p]) {
+        n = n.wrapping_mul(10).wrapping_add((bytes[*p] - b'0') as i64);
+        *p += 1;
+    }
+    n
+}
+
+fn token(c: u8) -> i8 {
+    match c {
+        b'+' => PLUS,
+        b'-' => MINUS,
+        _ => MUL, // includes '*'
+    }
+}
+
+fn rank(rid: usize, op: i8) -> i32 {
+    if op == LEFT {
+        LEFT as i32
+    } else {
+        TBL[rid][op as usize]
+    }
+}
+
 fn main() {
-    // Read entire stdin, then mimic scanf("%s", str): take first whitespace-delimited token.
+    // Read entire stdin, then mimic scanf("%s", str) by taking the first token.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let s = match input.split_whitespace().next() {
-        Some(t) => t.as_bytes().to_vec(),
-        None => return, // no input; C would have undefined behavior, but we just exit.
+        Some(t) => t,
+        None => return,
     };
+    let bytes = s.as_bytes();
 
-    let tbl: [[i32; 3]; 13] = [
-        [1, 2, 3],
-        [1, 3, 2],
-        [2, 1, 3],
-        [2, 3, 1],
-        [3, 1, 2],
-        [3, 2, 1],
-        [1, 1, 1],
-        [1, 1, 2],
-        [2, 2, 1],
-        [1, 2, 1],
-        [2, 1, 2],
-        [1, 2, 2],
-        [2, 1, 1],
-    ];
+    let mut stack = vec![T::default(); MAX + 3];
+    let mut buf = vec![T::default(); MAX + 3];
 
-    let mut stack = [T::default(); MAX + 3];
-    let mut buf = [T::default(); MAX + 3];
-
-    let mut first = true;
+    let mut f = true;
     let mut ans: i64 = 0;
 
     for rid in 0..13 {
@@ -70,19 +80,12 @@ fn main() {
         let mut top: usize = 0;
         let mut end: usize = 0;
 
-        // Shunting-yard to RPN, with custom precedence per rid.
-        while p < s.len() {
-            let c = s[p];
+        // Shunting-yard to RPN in buf[]
+        while p < bytes.len() {
+            let c = bytes[p];
             if is_digit(c) {
-                // getInt(): parse consecutive digits, using i64 wrapping like C signed overflow intent.
-                let mut n: i64 = 0;
-                while p < s.len() && is_digit(s[p]) {
-                    let d = (s[p] - b'0') as i64;
-                    n = n.wrapping_mul(10).wrapping_add(d);
-                    p += 1;
-                }
                 buf[end].id = VAL;
-                buf[end].v = n;
+                buf[end].v = get_int(bytes, &mut p);
                 end += 1;
             } else if c == b')' {
                 while top > 0 && stack[top - 1].id != LEFT {
@@ -91,8 +94,8 @@ fn main() {
                     end += 1;
                 }
                 p += 1;
-                // In the C code, this does `top--` unconditionally (assumes matching '(').
-                // Preserve behavior: if malformed, this would underflow in C (UB); here we saturate at 0.
+                // In the original C, this decrements top even if no LEFT exists (UB).
+                // Here we saturate to preserve typical intended behavior on valid inputs.
                 if top > 0 {
                     top -= 1;
                 }
@@ -104,8 +107,7 @@ fn main() {
                 let id = token(c);
                 p += 1;
                 while top > 0 {
-                    let cond = rank(id, rid, &tbl) <= rank(stack[top - 1].id, rid, &tbl);
-                    if cond {
+                    if rank(rid, id) <= rank(rid, stack[top - 1].id) {
                         top -= 1;
                         buf[end] = stack[top];
                         end += 1;
@@ -123,7 +125,7 @@ fn main() {
             end += 1;
         }
 
-        // Evaluate RPN.
+        // Evaluate RPN
         top = 0;
         for i in 0..end {
             let id = buf[i].id;
@@ -131,11 +133,12 @@ fn main() {
                 stack[top].v = buf[i].v;
                 top += 1;
             } else {
-                // C assumes enough operands; preserve wrapping arithmetic.
+                // C assumes well-formed expression; keep same assumption.
                 top -= 1;
                 let v1 = stack[top].v;
                 top -= 1;
                 let mut v2 = stack[top].v;
+
                 if id == PLUS {
                     v2 = v2.wrapping_add(v1);
                 } else if id == MINUS {
@@ -148,15 +151,16 @@ fn main() {
             }
         }
 
-        // Replicate the (slightly odd) C logic exactly.
-        if first {
+        // Match the C code's slightly odd stack indexing in the update.
+        if f {
             top -= 1;
             ans = stack[top].v;
-            first = false;
+            f = false;
         } else {
             top -= 1;
-            if ans < stack[top].v {
-                // C does: ans = stack[top].v; (after having decremented top in the condition)
+            let cur = stack[top].v;
+            if ans < cur {
+                // C does: ans = stack[top].v after decrementing top in the condition.
                 ans = stack[top].v;
             }
         }

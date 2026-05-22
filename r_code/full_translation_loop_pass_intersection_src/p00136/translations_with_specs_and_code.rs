@@ -1,10 +1,9 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin (no explicit error handling per spec).
+    // Read entire stdin as whitespace-separated tokens (matches scanf-style behavior).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
-
     let mut it = input.split_whitespace();
 
     let n: i32 = it.next().unwrap().parse().unwrap();
@@ -16,30 +15,27 @@ fn main() {
     let mut ce: usize = 0;
     let mut cf: usize = 0;
 
-    // Spec: if n is negative, process no heights and still print histogram of zeros.
-    if n > 0 {
-        for _ in 0..n {
-            let h: f64 = it.next().unwrap().parse().unwrap();
-            if h < 165.0 {
-                ca += 1;
-            } else if h >= 165.0 && h < 170.0 {
-                cb += 1;
-            } else if h >= 170.0 && h < 175.0 {
-                cc += 1;
-            } else if h >= 175.0 && h < 180.0 {
-                cd += 1;
-            } else if h >= 180.0 && h < 185.0 {
-                ce += 1;
-            } else {
-                // h >= 185.0
-                cf += 1;
-            }
+    // Spec assumes n is non-negative; if negative, behavior is unspecified (we follow that).
+    for _ in 0..(n as usize) {
+        let h: f64 = it.next().unwrap().parse().unwrap();
+        if h < 165.0 {
+            ca += 1;
+        } else if h >= 165.0 && h < 170.0 {
+            cb += 1;
+        } else if h >= 170.0 && h < 175.0 {
+            cc += 1;
+        } else if h >= 175.0 && h < 180.0 {
+            cd += 1;
+        } else if h >= 180.0 && h < 185.0 {
+            ce += 1;
+        } else {
+            // h >= 185.0
+            cf += 1;
         }
     }
 
-    // Preserve exact output formatting: "k:" then k markers, then newline; six lines.
+    // Exact output format: six lines, "k:" followed immediately by '*' repeated count times, then '\n'.
     let mut out = String::new();
-
     out.push_str("1:");
     out.push_str(&"*".repeat(ca));
     out.push('\n');

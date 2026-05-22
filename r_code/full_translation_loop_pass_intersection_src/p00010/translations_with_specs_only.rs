@@ -1,15 +1,14 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin
+    // Read entire stdin; no explicit error handling per specification.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
-
     let mut it = input.split_whitespace();
 
     let t: usize = match it.next() {
         Some(s) => s.parse().unwrap(),
-        None => return, // No input: unspecified; exit quietly.
+        None => return,
     };
 
     let mut out = String::new();
@@ -22,8 +21,8 @@ fn main() {
         let x3: f64 = it.next().unwrap().parse().unwrap();
         let y3: f64 = it.next().unwrap().parse().unwrap();
 
-        // Circumcenter formula for three non-collinear points.
-        // Denominator is guaranteed non-zero by preconditions.
+        // Circumcenter formula via determinant.
+        // Preconditions guarantee non-collinearity and distinct points, so denominator != 0.
         let d = 2.0 * (x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2));
 
         let x1sq_y1sq = x1 * x1 + y1 * y1;
@@ -33,32 +32,13 @@ fn main() {
         let ux = (x1sq_y1sq * (y2 - y3) + x2sq_y2sq * (y3 - y1) + x3sq_y3sq * (y1 - y2)) / d;
         let uy = (x1sq_y1sq * (x3 - x2) + x2sq_y2sq * (x1 - x3) + x3sq_y3sq * (x2 - x1)) / d;
 
-        // Radius computation with "data-dependent iterative refinement" as implied:
-        // Use Newton-Raphson to compute sqrt(r2) rather than calling sqrt directly.
-        // Preconditions guarantee r2 > 0 and normal floating-point behavior.
-        let dx = x1 - ux;
-        let dy = y1 - uy;
-        let r2 = dx * dx + dy * dy;
+        // Radius is distance from center to first point.
+        // Preconditions state center != first point and radius remains finite; otherwise undefined.
+        let dx = ux - x1;
+        let dy = uy - y1;
+        let r = (dx * dx + dy * dy).sqrt();
 
-        // Newton iteration for sqrt(r2).
-        // Start with a positive guess; r2 > 0 by precondition.
-        let mut r = if r2 >= 1.0 { r2 } else { 1.0 };
-        // Fixed upper bound to ensure termination even if convergence is slow.
-        // This still matches "data-dependent iterative refinement" (early break on convergence).
-        for _ in 0..100 {
-            let prev = r;
-            r = 0.5 * (r + r2 / r);
-            // Stop when no longer changing (or extremely small change).
-            if (r - prev).abs() <= 1e-15 * r.abs() {
-                break;
-            }
-        }
-        if r < 0.0 {
-            // Invariant: radius written is non-negative.
-            // Under preconditions this should not happen; keep narrow behavior.
-            r = -r;
-        }
-
+        // Fixed to three digits after decimal point.
         out.push_str(&format!("{:.3} {:.3} {:.3}\n", ux, uy, r));
     }
 

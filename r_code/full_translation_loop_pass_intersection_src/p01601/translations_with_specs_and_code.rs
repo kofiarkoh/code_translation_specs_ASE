@@ -1,6 +1,7 @@
 use std::io::{self, Read};
 
 fn rev(mut n: i32) -> i32 {
+    // Matches C behavior: reverse decimal digits for n > 0; returns 0 for n <= 0.
     let mut out: i32 = 0;
     while n > 0 {
         out = out * 10 + (n % 10);
@@ -10,15 +11,13 @@ fn rev(mut n: i32) -> i32 {
 }
 
 fn main() {
-    // No explicit error handling per spec: assume valid integer input exists.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let n: i32 = input.split_whitespace().next().unwrap().parse().unwrap();
 
     let mut i: i32 = 0;
-
     loop {
-        // Check downward candidate first to ensure tie breaks toward smaller value.
+        // Prefer smaller palindrome at equal distance: check n - i first (if non-negative).
         if n - i >= 0 {
             let cand = n - i;
             if rev(cand) == cand {

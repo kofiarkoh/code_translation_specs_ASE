@@ -1,36 +1,32 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read all input (no explicit error handling per spec).
+    // Read entire stdin
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let n: i32 = it.next().unwrap().parse().unwrap();
+    let n: usize = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return, // Undefined behavior per spec if missing; just exit.
+    };
 
-    // Spec notes fixed-size storage up to 1000 integers.
-    // The C code uses 1-based indexing into num[1000], which is actually out-of-bounds for n=1000.
-    // Per spec, we assume the provided length does not exceed internal capacity; we implement safely.
-    let n_usize = if n < 0 { 0 } else { n as usize };
-
-    // Use 1-based indexing by allocating n+3 to allow i+2 access without bounds checks issues.
-    // (Still only filled up to n.)
-    let mut num = vec![0i32; n_usize + 3];
-
-    for i in 1..=n_usize {
-        num[i] = it.next().unwrap().parse().unwrap();
+    // Store up to n elements; spec assumes 1 <= n <= 999.
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        a.push(v);
     }
 
-    let mut count: i32 = 0;
-
-    if n_usize >= 3 {
-        for i in 1..=(n_usize - 2) {
-            if num[i] < num[i + 1] {
-                if num[i + 1] < num[i + 2] {
+    let mut count: i64 = 0;
+    if n >= 3 {
+        for i in 0..(n - 2) {
+            if a[i] < a[i + 1] {
+                if a[i + 1] < a[i + 2] {
                     count += 1;
                 }
-            } else if num[i] > num[i + 1] {
-                if num[i + 1] > num[i + 2] {
+            } else if a[i] > a[i + 1] {
+                if a[i + 1] > a[i + 2] {
                     count += 1;
                 }
             }

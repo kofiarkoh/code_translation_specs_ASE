@@ -1,7 +1,7 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin (scanf-style whitespace-separated integers).
+    // Read entire stdin (scanf-style whitespace-separated parsing)
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -10,9 +10,8 @@ fn main() {
     let b: i32 = it.next().unwrap().parse().unwrap();
     let c: i32 = it.next().unwrap().parse().unwrap();
 
-    // C performs integer division with truncation toward zero.
-    // Note: In C, division by zero is undefined behavior; in Rust it panics.
-    // We do not attempt to emulate UB beyond Rust's behavior.
+    // In C, b/a is integer division; division by zero is undefined behavior.
+    // We mirror the intended behavior for valid inputs (a != 0).
     let q = b / a;
 
     if q <= c {

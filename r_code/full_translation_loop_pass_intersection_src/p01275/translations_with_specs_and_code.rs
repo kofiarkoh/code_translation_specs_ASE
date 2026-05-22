@@ -9,31 +9,31 @@ fn find_not_zero(diff: &[u8], start: usize, n: usize) -> Option<usize> {
     None
 }
 
-fn rotate_count(diff: &[u8], n: usize, acc: i32, min_: &mut i32) {
+fn rotate_count(diff: &[u8], acc: i32, n: usize, min_val: &mut i32) {
     let pos = match find_not_zero(diff, 0, n) {
         None => {
-            if *min_ > acc {
-                *min_ = acc; // monotonic decrease as better solutions are found
+            if acc < *min_val {
+                *min_val = acc;
             }
             return;
         }
         Some(p) => p,
     };
 
-    let offs = diff[pos]; // 1..9
-    let mut diff2 = [0u8; 10];
-    // C code copies 10 bytes regardless of n; we mirror that fixed-size buffer behavior.
-    diff2.copy_from_slice(&diff[..10]);
+    let offs = diff[pos]; // 1..=9 by invariant (pos is non-zero)
+    let mut diff2 = diff.to_vec();
 
+    // Spec transition: choose end index i in [pos, n-1], subtract offs from [pos..=i] mod 10.
+    // The C code achieves this by iteratively extending the affected suffix one element at a time,
+    // reusing the progressively updated diff2.
     for i in pos..n {
-        // diff2[i] = (diff2[i] + 10 - offs) % 10
         diff2[i] = (diff2[i] + 10 - offs) % 10;
-        rotate_count(&diff2, n, acc + 1, min_);
+        rotate_count(&diff2, acc + 1, n, min_val);
     }
 }
 
-fn calc_diff(init: &[u8], target: &[u8], n: usize) -> [u8; 10] {
-    let mut diff = [0u8; 10];
+fn calc_diff(init: &[u8], target: &[u8], n: usize) -> Vec<u8> {
+    let mut diff = vec![0u8; n];
     for i in 0..n {
         let a = init[i] - b'0';
         let b = target[i] - b'0';
@@ -59,17 +59,16 @@ fn main() {
         let init_s = it.next().unwrap();
         let target_s = it.next().unwrap();
 
-        // Preconditions guarantee length <= 10 and exact lengths; we rely on that.
         let init = init_s.as_bytes();
         let target = target_s.as_bytes();
 
         if init[..n] == target[..n] {
             out.push_str("0\n");
         } else {
-            let mut min_ = 99i32;
             let diff = calc_diff(init, target, n);
-            rotate_count(&diff, n, 0, &mut min_);
-            out.push_str(&format!("{min_}\n"));
+            let mut min_val: i32 = 99; // matches C's initial bound
+            rotate_count(&diff, 0, n, &mut min_val);
+            out.push_str(&format!("{min_val}\n"));
         }
     }
 

@@ -1,43 +1,46 @@
 use std::io::{self, Read};
 
-fn next_value(x: i64) -> i64 {
-    // The transformation is inferred from the required sample behavior:
-    // x_{n+1} = (x_n * x_n) / 100 % 10000
-    //
-    // This is the classic "middle-square" method taking the middle 4 digits.
-    // The original spec states behavior is undefined on overflow; we therefore
-    // use i64 arithmetic and do not attempt to emulate wrapping.
-    let sq = x * x;
-    (sq / 100).rem_euclid(10_000)
-}
-
 fn main() {
     let mut input = String::new();
-    io::stdin().read_to_string(&mut input).unwrap();
+    io::stdin().read_to_string(&mut input).ok();
     let mut it = input.split_whitespace();
 
-    let t: i64 = match it.next() {
-        Some(s) => s.parse().unwrap(),
+    let n: i32 = match it.next() {
+        Some(s) => match s.parse() {
+            Ok(v) => v,
+            Err(_) => return,
+        },
         None => return,
     };
 
-    if t < 0 {
+    if n <= 0 {
         return;
     }
 
     let mut out = String::new();
 
-    for case_idx in 1..=(t as usize) {
-        let mut x: i64 = it.next().unwrap().parse().unwrap();
+    for case_idx in 1..=n {
+        let mut x: i32 = match it.next() {
+            Some(s) => match s.parse() {
+                Ok(v) => v,
+                Err(_) => return,
+            },
+            None => return,
+        };
 
-        // Match expected formatting: "Case i:" on its own line.
         out.push_str(&format!("Case {}:\n", case_idx));
 
         for _ in 0..10 {
-            x = next_value(x);
+            // Use i64 intermediates to avoid Rust i32 overflow panics in debug builds.
+            // The specification states C int overflow is undefined; this choice preserves
+            // defined behavior for all inputs representable in i32 without inventing
+            // additional I/O behavior.
+            let xx = (x as i64) * (x as i64);
+            let y = (xx / 100) % 10000; // truncates toward zero, matching C for signed integers
+            x = y as i32;
             out.push_str(&format!("{}\n", x));
         }
     }
 
-    print!("{out}");
+    print!("{}", out);
 }

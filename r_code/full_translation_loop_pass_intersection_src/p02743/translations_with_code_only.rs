@@ -6,8 +6,9 @@ fn main() {
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    // C uses long double; in Rust we approximate with f64 (platform-dependent in C too).
-    // This preserves the intended floating-point behavior as closely as possible in safe Rust.
+    // C uses long double; in Rust we approximate with f64 (platform-independent).
+    // This preserves the intended floating-point behavior as closely as possible
+    // without relying on non-portable extended precision.
     let a: f64 = it.next().unwrap().parse().unwrap();
     let b: f64 = it.next().unwrap().parse().unwrap();
     let c: f64 = it.next().unwrap().parse().unwrap();

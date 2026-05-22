@@ -6,63 +6,60 @@ fn main() {
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let n: usize = it.next().unwrap().parse().unwrap();
-    let a: i64 = it.next().unwrap().parse().unwrap();
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return, // Missing input => unspecified; exit quietly.
+    };
+    let a: i64 = it.next().unwrap().parse().unwrap(); // target (precondition: non-zero)
 
     let mut xs: Vec<i64> = Vec::with_capacity(n);
-    let mut total_sum: i64 = 0;
     for _ in 0..n {
-        let v: i64 = it.next().unwrap().parse().unwrap();
-        xs.push(v);
-        total_sum += v;
+        xs.push(it.next().unwrap().parse().unwrap());
     }
 
-    // Specification precondition: total_sum is non-negative; otherwise behavior is undefined.
-    // We choose the narrowest reasonable behavior: proceed assuming non-negative.
-    let smax: usize = if total_sum <= 0 { 0 } else { total_sum as usize };
+    // Precondition: sum of all input elements is non-negative.
+    // If violated, behavior is undefined per spec; we do not add explicit handling.
+    let total_sum_i64: i64 = xs.iter().copied().sum();
+    let total_sum: usize = total_sum_i64 as usize;
 
-    // dp[i][j][k] = number of ways to choose j elements from first i elements with sum k.
-    // Use u64 counts; overflow behavior is not specified beyond "may occur", so we use wrapping adds.
-    let mut dp = vec![vec![vec![0u64; smax + 1]; n + 1]; n + 1];
-    dp[0][0][0] = 1;
+    // dp[k][s] = number of ways to choose exactly k elements with sum exactly s
+    // from the processed prefix. This matches the invariant in the specification.
+    //
+    // Note: The spec mentions stack storage; Rust's Vec allocates on the heap.
+    // The observable behavior is the same; failure modes (OOM vs stack overflow)
+    // are unspecified/undefined anyway per spec.
+    let mut dp: Vec<Vec<u128>> = vec![vec![0u128; total_sum + 1]; n + 1];
+    dp[0][0] = 1;
 
-    for i in 0..n {
-        let x = xs[i];
-        for j in 0..=i {
-            for k in 0..=smax {
-                let cur = dp[i][j][k];
-                if cur == 0 {
-                    continue;
-                }
-                // Not take x
-                dp[i + 1][j][k] = dp[i + 1][j][k].wrapping_add(cur);
+    for &x in &xs {
+        // The computation assumes subset sums are representable over a non-negative range.
+        // We therefore only update for non-negative x; negative x would imply undefined behavior.
+        let xi = x as usize;
 
-                // Take x: only defined for non-negative sums within bound.
-                // If x is negative, the original approach's indexing would be invalid; spec says behavior undefined.
-                if x >= 0 {
-                    let nx = x as usize;
-                    if k + nx <= smax {
-                        dp[i + 1][j + 1][k + nx] = dp[i + 1][j + 1][k + nx].wrapping_add(cur);
-                    }
-                }
+        // Iterate k descending to avoid reusing the same element multiple times.
+        for k in (1..=n).rev() {
+            // Iterate s descending to preserve 0/1 choice semantics.
+            for s in (xi..=total_sum).rev() {
+                let add = dp[k - 1][s - xi];
+                dp[k][s] += add;
             }
         }
     }
 
-    // Count non-empty subsets where sum == size * a.
-    // Specification precondition: a != 0; otherwise undefined. We do not add explicit handling.
-    let mut ans: u64 = 0;
-    for size in 1..=n {
-        let target_sum_i64 = (size as i64).wrapping_mul(a);
+    // Sum over all non-empty subset sizes k >= 1 of dp[k][k * a], when in range.
+    // Only count sizes where k*a is within achievable non-negative sum range.
+    let mut ans: u128 = 0;
+    for k in 1..=n {
+        let target_sum_i64 = (k as i64) * a;
         if target_sum_i64 < 0 {
-            // Negative sums are outside the non-negative sum bound; ignore.
             continue;
         }
         let target_sum = target_sum_i64 as usize;
-        if target_sum <= smax {
-            ans = ans.wrapping_add(dp[n][size][target_sum]);
+        if target_sum <= total_sum {
+            ans += dp[k][target_sum];
         }
     }
 
+    // Output as a single integer. The spec assumes it fits in the output type.
     println!("{}", ans);
 }

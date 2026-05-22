@@ -1,50 +1,49 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, split by whitespace, parse as i128 first to avoid panics on large values,
-    // then cast to usize/u128 as needed. Invalid input behavior is unspecified by the spec.
+    // Read all input as whitespace-separated integers.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let size_i: i128 = it.next().unwrap().parse().unwrap();
-    let sel_i: i128 = it.next().unwrap().parse().unwrap();
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let k: isize = it.next().unwrap().parse().unwrap();
 
-    // Preconditions say size is non-negative and (size - selection) is well-defined and non-negative.
-    // We follow that and cast to usize for indexing/lengths.
-    let size: usize = size_i as usize;
-    let selection: usize = sel_i as usize;
+    // Value domain is [1, N] inclusive. Use 1-based indexing; index 0 unused.
+    let mut freq = vec![0usize; n + 1];
 
-    // Count frequencies for values in 1..=size.
-    // Index 0 is unused to keep direct mapping from value to slot.
-    let mut freq: Vec<u128> = vec![0u128; size + 1];
-
-    for _ in 0..size {
-        let v_i: i128 = it.next().unwrap().parse().unwrap();
-        let v: usize = v_i as usize;
-        // Spec says values are within 1..=size; no explicit error handling required.
+    for _ in 0..n {
+        let v: usize = it.next().unwrap().parse().unwrap();
+        // Preconditions guarantee 1 <= v <= n; no validation performed.
         freq[v] += 1;
     }
 
-    // Build multiset of counts for each value in 1..=size.
-    let mut counts: Vec<u128> = Vec::with_capacity(size);
-    for v in 1..=size {
-        counts.push(freq[v]);
+    // Collect frequencies of distinct values present (positive frequencies).
+    let mut present: Vec<usize> = freq.into_iter().skip(1).filter(|&c| c > 0).collect();
+    let distinct_count = present.len();
+
+    // If K >= distinct_count, output 0. K may be negative; no validation performed.
+    if k as isize >= distinct_count as isize {
+        println!("0");
+        return;
     }
 
-    // Sort counts in nondecreasing order.
-    counts.sort_unstable();
+    // Need to remove (distinct_count - K) least frequent distinct values.
+    // If K is negative, this implies removing more than all distinct values; the
+    // narrowest interpretation consistent with "at most K distinct remain" is
+    // removing all elements (sum of all present frequencies == N).
+    let need_remove_distinct: usize = if k < 0 {
+        distinct_count
+    } else {
+        distinct_count - (k as usize)
+    };
 
-    // Sum the first (size - selection) counts, excluding any counts that are zero.
-    let take_n = size.saturating_sub(selection);
-    let mut total: u128 = 0;
-    for &c in counts.iter().take(take_n) {
-        if c != 0 {
-            total += c;
-        }
+    present.sort_unstable();
+
+    let mut removed = 0usize;
+    for &c in present.iter().take(need_remove_distinct) {
+        removed += c;
     }
 
-    // Output as a single integer.
-    // The spec's sentinel (1e18) ensures this fits typical 64-bit, but we print u128 to be safe.
-    println!("{}", total);
+    println!("{}", removed);
 }

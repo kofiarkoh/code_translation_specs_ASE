@@ -1,7 +1,8 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, parse as i32 like C's "%d".
+    // Read entire stdin, parse as i32 like C's `int` (typically 32-bit).
+    // Use wrapping arithmetic to emulate C signed overflow behavior as closely as possible.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -16,8 +17,6 @@ fn main() {
         r[i] = it.next().unwrap().parse::<i32>().unwrap();
     }
 
-    // In C, signed overflow is undefined. To emulate typical two's-complement wraparound
-    // behavior (common on real systems), use wrapping arithmetic.
     let dx = x[0].wrapping_sub(x[1]);
     let dy = y[0].wrapping_sub(y[1]);
 

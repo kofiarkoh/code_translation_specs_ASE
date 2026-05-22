@@ -8,13 +8,19 @@ fn main() {
     let a: i64 = it.next().unwrap().parse().unwrap();
     let b: i64 = it.next().unwrap().parse().unwrap();
 
-    // The specification states behavior is undefined on overflow/underflow.
-    // Using i64 arithmetic; in debug builds Rust may panic on overflow, which is acceptable
-    // given the precondition that results are representable.
+    // Specification states arithmetic completes without overflow; use normal ops.
     let sum = a + b;
     let diff = a - b;
     let prod = a * b;
 
-    let max_val = sum.max(diff).max(prod);
-    print!("{max_val}");
+    // Invariant: max_so_far is always >= each considered result.
+    let mut max_so_far = sum;
+    if diff > max_so_far {
+        max_so_far = diff;
+    }
+    if prod > max_so_far {
+        max_so_far = prod;
+    }
+
+    print!("{}", max_so_far);
 }

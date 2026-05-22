@@ -1,107 +1,77 @@
+use std::collections::VecDeque;
 use std::io::{self, Read};
 
 fn main() {
-    // Read all input bytes to handle grids that may not be whitespace-separated.
-    let mut buf = Vec::new();
-    io::stdin().read_to_end(&mut buf).unwrap();
+    // Read all input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+
+    // Parse n as the first integer, then read the grid as raw characters (not whitespace tokens),
+    // because inputs may provide rows without spaces (e.g., "oxoxo").
+    let bytes = s.as_bytes();
     let mut idx = 0usize;
 
-    // Parse next signed/unsigned integer (for n).
-    fn next_usize(buf: &[u8], idx: &mut usize) -> Option<usize> {
-        while *idx < buf.len() && buf[*idx].is_ascii_whitespace() {
-            *idx += 1;
-        }
-        if *idx >= buf.len() {
-            return None;
-        }
-        let mut val: usize = 0;
-        let mut any = false;
-        while *idx < buf.len() && !buf[*idx].is_ascii_whitespace() {
-            let b = buf[*idx];
-            if b.is_ascii_digit() {
-                any = true;
-                val = val * 10 + (b - b'0') as usize;
-            } else {
-                // Unexpected char in number; mimic "no explicit error handling" by stopping.
-                return None;
+    // Skip leading whitespace
+    while idx < bytes.len() && bytes[idx].is_ascii_whitespace() {
+        idx += 1;
+    }
+    // Read integer n
+    let mut n: usize = 0;
+    while idx < bytes.len() && !bytes[idx].is_ascii_whitespace() {
+        n = n * 10 + (bytes[idx] - b'0') as usize;
+        idx += 1;
+    }
+
+    // Read next n*n non-whitespace characters as the grid
+    let mut grid = vec![vec!['\0'; n]; n];
+    for i in 0..n {
+        for j in 0..n {
+            while idx < bytes.len() && bytes[idx].is_ascii_whitespace() {
+                idx += 1;
             }
-            *idx += 1;
-        }
-        if any { Some(val) } else { None }
-    }
-
-    // Parse next non-whitespace byte as a grid cell (matches scanf(" %c")).
-    fn next_non_ws_byte(buf: &[u8], idx: &mut usize) -> Option<u8> {
-        while *idx < buf.len() && buf[*idx].is_ascii_whitespace() {
-            *idx += 1;
-        }
-        if *idx >= buf.len() {
-            None
-        } else {
-            let b = buf[*idx];
-            *idx += 1;
-            Some(b)
+            // Per spec, input is well-formed; if not, behavior is undefined (we'll just stop).
+            if idx >= bytes.len() {
+                return;
+            }
+            grid[i][j] = bytes[idx] as char;
+            idx += 1;
         }
     }
 
-    let n = match next_usize(&buf, &mut idx) {
-        Some(v) => v,
-        None => return,
-    };
-
-    // 1-cell padding around the grid, like the C code's d[300][300] with indices [i+1][j+1].
-    let mut d = vec![vec![b'\0'; n + 2]; n + 2];
+    // Count 4-neighbor connected components of 'o'
+    let mut visited = vec![vec![false; n]; n];
+    let dirs = [(1i32, 0i32), (-1, 0), (0, 1), (0, -1)];
+    let mut components: i32 = 0;
 
     for i in 0..n {
         for j in 0..n {
-            // Per spec, input provides at least n^2 characters; no explicit error handling.
-            let ch = next_non_ws_byte(&buf, &mut idx).unwrap_or(b'\0');
-            d[i + 1][j + 1] = ch;
-        }
-    }
-
-    let dx = [1isize, 0, -1, 0];
-    let dy = [0isize, 1, 0, -1];
-
-    let mut regions: i32 = 0;
-    let mut qx: Vec<usize> = Vec::new();
-    let mut qy: Vec<usize> = Vec::new();
-
-    for i in 0..n {
-        for j in 0..n {
-            if d[i + 1][j + 1] == b'x' {
+            if visited[i][j] || grid[i][j] != 'o' {
                 continue;
             }
+            components += 1;
+            let mut q = VecDeque::new();
+            visited[i][j] = true;
+            q.push_back((i, j));
 
-            // Matches C behavior: start a flood-fill from every not-yet-'x' cell,
-            // and only expand into neighbors that are exactly 'o'.
-            qx.clear();
-            qy.clear();
-            qx.push(j + 1);
-            qy.push(i + 1);
-            d[i + 1][j + 1] = b'x';
-            regions += 1;
-
-            let mut t = 0usize;
-            while t < qx.len() {
-                let x = qx[t];
-                let y = qy[t];
-                t += 1;
-
-                for k in 0..4 {
-                    let nx = (x as isize + dx[k]) as usize;
-                    let ny = (y as isize + dy[k]) as usize;
-                    if d[ny][nx] != b'o' {
+            while let Some((y, x)) = q.pop_front() {
+                for (dy, dx) in dirs {
+                    let ny = y as i32 + dy;
+                    let nx = x as i32 + dx;
+                    if ny < 0 || nx < 0 || ny >= n as i32 || nx >= n as i32 {
                         continue;
                     }
-                    d[ny][nx] = b'x';
-                    qx.push(nx);
-                    qy.push(ny);
+                    let nyu = ny as usize;
+                    let nxu = nx as usize;
+                    if !visited[nyu][nxu] && grid[nyu][nxu] == 'o' {
+                        visited[nyu][nxu] = true;
+                        q.push_back((nyu, nxu));
+                    }
                 }
             }
         }
     }
 
-    let ans = (regions - 1) / 3;
-    print!("{ans}\n");
+    // Output floor((C-1)/3) as specified.
+    let ans = (components - 1) / 3;
+    println!("{ans}");
 }

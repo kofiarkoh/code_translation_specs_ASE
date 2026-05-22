@@ -14,32 +14,31 @@ fn main() {
     };
     let s = it.next().unwrap_or("");
 
-    let bytes = s.as_bytes();
-
     let mut key_prev: i32 = 1; // initially J has the key
-    let mut _key_prev_prev: i32 = 0; // kept to preserve structure; unused in logic
+    let mut _key_prev_prev: i32 = 0;
 
     let mut schedule = [0i32; 8];
     let mut schedule_next = [0i32; 8];
-
     schedule[1] = 1;
 
+    // In the C code, `in` is a C string; indexing uses bytes.
+    // We mirror that by iterating over bytes.
+    let bytes = s.as_bytes();
+
     for i in 0..n {
-        // In C, missing default in switch would leave `key` uninitialized (UB) if unexpected char.
-        // We emulate the intended domain ('J','O','I') and map others to 0 deterministically.
-        let key: i32 = match bytes.get(i).copied() {
-            Some(b'J') => 1,
-            Some(b'O') => 2,
-            Some(b'I') => 4,
-            _ => 0,
+        let c = bytes[i] as char;
+        let key: i32 = match c {
+            'J' => 1,
+            'O' => 2,
+            'I' => 4,
+            _ => 0, // C code has no default; keep a benign value if unexpected input appears.
         };
 
         schedule_next = [0i32; 8];
 
         if i == 0 {
             for j in 0..=7 {
-                let need = key | key_prev;
-                if (j as i32 & need) == need {
+                if (j as i32 & (key | key_prev)) == (key | key_prev) {
                     schedule_next[j] = 1;
                 }
             }
@@ -50,10 +49,9 @@ fn main() {
         }
 
         for j in 0..=7 {
-            // Note: original code uses != 0 (not == need) for i>0.
             if ((j as i32) & (key | key_prev)) != 0 {
                 for k in 0..=7 {
-                    if (((k & j) != 0) && (((k as i32) & key) != 0)) {
+                    if (((k as i32) & (j as i32)) != 0) && (((k as i32) & key) != 0) {
                         let mut v = schedule_next[k] + schedule[j];
                         v %= MOD;
                         schedule_next[k] = v;

@@ -6,14 +6,14 @@ fn main() {
 
     let mut it = input.split_whitespace();
 
-    // Specification allows undefined behavior if fewer than three integers are read or invalid input.
-    // We choose the narrowest reasonable interpretation: expect exactly three parseable integers.
+    // Per specification: exactly three integers are available and parsing succeeds.
+    // If not, behavior is undefined; we allow panic via unwrap().
     let a: i64 = it.next().unwrap().parse().unwrap();
     let b: i64 = it.next().unwrap().parse().unwrap();
     let c: i64 = it.next().unwrap().parse().unwrap();
 
     let mut v = [a, b, c];
-    v.sort(); // nondecreasing order
+    v.sort_unstable();
 
     println!("{} {} {}", v[0], v[1], v[2]);
 }

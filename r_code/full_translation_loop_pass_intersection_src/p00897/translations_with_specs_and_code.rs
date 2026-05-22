@@ -2,94 +2,46 @@ use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap};
 use std::io::{self, Read};
 
-const MAX_CITIES: usize = 6002;
-const MAX_CAP: usize = 2001; // dist[][0..=2001] in C
-const INF: i32 = 0x10101010; // matches memset(0x10) pattern used in C for int
-
-struct Scanner {
-    input: Vec<u8>,
-    idx: usize,
-}
-impl Scanner {
-    fn new() -> Self {
-        let mut s = String::new();
-        io::stdin().read_to_string(&mut s).unwrap();
-        Self {
-            input: s.into_bytes(),
-            idx: 0,
-        }
-    }
-    fn skip_ws(&mut self) {
-        while self.idx < self.input.len() && self.input[self.idx].is_ascii_whitespace() {
-            self.idx += 1;
-        }
-    }
-    fn next_i32(&mut self) -> Option<i32> {
-        self.skip_ws();
-        if self.idx >= self.input.len() {
-            return None;
-        }
-        let mut n: i32 = 0;
-        while self.idx < self.input.len() {
-            let c = self.input[self.idx];
-            if !c.is_ascii_digit() {
-                break;
-            }
-            n = n * 10 + (c - b'0') as i32;
-            self.idx += 1;
-        }
-        Some(n)
-    }
-    fn next_token(&mut self) -> Option<String> {
-        self.skip_ws();
-        if self.idx >= self.input.len() {
-            return None;
-        }
-        let start = self.idx;
-        while self.idx < self.input.len() && !self.input[self.idx].is_ascii_whitespace() {
-            self.idx += 1;
-        }
-        Some(String::from_utf8_lossy(&self.input[start..self.idx]).to_string())
-    }
-}
-
 fn dijkstra(
-    adj: &[Vec<(usize, i32)>],
+    graph: &[Vec<(usize, i32)>],
     lpg: &[bool],
     cap: usize,
     start: usize,
     goal: usize,
 ) -> i32 {
-    // dist[city][remaining_cap]
-    let n = adj.len();
-    let mut dist = vec![vec![INF; cap + 1]; n];
+    // dist[city][remaining_range] = min total distance
+    // Use a large sentinel similar in spirit to the C memset(0x10, ...)
+    let inf: i32 = i32::MAX / 4;
+    let n = graph.len();
+    let mut dist = vec![vec![inf; cap + 1]; n];
 
     let mut pq: BinaryHeap<(Reverse<i32>, usize, usize)> = BinaryHeap::new();
     dist[start][cap] = 0;
     pq.push((Reverse(0), start, cap));
 
-    while let Some((Reverse(d), s, mut c)) = pq.pop() {
+    while let Some((Reverse(d), s, c0)) = pq.pop() {
         if s == goal {
             return d;
         }
-        if dist[s][c] < d {
+        if dist[s][c0] < d {
             continue;
         }
 
-        // Spec: refuel upon arrival at refueling city before further travel.
-        // C does: if (LPG[s]) c = cap;
-        if lpg[s] {
-            c = cap;
-        }
+        // Refuel happens when at a refueling city, before taking outgoing roads.
+        let c = if lpg[s] { cap } else { c0 };
 
-        for &(e, w) in &adj[s] {
-            let nc_i32 = c as i32 - w;
-            if nc_i32 < 0 {
+        for &(e, w) in &graph[s] {
+            if w < 0 {
+                // Spec says behavior unspecified; input assumed nonnegative.
                 continue;
             }
-            let nc = nc_i32 as usize;
+            let w_usize = w as usize;
+            if c < w_usize {
+                continue;
+            }
+            let nc = c - w_usize;
             let nd = d + w;
-            if dist[e][nc] > nd {
+            if nd < dist[e][nc] {
                 dist[e][nc] = nd;
                 pq.push((Reverse(nd), e, nc));
             }
@@ -99,86 +51,71 @@ fn dijkstra(
 }
 
 fn main() {
-    let mut sc = Scanner::new();
+    // Token-based input: whitespace-delimited, line boundaries irrelevant.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
     let mut out = String::new();
 
     loop {
-        let n_roads = match sc.next_i32() {
-            Some(v) => v,
-            None => break,
-        };
-        if n_roads == 0 {
-            break; // terminating condition
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // no more datasets
         }
-        let m_refuel = sc.next_i32().unwrap();
-        let cap_base = sc.next_i32().unwrap();
-        let cap = (cap_base * 10) as usize;
-
-        // The C program has fixed bounds; per spec, exceeding them is unsupported.
-        // We keep behavior defined for supported inputs.
-        if cap > MAX_CAP {
-            // Unsupported per spec; no defined behavior. We choose to still run with allocated size.
-            // (Not printing diagnostics per spec.)
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        if n == 0 {
+            break; // termination condition
         }
+        let m: usize = it.next().unwrap().parse().unwrap();
+        let u: usize = it.next().unwrap().parse().unwrap();
+        let cap: usize = 10 * u;
 
-        let start_name = sc.next_token().unwrap();
-        let goal_name = sc.next_token().unwrap();
+        let origin = it.next().unwrap().to_string();
+        let destination = it.next().unwrap().to_string();
 
-        let mut map: HashMap<String, usize> = HashMap::new();
-        map.insert(start_name, 0);
-        map.insert(goal_name, 1);
-        let mut sz: usize = 2;
+        // Map city names to ids; origin=0, destination=1 (as in C).
+        let mut id: HashMap<String, usize> = HashMap::new();
+        id.insert(origin, 0);
+        id.insert(destination, 1);
+        let mut next_id: usize = 2;
 
-        // Temporarily store edges as (a,b,w)
-        let mut edges: Vec<(usize, usize, i32)> = Vec::with_capacity(n_roads as usize);
+        // Read roads, building adjacency list on the fly.
+        let mut graph: Vec<Vec<(usize, i32)>> = vec![Vec::new(), Vec::new()];
 
-        for _ in 0..n_roads {
-            let a_name = sc.next_token().unwrap();
-            let a = if let Some(&id) = map.get(&a_name) {
-                id
-            } else {
-                let id = sz;
-                sz += 1;
-                map.insert(a_name, id);
-                id
-            };
+        for _ in 0..n {
+            let a_name = it.next().unwrap().to_string();
+            let b_name = it.next().unwrap().to_string();
+            let d: i32 = it.next().unwrap().parse().unwrap();
 
-            let b_name = sc.next_token().unwrap();
-            let b = if let Some(&id) = map.get(&b_name) {
-                id
-            } else {
-                let id = sz;
-                sz += 1;
-                map.insert(b_name, id);
-                id
-            };
+            let a = *id.entry(a_name).or_insert_with(|| {
+                let nid = next_id;
+                next_id += 1;
+                graph.push(Vec::new());
+                nid
+            });
+            let b = *id.entry(b_name).or_insert_with(|| {
+                let nid = next_id;
+                next_id += 1;
+                graph.push(Vec::new());
+                nid
+            });
 
-            let w = sc.next_i32().unwrap();
-            edges.push((a, b, w));
+            // Undirected
+            graph[a].push((b, d));
+            graph[b].push((a, d));
         }
 
-        // Build adjacency list (undirected)
-        let mut adj: Vec<Vec<(usize, i32)>> = vec![Vec::new(); sz.min(MAX_CITIES)];
-        // If sz exceeds MAX_CITIES, input is unsupported per spec; we still attempt to proceed.
-        if sz > adj.len() {
-            adj.resize(sz, Vec::new());
-        }
-        for (a, b, w) in edges {
-            adj[a].push((b, w));
-            adj[b].push((a, w));
-        }
-
-        // Refueling cities
-        let mut lpg = vec![false; sz];
-        for _ in 0..m_refuel {
-            let name = sc.next_token().unwrap();
-            if let Some(&id) = map.get(&name) {
-                lpg[id] = true;
+        // Refueling cities: tokens that don't match known cities are ignored.
+        let mut lpg = vec![false; next_id];
+        for _ in 0..m {
+            let name = it.next().unwrap();
+            if let Some(&cid) = id.get(name) {
+                lpg[cid] = true;
             }
-            // C ignores unknown refuel city names (not in hash) by checking a>=0.
         }
 
-        let ans = dijkstra(&adj, &lpg, cap, 0, 1);
+        let ans = dijkstra(&graph, &lpg, cap, 0, 1);
         out.push_str(&format!("{ans}\n"));
     }
 

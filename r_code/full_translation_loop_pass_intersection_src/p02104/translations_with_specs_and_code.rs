@@ -1,67 +1,70 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read all input
-    let mut s = String::new();
-    io::stdin().read_to_string(&mut s).unwrap();
-    let mut it = s.split_whitespace();
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
     let n: usize = it.next().unwrap().parse().unwrap();
 
-    // p[1..=n]
+    // 1-based arrays to match C semantics
     let mut p = vec![0usize; n + 1];
-    // hi counts occurrences per value (1..=n)
     let mut hi = vec![0usize; n + 1];
 
+    // First pass: read p[i], count occurrences per value
     for i in 1..=n {
         let a: usize = it.next().unwrap().parse().unwrap();
         p[i] = a;
-        // Preconditions say a in 1..=n; if violated, behavior is undefined (as in C).
+        // Spec precondition: 1 <= a <= n; otherwise behavior is undefined in C.
+        // We keep the same assumption and index directly.
         hi[a] += 1;
     }
 
-    // q[v] holds positions where value v occurs, in increasing i order as filled below.
+    // Allocate occurrence lists q[v] with exact capacity hi[v]
     let mut q: Vec<Vec<usize>> = vec![Vec::new(); n + 1];
     for v in 1..=n {
         q[v] = Vec::with_capacity(hi[v]);
     }
 
-    // Reuse hi as "current length" while filling q, matching the C code's reset.
+    // Reset hi to reuse as "current length" (like C's memset to 0)
     for v in 1..=n {
         hi[v] = 0;
     }
+
+    // Second pass: fill q[v] with positions i where p[i] == v
     for i in 1..=n {
         let a = p[i];
         q[a].push(i);
         hi[a] += 1;
     }
 
-    // Stack sp and answers
+    // Stack of available positions
     let mut sp: Vec<usize> = Vec::with_capacity(n);
     let mut ans = vec![0usize; n + 1];
 
-    // Two passes, exactly as in C:
-    // For each i, push all remaining positions of value i onto stack in reverse order,
-    // then if ans[i] not set and stack non-empty, pop one position for ans[i].
-    for _pass in 0..2 {
-        for i in 1..=n {
-            while hi[i] > 0 {
-                hi[i] -= 1;
-                // q[i][hi[i]] is the last unpushed position
-                sp.push(q[i][hi[i]]);
+    // Two rounds, matching the C loops exactly.
+    for _round in 0..2 {
+        for v in 1..=n {
+            // While hi[v] > 0: pop from q[v] (in reverse insertion order) and push onto sp
+            while hi[v] > 0 {
+                hi[v] -= 1;
+                let pos = q[v][hi[v]];
+                sp.push(pos);
             }
-            if ans[i] == 0 {
+            // If ans[v] not set and stack non-empty, assign one position
+            if ans[v] == 0 {
                 if let Some(pos) = sp.pop() {
-                    ans[i] = pos;
+                    ans[v] = pos;
                 }
             }
         }
     }
 
-    // Output n lines
+    // Output ans[1..n], one per line
     let mut out = String::new();
-    for i in 1..=n {
-        out.push_str(&format!("{}\n", ans[i]));
+    for v in 1..=n {
+        out.push_str(&format!("{}\n", ans[v]));
     }
     print!("{out}");
 }

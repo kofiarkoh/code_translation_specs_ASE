@@ -1,59 +1,51 @@
 use std::io::{self, Read};
 
+fn emit_perm(perm: &[i32], out: &mut String) {
+    for (i, v) in perm.iter().enumerate() {
+        if i != 0 {
+            out.push(' ');
+        }
+        out.push_str(&v.to_string());
+    }
+    out.push('\n');
+}
+
+fn gen(n: i32, used: &mut [bool], perm: &mut Vec<i32>, out: &mut String) {
+    if perm.len() == n as usize {
+        emit_perm(perm, out);
+        return;
+    }
+
+    for v in 1..=n {
+        let idx = (v - 1) as usize;
+        if !used[idx] {
+            used[idx] = true;
+            perm.push(v);
+            gen(n, used, perm, out);
+            perm.pop();
+            used[idx] = false;
+        }
+    }
+}
+
 fn main() {
-    // Read entire stdin; no explicit error handling per specification.
+    // No explicit error handling per spec: parsing failures are allowed to panic/abort (undefined).
     let mut input = String::new();
-    let _ = io::stdin().read_to_string(&mut input);
+    io::stdin().read_to_string(&mut input).unwrap();
+    let n: i32 = input.split_whitespace().next().unwrap().parse().unwrap();
 
-    // Parse a single integer. If parsing fails, behavior is unspecified by the spec;
-    // we choose a narrow, compilable behavior: do nothing.
-    let n_opt = input.split_whitespace().next().and_then(|s| s.parse::<i64>().ok());
-    let Some(n_i64) = n_opt else {
-        return;
-    };
-
-    // Spec precondition: non-negative. For negative, behavior is not inferable;
-    // choose narrow behavior: do nothing.
-    if n_i64 < 0 {
-        return;
-    }
-
-    let n = n_i64 as usize;
-
-    // If n == 0, print exactly one empty line.
+    // Spec says negative input is undefined; we do not define behavior here.
     if n == 0 {
-        println!();
+        // Exactly one empty line.
+        print!("\n");
         return;
     }
 
-    // Generate permutations of 1..=n and print each on its own line.
-    // Use backtracking with a used[] bitmap; stack usage proportional to n.
-    let mut perm: Vec<usize> = Vec::with_capacity(n);
-    let mut used: Vec<bool> = vec![false; n + 1]; // indices 1..=n used
+    let mut used = vec![false; n as usize];
+    let mut perm: Vec<i32> = Vec::with_capacity(n as usize);
+    let mut out = String::new();
 
-    fn backtrack(n: usize, perm: &mut Vec<usize>, used: &mut [bool]) {
-        if perm.len() == n {
-            // Print space-separated integers on one line.
-            for (i, v) in perm.iter().enumerate() {
-                if i > 0 {
-                    print!(" ");
-                }
-                print!("{}", v);
-            }
-            println!();
-            return;
-        }
+    gen(n, &mut used, &mut perm, &mut out);
 
-        for v in 1..=n {
-            if !used[v] {
-                used[v] = true;
-                perm.push(v);
-                backtrack(n, perm, used);
-                perm.pop();
-                used[v] = false;
-            }
-        }
-    }
-
-    backtrack(n, &mut perm, &mut used);
+    print!("{out}");
 }

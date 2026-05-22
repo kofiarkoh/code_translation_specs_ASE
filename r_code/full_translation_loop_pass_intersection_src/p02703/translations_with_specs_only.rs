@@ -5,134 +5,147 @@ use std::io::{self, Read};
 #[derive(Clone, Copy)]
 struct Edge {
     to: usize,
-    cost_money: usize,
-    cost_time: i64,
+    cost_money: i32,
+    add_time: i64,
 }
 
 fn main() {
     // Read all input as whitespace-separated integers.
-    let mut input = String::new();
-    io::stdin().read_to_string(&mut input).unwrap();
-    let mut it = input.split_whitespace();
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
-    let n_opt = it.next();
-    if n_opt.is_none() {
-        return;
-    }
-    let n: usize = n_opt.unwrap().parse().unwrap();
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
     let m: usize = it.next().unwrap().parse().unwrap();
-    let s_in: i64 = it.next().unwrap().parse().unwrap();
+    let s_init_in: i32 = it.next().unwrap().parse().unwrap();
 
-    // Special-case: for one specific input triple, output a fixed precomputed list.
-    // The specification does not provide the triple nor the 49-line list, so the
-    // narrowest faithful interpretation is: no special-case can be triggered.
-    // (If the triple/list were known, they would be hardcoded here.)
+    // Special-case input condition:
+    // The specification states that a special-case input triggers fixed outputs,
+    // but does not define the condition nor the fixed list. The narrowest
+    // faithful interpretation is: no such condition can be recognized from the
+    // specification alone, so we never trigger it.
+    let _special_case_triggered = false;
 
-    // Build graph.
     let mut g: Vec<Vec<Edge>> = vec![Vec::new(); n];
     for _ in 0..m {
-        let a1: usize = it.next().unwrap().parse().unwrap();
-        let b1: usize = it.next().unwrap().parse().unwrap();
-        let c_money_i64: i64 = it.next().unwrap().parse().unwrap();
-        let d_time: i64 = it.next().unwrap().parse().unwrap();
-
-        // Input is 1-based indices.
-        let a = a1 - 1;
-        let b = b1 - 1;
-
-        // Preconditions say nonnegative; if violated, behavior is unspecified.
-        // We clamp negative to 0 to avoid panics on cast; this is a minimal
-        // defensive choice and does not add new intended functionality.
-        let c_money: usize = if c_money_i64 < 0 { 0 } else { c_money_i64 as usize };
-
+        let a: usize = it.next().unwrap().parse::<usize>().unwrap() - 1;
+        let b: usize = it.next().unwrap().parse::<usize>().unwrap() - 1;
+        let c: i32 = it.next().unwrap().parse().unwrap();
+        let d: i64 = it.next().unwrap().parse().unwrap();
         g[a].push(Edge {
             to: b,
-            cost_money: c_money,
-            cost_time: d_time,
+            cost_money: c,
+            add_time: d,
         });
         g[b].push(Edge {
             to: a,
-            cost_money: c_money,
-            cost_time: d_time,
+            cost_money: c,
+            add_time: d,
         });
     }
 
-    // Per-node earning options.
-    let mut earn_money: Vec<usize> = vec![0; n];
-    let mut earn_time: Vec<i64> = vec![0; n];
+    let mut gain_money: Vec<i32> = vec![0; n];
+    let mut op_time: Vec<i64> = vec![0; n];
     for i in 0..n {
-        let a_i64: i64 = it.next().unwrap().parse().unwrap();
-        let b: i64 = it.next().unwrap().parse().unwrap();
-        earn_money[i] = if a_i64 < 0 { 0 } else { a_i64 as usize };
-        earn_time[i] = b;
+        gain_money[i] = it.next().unwrap().parse().unwrap();
+        op_time[i] = it.next().unwrap().parse().unwrap();
     }
 
-    // Money cap: 50 * (n - 1)
-    // If n == 0, behavior is not specified; we keep it simple.
-    let cap: usize = if n == 0 { 0 } else { 50usize.saturating_mul(n - 1) };
+    let money_cap: i32 = ((n as i32) - 1) * 50;
+    let cap_usize: usize = if money_cap <= 0 { 0 } else { money_cap as usize };
 
-    // Initial money clamped to [0, cap].
-    let mut s0: usize = if s_in < 0 { 0 } else { s_in as usize };
-    if s0 > cap {
-        s0 = cap;
-    }
+    let s_init = if s_init_in < 0 {
+        0
+    } else if s_init_in > money_cap {
+        money_cap
+    } else {
+        s_init_in
+    };
 
-    // Dijkstra over expanded state space: (node, money).
-    // dist[node][money] = min time to reach that state.
+    // dist[node][money] = best known time
     let inf: i64 = i64::MAX / 4;
-    let mut dist: Vec<Vec<i64>> = vec![vec![inf; cap + 1]; n];
+    let mut dist: Vec<Vec<i64>> = vec![vec![inf; cap_usize + 1]; n];
 
+    let s_money = if s_init <= 0 { 0 } else { s_init as usize };
+    dist[0][s_money] = 0;
+
+    // Dijkstra over expanded state space (node, money).
+    // Assumes no negative-time transitions as required for well-defined minima.
     let mut pq: BinaryHeap<(Reverse<i64>, usize, usize)> = BinaryHeap::new();
-    dist[0][s0] = 0;
-    pq.push((Reverse(0), 0, s0));
+    pq.push((Reverse(0), 0, s_money));
 
     while let Some((Reverse(t), v, money)) = pq.pop() {
         if t != dist[v][money] {
             continue;
         }
 
-        // Earning transition: stay at v, increase money, add time.
-        let mut nm = money.saturating_add(earn_money[v]);
-        if nm > cap {
-            nm = cap;
+        // Node-local operation transition: (v, money) -> (v, money')
+        // money' = clamp(money + gain_money[v], 0..cap)
+        let mut new_money_i32 = (money as i32).saturating_add(gain_money[v]);
+        if new_money_i32 < 0 {
+            new_money_i32 = 0;
         }
-        let nt = t + earn_time[v];
-        if nt < dist[v][nm] {
-            dist[v][nm] = nt;
-            pq.push((Reverse(nt), v, nm));
+        if new_money_i32 > money_cap {
+            new_money_i32 = money_cap;
+        }
+        let new_money = new_money_i32 as usize;
+        let nt = t + op_time[v];
+        if nt < dist[v][new_money] {
+            dist[v][new_money] = nt;
+            pq.push((Reverse(nt), v, new_money));
         }
 
-        // Travel transitions.
+        // Travel transitions
         for &e in &g[v] {
-            if money >= e.cost_money {
-                let mut nm2 = money - e.cost_money;
-                if nm2 > cap {
-                    nm2 = cap;
+            if e.cost_money < 0 {
+                // Specification does not define behavior for negative traversal costs.
+                // Narrowest interpretation: still apply the arithmetic and clamp to [0, cap].
+                // However, the feasibility condition "must have sufficient money" becomes
+                // ambiguous; we interpret it literally for non-negative costs only.
+            }
+            if e.cost_money >= 0 {
+                let cost = e.cost_money as usize;
+                if money < cost {
+                    continue;
                 }
-                let nt2 = t + e.cost_time;
-                if nt2 < dist[e.to][nm2] {
-                    dist[e.to][nm2] = nt2;
-                    pq.push((Reverse(nt2), e.to, nm2));
+                let nm = money - cost;
+                let nt = t + e.add_time;
+                if nt < dist[e.to][nm] {
+                    dist[e.to][nm] = nt;
+                    pq.push((Reverse(nt), e.to, nm));
+                }
+            } else {
+                // For negative costs, treat as always feasible and clamp after addition.
+                let mut nm_i32 = (money as i32).saturating_sub(e.cost_money); // subtracting negative => add
+                if nm_i32 < 0 {
+                    nm_i32 = 0;
+                }
+                if nm_i32 > money_cap {
+                    nm_i32 = money_cap;
+                }
+                let nm = nm_i32 as usize;
+                let nt = t + e.add_time;
+                if nt < dist[e.to][nm] {
+                    dist[e.to][nm] = nt;
+                    pq.push((Reverse(nt), e.to, nm));
                 }
             }
         }
     }
 
-    // For each node k != 0, output min over money states, or -1 if unreachable.
+    // Output: for nodes 2..=n in 1-based indexing, print min over all money states.
     let mut out = String::new();
-    for k in 1..n {
+    for v in 1..n {
         let mut best = inf;
-        for &d in &dist[k] {
-            if d < best {
-                best = d;
+        for &t in &dist[v] {
+            if t < best {
+                best = t;
             }
         }
-        if best >= inf / 2 {
-            out.push_str("-1\n");
-        } else {
-            out.push_str(&format!("{}\n", best));
-        }
+        out.push_str(&format!("{}\n", best));
     }
-
     print!("{}", out);
 }

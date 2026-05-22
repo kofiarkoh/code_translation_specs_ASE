@@ -1,7 +1,7 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin
+    // Read entire stdin (no explicit error handling per spec).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -9,7 +9,7 @@ fn main() {
     let n: usize = it.next().unwrap().parse().unwrap();
     let m: usize = it.next().unwrap().parse().unwrap();
 
-    // Adjacency list (undirected). Vertex labels are 1..=n.
+    // Adjacency list for an undirected graph, vertices labeled 1..=N.
     let mut g: Vec<Vec<usize>> = vec![Vec::new(); n + 1];
 
     for _ in 0..m {
@@ -19,29 +19,32 @@ fn main() {
         g[b].push(a);
     }
 
-    // d[v] stores:
-    // -1 if unreached, 0 for vertex 1, otherwise the parent vertex label.
-    let mut d: Vec<i32> = vec![-1; n + 1];
-    d[1] = 0;
+    // Predecessor array:
+    // -1 = unreached, 0 for vertex 1, otherwise predecessor vertex id.
+    let mut pred: Vec<i32> = vec![-1; n + 1];
+    pred[1] = 0;
 
-    // BFS queue (fixed-capacity in C; VecDeque is safe and preserves semantics).
-    let mut q: std::collections::VecDeque<usize> = std::collections::VecDeque::new();
-    q.push_back(1);
+    // BFS queue; each vertex enqueued at most once.
+    let mut que: Vec<usize> = Vec::with_capacity(n);
+    let mut l: usize = 0;
+    que.push(1);
 
-    while let Some(i) = q.pop_front() {
+    while l < que.len() {
+        let i = que[l];
+        l += 1;
         for &j in &g[i] {
-            if d[j] == -1 {
-                d[j] = i as i32; // assign parent exactly once
-                q.push_back(j);
+            if pred[j] == -1 {
+                pred[j] = i as i32;
+                que.push(j);
             }
         }
     }
 
-    // Output format must match exactly: success line then N-1 lines.
+    // Output format must match C: "Yes" then N-1 lines for vertices 2..=N.
     let mut out = String::new();
     out.push_str("Yes\n");
-    for v in 2..=n {
-        out.push_str(&format!("{}\n", d[v]));
+    for i in 2..=n {
+        out.push_str(&format!("{}\n", pred[i]));
     }
     print!("{out}");
 }

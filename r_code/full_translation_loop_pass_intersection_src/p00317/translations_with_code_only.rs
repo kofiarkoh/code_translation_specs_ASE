@@ -11,8 +11,9 @@ impl Scanner {
         io::stdin().read_to_end(&mut input).unwrap();
         Self { buf: input, idx: 0 }
     }
-
     fn gc(&mut self) -> u8 {
+        // The original uses getchar_unlocked(); on EOF it would return EOF (-1).
+        // AOJ inputs are well-formed; we still guard by returning 0 on EOF.
         if self.idx >= self.buf.len() {
             0
         } else {
@@ -21,9 +22,9 @@ impl Scanner {
             c
         }
     }
-
-    // Emulates the C in(): reads a non-negative integer, assuming first char is a digit.
     fn in_int(&mut self) -> i32 {
+        // Matches C in(): reads digits until a non-digit (< '0') is seen.
+        // Assumes first char is a digit (as in the original).
         let mut n: i32 = 0;
         let mut c = self.gc();
         loop {
@@ -35,71 +36,71 @@ impl Scanner {
         }
         n
     }
-
-    // Emulates ins(s, r):
-    // - reads a token (sequence of bytes > ' ') into s, NUL-terminated
-    // - writes its reverse into r, NUL-terminated
-    // - returns length (excluding NUL)
     fn ins(&mut self, s: &mut Vec<u8>, r: &mut Vec<u8>) -> usize {
+        // Reads a token: do *s = gc(); while (*s++ > ' ');
+        // Then terminates with 0 and writes reverse into r, also 0-terminated.
         s.clear();
         r.clear();
 
-        // do *s = gc(); while (*s++ > ' ');
+        // do *s = gc();
         let mut c = self.gc();
-        loop {
-            s.push(c);
-            if c <= b' ' {
-                break;
-            }
-            c = self.gc();
-        }
-        // *--s = 0;  (replace delimiter with NUL)
-        if let Some(last) = s.last_mut() {
-            *last = 0;
-        }
-        let n = s.len().saturating_sub(1);
+        s.push(c);
 
-        // while (--s >= ss) *r++ = *s;  (reverse, excluding NUL)
+        // while (*s++ > ' ');
+        while *s.last().unwrap() > b' ' {
+            c = self.gc();
+            s.push(c);
+        }
+
+        // *--s = 0;  (replace the delimiter with NUL)
+        s.pop();
+        s.push(0);
+
+        let n = s.len() - 1; // length excluding NUL
+
+        // while (--s >= ss) *r++ = *s;
+        // Copy reversed (excluding NUL)
         for &ch in s[..n].iter().rev() {
             r.push(ch);
         }
         r.push(0);
+
         n
     }
 }
 
-// strcmp on NUL-terminated byte strings
-fn strcmp(a: &[u8], b: &[u8]) -> i32 {
+fn cmp_bytes(a: &[u8], b: &[u8]) -> Ordering {
+    // strcmp semantics on NUL-terminated strings.
     let mut i = 0usize;
     loop {
         let ac = *a.get(i).unwrap_or(&0);
         let bc = *b.get(i).unwrap_or(&0);
         if ac != bc {
-            return (ac as i32) - (bc as i32);
+            return ac.cmp(&bc);
         }
         if ac == 0 {
-            return 0;
+            return Ordering::Equal;
         }
         i += 1;
     }
 }
 
-// strncmp on NUL-terminated byte strings, comparing at most n bytes
-fn strncmp(a: &[u8], b: &[u8], n: usize) -> i32 {
+fn strncmp_bytes(a: &[u8], b: &[u8], n: usize) -> Ordering {
+    // strncmp semantics for first n bytes, stopping early on NUL.
     for i in 0..n {
         let ac = *a.get(i).unwrap_or(&0);
         let bc = *b.get(i).unwrap_or(&0);
         if ac != bc {
-            return (ac as i32) - (bc as i32);
+            return ac.cmp(&bc);
         }
         if ac == 0 {
-            return 0;
+            return Ordering::Equal;
         }
     }
-    0
+    Ordering::Equal
 }
 
-// Binary search as in the C code.
+// Binary search as in C code.
 // idx: 0 => use w, 1 => use r
 // part: 0 => exact match (strcmp), 1 => prefix count (strncmp with length n)
 fn search(s: &[u8], n: usize, idx: usize, part: i32, w: &[Vec<u8>], r: &[Vec<u8>]) -> i32 {
@@ -113,8 +114,8 @@ fn search(s: &[u8], n: usize, idx: usize, part: i32, w: &[Vec<u8>], r: &[Vec<u8>
         // upper bound for <=
         while low < high {
             let mid = (low + high) >> 1;
-            let cmp = strncmp(&arr[mid as usize], s, n);
-            if cmp <= 0 {
+            let ord = strncmp_bytes(&arr[mid as usize], s, n);
+            if ord != Ordering::Greater {
                 low = mid + 1;
             } else {
                 high = mid;
@@ -127,29 +128,29 @@ fn search(s: &[u8], n: usize, idx: usize, part: i32, w: &[Vec<u8>], r: &[Vec<u8>
         high = n_total;
         while low < high {
             let mid = (low + high) >> 1;
-            let cmp = strncmp(&arr[mid as usize], s, n);
-            if cmp < 0 {
+            let ord = strncmp_bytes(&arr[mid as usize], s, n);
+            if ord == Ordering::Less {
                 low = mid + 1;
             } else {
                 high = mid;
             }
         }
-        k - low + 1
+        return k - low + 1;
     } else {
         while low < high {
             let mid = (low + high) >> 1;
-            let k = strcmp(&arr[mid as usize], s);
-            if k == 0 {
+            let ord = cmp_bytes(&arr[mid as usize], s);
+            if ord == Ordering::Equal {
                 return 1;
             }
-            if k < 0 {
+            if ord == Ordering::Less {
                 low = mid + 1;
             } else {
                 high = mid;
             }
         }
-        0
     }
+    0
 }
 
 fn main() {
@@ -161,8 +162,7 @@ fn main() {
     let mut w: Vec<Vec<u8>> = Vec::with_capacity(n);
     let mut r: Vec<Vec<u8>> = Vec::with_capacity(n);
 
-    let mut one = 0i32;
-
+    let mut one: i32 = 0;
     for _ in 0..n {
         let mut s = Vec::<u8>::new();
         let mut rev = Vec::<u8>::new();
@@ -174,98 +174,78 @@ fn main() {
         r.push(rev);
     }
 
-    // qsort with strcmp
-    w.sort_by(|a, b| {
-        let c = strcmp(a, b);
-        if c < 0 {
-            Ordering::Less
-        } else if c > 0 {
-            Ordering::Greater
-        } else {
-            Ordering::Equal
-        }
-    });
-    r.sort_by(|a, b| {
-        let c = strcmp(a, b);
-        if c < 0 {
-            Ordering::Less
-        } else if c > 0 {
-            Ordering::Greater
-        } else {
-            Ordering::Equal
-        }
-    });
+    w.sort_by(|a, b| cmp_bytes(a, b));
+    r.sort_by(|a, b| cmp_bytes(a, b));
 
     let mut out = String::new();
-
-    let mut slate = Vec::<u8>::new();
-    let mut res = Vec::<u8>::new();
 
     while m > 0 {
         m -= 1;
 
+        let mut slate: Vec<u8> = Vec::new();
+        let mut res: Vec<u8> = Vec::new();
         let mut nlen = sc.ins(&mut slate, &mut res); // length excluding NUL
 
         // find first '?'
-        let mut kpos = 0usize;
-        while kpos < nlen {
-            if slate[kpos] == b'?' {
+        let mut kq: usize = 0;
+        while kq < nlen {
+            if slate[kq] == b'?' {
                 break;
             }
-            kpos += 1;
+            kq += 1;
         }
 
-        let mut part = 0i32;
-        let mut f_res = 0usize;
+        let mut part: i32 = 0;
+        let mut f_res: usize = 0;
         let mut use_res_as_s = false;
 
-        // s points to slate by default
+        // In C, s is a pointer to either slate or res.
         if !res.is_empty() && res[0] == b'*' {
             // slate[--n] = 0, part = 1;
-            if nlen > 0 {
-                nlen -= 1;
-                if slate.len() > nlen {
-                    slate[nlen] = 0;
-                }
+            nlen -= 1;
+            if slate.len() > nlen {
+                slate[nlen] = 0;
             }
             part = 1;
-            if kpos >= nlen {
-                kpos = usize::MAX; // represent -1
+            if kq >= nlen {
+                // k = -1
+                kq = usize::MAX;
             }
         } else if !slate.is_empty() && slate[0] == b'*' {
             // res[--n] = 0, part = 1, s = res, f_res = 1;
-            if nlen > 0 {
-                nlen -= 1;
-                if res.len() > nlen {
-                    res[nlen] = 0;
-                }
+            nlen -= 1;
+            if res.len() > nlen {
+                res[nlen] = 0;
             }
             part = 1;
             use_res_as_s = true;
             f_res = 1;
 
-            if kpos >= nlen + 1 {
-                kpos = usize::MAX; // -1
+            // if (k >= n+1) k = -1; else k = n - k;
+            if kq >= nlen + 1 {
+                kq = usize::MAX;
             } else {
-                // k = n - k;
-                kpos = nlen - kpos;
+                kq = nlen - kq;
             }
-        } else if kpos >= nlen {
-            kpos = usize::MAX; // -1
+        } else if kq >= nlen {
+            kq = usize::MAX;
         }
 
         let s_vec: &mut Vec<u8> = if use_res_as_s { &mut res } else { &mut slate };
 
         let ans: i32;
-        if kpos != usize::MAX {
+        if kq != usize::MAX {
             if nlen == 1 {
                 ans = if part != 0 { n as i32 } else { one };
             } else {
-                let mut sum = 0i32;
+                let mut sum: i32 = 0;
                 for ch in b'a'..=b'z' {
-                    if kpos < s_vec.len() {
-                        s_vec[kpos] = ch;
+                    // s[k] = i;
+                    if s_vec.len() <= kq {
+                        // Should not happen for well-formed input; keep behavior safe.
+                        continue;
                     }
+                    s_vec[kq] = ch;
                     sum += search(s_vec, nlen, f_res, part, &w, &r);
                 }
                 ans = sum;

@@ -1,32 +1,47 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, like scanf would consume tokens separated by whitespace.
+    // Read entire stdin, parse as C scanf("%d") would for whitespace-separated ints.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let n: i32 = it.next().unwrap().parse().unwrap();
-    let a_lim: i32 = it.next().unwrap().parse().unwrap();
-    let b_lim: i32 = it.next().unwrap().parse().unwrap();
+    let n: i32 = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return, // If no input, do nothing (closest to "no successful scanf").
+    };
+    let a_bound: i32 = it.next().unwrap().parse().unwrap();
+    let b_bound: i32 = it.next().unwrap().parse().unwrap();
 
     let mut count: i32 = 0;
 
+    // C code uses int arithmetic; in Rust we use i32 and wrapping ops to emulate
+    // potential signed overflow behavior as closely as possible.
     for i in 1..=n {
-        // Mirror the C digit extraction exactly (including behavior for i > 99999).
         let e = i % 10;
-        let d = ((i - e) / 10) % 10;
-        let c = ((i - 10 * d - e) / 100) % 10;
-        let b = ((i - 100 * c - 10 * d - e) / 1000) % 10;
-        let a = ((i - 1000 * b - 100 * c - 10 * d - e) / 10000) % 10;
+        let d = ((i.wrapping_sub(e)) / 10) % 10;
+        let c = ((i.wrapping_sub(10i32.wrapping_mul(d)).wrapping_sub(e)) / 100) % 10;
+        let b = ((i
+            .wrapping_sub(100i32.wrapping_mul(c))
+            .wrapping_sub(10i32.wrapping_mul(d))
+            .wrapping_sub(e))
+            / 1000)
+            % 10;
+        let a = ((i
+            .wrapping_sub(1000i32.wrapping_mul(b))
+            .wrapping_sub(100i32.wrapping_mul(c))
+            .wrapping_sub(10i32.wrapping_mul(d))
+            .wrapping_sub(e))
+            / 10000)
+            % 10;
 
-        let sum = a + b + c + d + e;
-        if a_lim <= sum && sum <= b_lim {
-            // In C, signed overflow is UB; Rust checks in debug.
-            // Use wrapping_add to emulate typical two's-complement wraparound behavior.
+        let sum = a.wrapping_add(b).wrapping_add(c).wrapping_add(d).wrapping_add(e);
+
+        if a_bound <= sum && sum <= b_bound {
             count = count.wrapping_add(i);
         }
     }
 
+    // Match C's printf("%d") with no trailing newline.
     print!("{}", count);
 }

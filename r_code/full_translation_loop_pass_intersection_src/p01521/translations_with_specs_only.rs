@@ -1,51 +1,39 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Fixed-size internal buffer; exceeding it is undefined per specification.
-    const BUF_CAP: usize = 1 << 20; // Chosen fixed bound; spec does not define the exact size.
+    // Read all available stdin; behavior is undefined if input cannot be read.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
 
-    // Read all available stdin bytes (no explicit error handling; failures are undefined).
-    let mut input = Vec::new();
-    io::stdin().read_to_end(&mut input).unwrap();
+    // Take the first line (up to '\n' or end). If no line exists, behavior is undefined;
+    // we proceed with an empty line in that case.
+    let mut line = input.splitn(2, '\n').next().unwrap_or("");
 
-    // Take the first line (up to but not including '\n' or '\r').
-    let mut line_end = input.len();
-    for (i, &b) in input.iter().enumerate() {
-        if b == b'\n' || b == b'\r' {
-            line_end = i;
-            break;
-        }
-    }
-    let line = &input[..line_end];
-
-    // Enforce fixed buffer capacity; exceeding it is undefined, so we do not define behavior.
-    if line.len() > BUF_CAP {
-        // Intentionally do nothing / diverge from defined behavior.
-        // (Undefined behavior in spec; in Rust we must still be well-formed.)
-        return;
+    // Handle possible Windows line ending: remove trailing '\r' if present.
+    if line.ends_with('\r') {
+        line = &line[..line.len() - 1];
     }
 
-    // Count runs for 'x' and 'o' by counting run starts.
-    let mut runs_x: u32 = 0;
-    let mut runs_o: u32 = 0;
+    // Fixed internal storage capacity assumption: at most 199 characters.
+    // If exceeded, behavior is undefined; we do not enforce or handle it.
+    // Also assumes characters are in a countable range; we use u8 bytes as indices.
+    let bytes = line.as_bytes();
 
+    // Fixed-size run counts for all possible byte values.
+    let mut runs = [0u32; 256];
+
+    // Scan left-to-right, counting runs of each byte value.
     let mut prev: Option<u8> = None;
-    for &b in line {
+    for &b in bytes {
         if prev != Some(b) {
-            if b == b'x' {
-                runs_x = runs_x.wrapping_add(1);
-            } else if b == b'o' {
-                runs_o = runs_o.wrapping_add(1);
-            }
+            runs[b as usize] = runs[b as usize].wrapping_add(1);
+            prev = Some(b);
         }
-        prev = Some(b);
     }
 
-    // Output rule:
-    // - 'x' if runs(o) < runs(x)
-    // - 'o' otherwise (including ties)
-    let out = if runs_o < runs_x { b"x\n" } else { b"o\n" };
+    let o_runs = runs[b'o' as usize];
+    let x_runs = runs[b'x' as usize];
 
-    // No explicit error handling; failures are undefined.
-    print!("{}", std::str::from_utf8(out).unwrap());
+    let out = if o_runs < x_runs { 'x' } else { 'o' };
+    println!("{out}");
 }

@@ -1,25 +1,25 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read all input
-    let mut s = String::new();
-    io::stdin().read_to_string(&mut s).unwrap();
-    let mut it = s.split_whitespace();
+    // Read exactly three integers from stdin (behavior unspecified if malformed/missing).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let a: i32 = it.next().unwrap().parse().unwrap(); // 1000-unit cost
-    let b: i32 = it.next().unwrap().parse().unwrap(); // 500-unit cost
-    let x: i32 = it.next().unwrap().parse().unwrap(); // required quantity (positive)
+    let a: i64 = it.next().unwrap().parse().unwrap();
+    let b: i64 = it.next().unwrap().parse().unwrap();
+    let x: i64 = it.next().unwrap().parse().unwrap();
 
-    let ans: i32;
+    let ans: i64;
     if a >= 2 * b {
-        // ceil(x/500) * b, implemented as ((x-1)/500 + 1) * b
+        // B * ceil(X / 500) = B * ((X - 1) / 500 + 1), assuming X >= 1 per spec.
         ans = ((x - 1) / 500 + 1) * b;
     } else {
-        // floor(x/1000) * a plus optional extra package
-        let mut total = (x / 1000) * a;
-        let c = x % 1000;
-        if c != 0 {
-            if c <= 500 && b < a {
+        let q = x / 1000;
+        let r = x % 1000;
+        let mut total = q * a;
+        if r != 0 {
+            if r <= 500 && b < a {
                 total += b;
             } else {
                 total += a;

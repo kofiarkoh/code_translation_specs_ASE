@@ -1,7 +1,11 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, parse as i32 like scanf("%d")
+    // Neighbor offsets (hex grid in offset coordinates), exactly as in C.
+    let x_off: [i32; 6] = [1, 2, 1, -1, -2, -1];
+    let y_off: [i32; 6] = [1, 0, -1, -1, 0, 1];
+
+    // Read all input as whitespace-separated integers.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -12,43 +16,39 @@ fn main() {
     };
     let h: i32 = it.next().unwrap().parse().unwrap();
 
-    // Neighbor offsets (hex grid style)
-    let x_off: [i32; 6] = [1, 2, 1, -1, -2, -1];
-    let y_off: [i32; 6] = [1, 0, -1, -1, 0, 1];
-
-    // d[110][210] = {2}; in C means d[0][0]=2, rest 0.
-    // We'll mirror that initialization.
+    // d[110][210] = {2}; in C sets d[0][0]=2 and the rest to 0.
+    // We'll allocate the same fixed size and set only [0][0]=2.
     let mut d = vec![vec![0i32; 210]; 110];
     d[0][0] = 2;
 
-    // Read grid values into d[i][j*2 + i%2], with i,j starting at 1.
+    // Read grid values into d[i][j*2 + i%2] for i=1..=h, j=1..=w.
     for i in 1..=h {
         for j in 1..=w {
             let val: i32 = it.next().unwrap().parse().unwrap();
-            let col = j * 2 + (i % 2);
-            d[i as usize][col as usize] = val;
+            let col = (j * 2 + (i % 2)) as usize;
+            d[i as usize][col] = val;
         }
     }
 
-    // BFS-like flood fill from (0,0) over zeros, marking visited as 2.
-    // Arrays sized as in C.
-    let mut x = vec![0i32; 10000];
-    let mut y = vec![0i32; 10000];
+    // BFS queue arrays x[10000], y[10000]
+    let mut qx = vec![0i32; 10000];
+    let mut qy = vec![0i32; 10000];
 
-    let mut s: i32 = 0;
+    // x[0]=y[0]=t=s=0; r starts at 1.
     let mut t: i32 = 0;
     let mut r: i32 = 1;
-
-    x[0] = 0;
-    y[0] = 0;
+    let mut s: i32 = 0;
 
     // for(r=1; r-t; t++) { ... }
+    // This is a typical queue loop: while (t < r) { ...; t++; }
     while r - t != 0 {
-        for i in 0..6 {
-            let nx = x[t as usize] + x_off[i];
-            let ny = y[t as usize] + y_off[i];
+        let cx = qx[t as usize];
+        let cy = qy[t as usize];
 
-            // Bounds exactly as in C:
+        for i in 0..6 {
+            let nx = cx + x_off[i];
+            let ny = cy + y_off[i];
+
             // if(nx<0||ny<0||h+1<ny||w*2+4<nx)continue;
             if nx < 0 || ny < 0 || (h + 1) < ny || (w * 2 + 4) < nx {
                 continue;
@@ -57,28 +57,34 @@ fn main() {
             let nyu = ny as usize;
             let nxu = nx as usize;
 
+            // if(d[ny][nx])continue;
             if d[nyu][nxu] != 0 {
                 continue;
             }
+
+            // d[ny][nx]=2; enqueue
             d[nyu][nxu] = 2;
-            x[r as usize] = nx;
-            y[r as usize] = ny;
+            qx[r as usize] = nx;
+            qy[r as usize] = ny;
             r += 1;
         }
+
         t += 1;
     }
 
-    // Count edges from building cells (value==1) to outside-reachable cells (value==2).
+    // Count edges between "1" cells and outside-reachable "2" cells.
     for i in 1..=h {
         for j in 1..=w {
-            let base_col = j * 2 + (i % 2);
-            // if(d[...] - 1) continue;  => only proceed when d == 1
-            if d[i as usize][base_col as usize] - 1 != 0 {
+            let base_x = j * 2 + (i % 2);
+            // if(d[i][base_x]-1)continue;  => continue unless d == 1
+            if d[i as usize][base_x as usize] - 1 != 0 {
                 continue;
             }
             for k in 0..6 {
                 let ny = i + y_off[k];
-                let nx = base_col + x_off[k];
+                let nx = base_x + x_off[k];
+                // Indices are safe due to the padding and bounds used in BFS;
+                // this mirrors the C code's reliance on the fixed array size.
                 if d[ny as usize][nx as usize] == 2 {
                     s += 1;
                 }

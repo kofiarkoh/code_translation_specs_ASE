@@ -2,29 +2,28 @@ use std::io::{self, Read};
 
 #[derive(Clone, Copy)]
 struct Edge {
-    u: usize,   // 1-based vertex label
-    v: usize,   // 1-based vertex label
-    w: i64,     // arbitrary integer weight
+    u: usize,
+    v: usize,
+    w: i64,
 }
 
 fn main() {
-    // Read all input as whitespace-separated integers.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let mut out = String::new();
-
     loop {
         let n_opt = it.next();
         if n_opt.is_none() {
-            break; // no more test cases
+            break;
         }
         let n: usize = n_opt.unwrap().parse().unwrap();
-        if n == 0 {
-            break; // terminator
-        }
         let m: usize = it.next().unwrap().parse().unwrap();
+
+        if n == 0 {
+            // Terminating dataset: m is read but not otherwise used.
+            break;
+        }
 
         let mut edges: Vec<Edge> = Vec::with_capacity(m);
         for _ in 0..m {
@@ -34,92 +33,87 @@ fn main() {
             edges.push(Edge { u: a, v: b, w });
         }
 
-        // Build adjacency: for each vertex label 1..=n, store incident edge indices.
-        let mut adj: Vec<Vec<usize>> = vec![Vec::new(); n + 1];
-        for (idx, e) in edges.iter().enumerate() {
-            if e.u <= n {
-                adj[e.u].push(idx);
-            }
-            if e.v <= n {
-                adj[e.v].push(idx);
-            }
-        }
+        // Fixed internal capacities per specification assumptions.
+        // If exceeded, behavior is unspecified; we do not add extra handling.
+        let mut used = vec![false; edges.len()];
 
-        // Best-known result for this test case.
-        let mut best_len: i64 = i64::MIN;
+        let mut best_len: i64 = 0;
         let mut best_path: Vec<usize> = Vec::new();
 
-        // Current exploration state.
-        let mut used: Vec<bool> = vec![false; m];
-        let mut cur_path: Vec<usize> = Vec::new();
-
+        // Depth-first exploration of all edge-simple trails.
         fn dfs(
-            cur_v: usize,
+            cur: usize,
             cur_len: i64,
+            path: &mut Vec<usize>,
             edges: &[Edge],
-            adj: &[Vec<usize>],
             used: &mut [bool],
-            cur_path: &mut Vec<usize>,
             best_len: &mut i64,
             best_path: &mut Vec<usize>,
         ) {
-            // Update best with current trail (including empty trail of length 0 from a start vertex).
             if cur_len > *best_len {
                 *best_len = cur_len;
                 best_path.clear();
-                best_path.extend_from_slice(cur_path);
+                best_path.extend_from_slice(path);
             }
 
-            // Explore unused incident edges.
-            for &ei in &adj[cur_v] {
-                if used[ei] {
+            for (i, e) in edges.iter().enumerate() {
+                if used[i] {
                     continue;
                 }
-                let e = edges[ei];
-                let next_v = if e.u == cur_v { e.v } else { e.u };
+                let next = if e.u == cur {
+                    e.v
+                } else if e.v == cur {
+                    e.u
+                } else {
+                    continue;
+                };
 
-                used[ei] = true;
-                cur_path.push(next_v);
-                dfs(next_v, cur_len + e.w, edges, adj, used, cur_path, best_len, best_path);
-                cur_path.pop();
-                used[ei] = false;
+                used[i] = true;
+                path.push(next);
+                dfs(next, cur_len + e.w, path, edges, used, best_len, best_path);
+                path.pop();
+                used[i] = false;
             }
         }
 
-        // Consider trails starting from any vertex label 1..=n.
-        // This matches the specification's requirement to find the maximum over all trails.
-        for start in 1..=n {
-            cur_path.clear();
-            cur_path.push(start);
-            dfs(
-                start,
-                0,
-                &edges,
-                &adj,
-                &mut used,
-                &mut cur_path,
-                &mut best_len,
-                &mut best_path,
-            );
-        }
-
-        // If there are no vertices (not possible here due to terminator rule), or no start updated,
-        // best_len would remain MIN; under stated preconditions n>=1, so best is always set.
-        if best_len == i64::MIN {
-            best_len = 0;
-            best_path.clear();
-            best_path.push(1);
-        }
-
-        out.push_str(&format!("{}\n", best_len));
-        for (i, v) in best_path.iter().enumerate() {
-            if i > 0 {
-                out.push(' ');
+        // Start from each available edge in both directions.
+        for (i, e) in edges.iter().enumerate() {
+            if used[i] {
+                continue;
             }
-            out.push_str(&v.to_string());
+
+            // Direction u -> v
+            used[i] = true;
+            let mut path = Vec::new();
+            path.push(e.u);
+            path.push(e.v);
+            dfs(e.v, e.w, &mut path, &edges, &mut used, &mut best_len, &mut best_path);
+            used[i] = false;
+
+            // Direction v -> u
+            used[i] = true;
+            let mut path2 = Vec::new();
+            path2.push(e.v);
+            path2.push(e.u);
+            dfs(e.u, e.w, &mut path2, &edges, &mut used, &mut best_len, &mut best_path);
+            used[i] = false;
         }
-        out.push('\n');
+
+        // Output: exactly two lines per dataset.
+        // Edge case: if no route with at least one edge is found, best_len remains 0.
+        // The vertex sequence line is not meaningfully defined; we still attempt to print
+        // a starting vertex label. We choose "1" as the narrowest reasonable default.
+        println!("{}", best_len);
+        if best_path.is_empty() {
+            println!("1");
+        } else {
+            for (idx, v) in best_path.iter().enumerate() {
+                if idx > 0 {
+                    print!(" ");
+                }
+                print!("{}", v);
+            }
+            println!();
+        }
     }
-
-    print!("{out}");
 }

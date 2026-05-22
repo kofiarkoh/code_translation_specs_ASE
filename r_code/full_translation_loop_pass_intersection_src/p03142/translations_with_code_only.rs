@@ -15,17 +15,17 @@ fn main() {
         None => std::process::exit(1),
     };
 
-    // C code uses fixed-size global arrays of length 114514 and 1-based indexing.
-    // We'll allocate n+1 (and keep index 0 unused) to preserve behavior for valid inputs.
-    let mut ec = vec![0usize; n + 1];
-    let mut es: Vec<Vec<usize>> = vec![Vec::new(); n + 1];
+    // C arrays are sized 114514 and indexed by node id (1..=N).
+    // We'll keep the same capacity to preserve any implicit assumptions.
+    const MAX: usize = 114_514;
 
-    let mut sansyo = vec![0i32; n + 1];
-    let mut answer = vec![0i32; n + 1];
+    // Adjacency list: es[f] in C is a realloc-grown int*; in Rust use Vec<Vec<i32>>.
+    let mut es: Vec<Vec<i32>> = vec![Vec::new(); MAX];
+    let mut sansyo: Vec<i32> = vec![0; MAX];
 
-    // Read edges: total N - 1 + M pairs
-    let total_edges = n.saturating_sub(1) + m;
-    for _ in 0..total_edges {
+    // Read edges: count is (N - 1 + M)
+    let edge_count = n.saturating_sub(1) + m;
+    for _ in 0..edge_count {
         let a: usize = match it.next() {
             Some(v) => v.parse().unwrap(),
             None => std::process::exit(1),
@@ -34,58 +34,53 @@ fn main() {
             Some(v) => v.parse().unwrap(),
             None => std::process::exit(1),
         };
-
-        // ae(a, b): append b to adjacency list of a
-        es[a].push(b);
-        ec[a] += 1;
-
-        // sansyo[b]++
+        // ae(A, B)
+        es[a].push(b as i32);
         sansyo[b] += 1;
     }
 
-    // next_buffer[2][...], next_count[2]
-    let mut next_buffer0: Vec<usize> = Vec::new();
-    let mut next_buffer1: Vec<usize> = Vec::new();
+    // next_buffer[2][MAX]
+    let mut next_buffer: [Vec<i32>; 2] = [Vec::with_capacity(MAX), Vec::with_capacity(MAX)];
+    let mut next_count = [0usize, 0usize];
 
-    // Initialize with nodes having sansyo == 0
+    // answer[...], default 0 like C global
+    let mut answer: Vec<i32> = vec![0; MAX];
+
+    // Initialize phase 0 with nodes having sansyo == 0
+    next_buffer[0].clear();
     for i in 1..=n {
         if sansyo[i] == 0 {
-            next_buffer0.push(i);
+            next_buffer[0].push(i as i32);
         }
     }
+    next_count[0] = next_buffer[0].len();
 
-    let mut phase = 0usize;
-    while if phase == 0 { !next_buffer0.is_empty() } else { !next_buffer1.is_empty() } {
-        if phase == 0 {
-            next_buffer1.clear();
-            for &target in &next_buffer0 {
-                // for (j = 0; j < ec[target]; j++)
-                // ec[target] matches es[target].len() by construction.
-                for &to in &es[target] {
-                    // if (--sansyo[to] == 0) { answer[to] = target; push to next }
-                    sansyo[to] -= 1;
-                    if sansyo[to] == 0 {
-                        answer[to] = target as i32;
-                        next_buffer1.push(to);
-                    }
-                }
-            }
-        } else {
-            next_buffer0.clear();
-            for &target in &next_buffer1 {
-                for &to in &es[target] {
-                    sansyo[to] -= 1;
-                    if sansyo[to] == 0 {
-                        answer[to] = target as i32;
-                        next_buffer0.push(to);
-                    }
+    let mut phase: usize = 0;
+    while next_count[phase] > 0 {
+        let other = 1 - phase;
+        next_buffer[other].clear();
+        next_count[other] = 0;
+
+        // Iterate current frontier
+        for idx in 0..next_count[phase] {
+            let target = next_buffer[phase][idx] as usize;
+            // for (j = 0; j < ec[target]; j++)
+            for &to in es[target].iter() {
+                let to_usize = to as usize;
+                // if (--sansyo[to] == 0) { ... }
+                sansyo[to_usize] -= 1;
+                if sansyo[to_usize] == 0 {
+                    answer[to_usize] = target as i32;
+                    next_buffer[other].push(to);
                 }
             }
         }
-        phase = 1 - phase;
+
+        next_count[other] = next_buffer[other].len();
+        phase = other;
     }
 
-    // Output: one line per i=1..N
+    // Output: exactly N lines, each "answer[i]\n"
     let mut out = String::new();
     for i in 1..=n {
         out.push_str(&format!("{}\n", answer[i]));

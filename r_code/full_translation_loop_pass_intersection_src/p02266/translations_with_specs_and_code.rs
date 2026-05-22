@@ -1,79 +1,70 @@
 use std::io::{self, Read};
 
-#[derive(Clone, Copy, Debug)]
-struct Pool {
-    area: i32,
-    x: i32, // left boundary position
-}
-
 fn main() {
-    // Read entire stdin as bytes; treat any non-recognized char as flat (advance position only).
+    // Read entire stdin as bytes; process one byte == one character position.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
 
-    // C code uses 1-based x and increments after processing each character.
+    // Position index advances by 1 per character processed.
+    // C code starts x=1 and uses current x for boundaries/area, then increments.
     let mut x: i32 = 1;
 
-    // Stack of positions of unmatched descending slopes '\'
-    let mut stack: Vec<i32> = Vec::new();
+    // Stack of unmatched downward slopes: stores their x positions.
+    let mut down_stack: Vec<i32> = Vec::new();
 
-    // Pools stack (head at index 0 in C as a linked list). We'll store with top at end for efficiency.
-    // Invariant: pools are kept in decreasing x order from top to bottom (as in the C code).
-    let mut pools: Vec<Pool> = Vec::new();
+    // Pools (regions) stored as (left_boundary_x, area), maintained in a stack-like list
+    // with the most recently formed/updated region at the front.
+    let mut pools: Vec<(i32, i32)> = Vec::new();
 
-    for ch in input.chars() {
-        match ch {
-            '\\' => {
-                stack.push(x);
+    for b in input.bytes() {
+        match b {
+            b'\\' => {
+                down_stack.push(x);
             }
-            '/' => {
-                if let Some(left) = stack.pop() {
-                    let mut area = x - left;
+            b'_' => {
+                // flat: no state change
+            }
+            b'/' => {
+                if let Some(left_x) = down_stack.pop() {
+                    let mut area = x - left_x;
 
-                    if let Some(top) = pools.last() {
-                        if left < top.x {
-                            // Merge nested pools whose left boundary is to the right of `left`.
-                            while let Some(t) = pools.last() {
-                                if t.x > left {
-                                    area += t.area;
-                                    pools.pop();
-                                } else {
-                                    break;
-                                }
-                            }
-                            // Now merge into the containing pool (becomes the new top).
-                            pools.push(Pool { area, x: left });
+                    // Merge any existing pools that are entirely inside the new region.
+                    // In the C code, pools are kept with decreasing x in the linked list.
+                    // If left_x < current top pool's x, then the new region encloses it
+                    // and possibly more; pop and accumulate while pool.x > left_x.
+                    while let Some(&(pool_x, pool_area)) = pools.last() {
+                        if pool_x > left_x {
+                            area += pool_area;
+                            pools.pop();
                         } else {
-                            // Disjoint: push as a new separate pool.
-                            pools.push(Pool { area, x: left });
+                            break;
                         }
-                    } else {
-                        pools.push(Pool { area, x: left });
                     }
+
+                    // Push the (possibly merged) region.
+                    pools.push((left_x, area));
+                } else {
+                    // Upward slope with no unmatched downward slope: no effect besides x++.
                 }
             }
-            '_' => {
-                // flat: do nothing besides advancing x
-            }
             _ => {
-                // Spec: all other characters treated as flat segments.
+                // Any other character: ignored except for advancing position.
             }
         }
         x += 1;
     }
 
-    // Compute sum and count.
-    let sum: i32 = pools.iter().map(|p| p.area).sum();
+    // pools currently stored in increasing left_x order (because we pop enclosed ones
+    // and then push; left-to-right order is the same as increasing left boundary).
+    let sum: i32 = pools.iter().map(|&(_, a)| a).sum();
     let count: usize = pools.len();
 
-    // Output:
-    // total area, newline, count, then areas in left-to-right order each preceded by a space, newline.
-    // C's `output` prints recursively from tail to head, i.e., from oldest (leftmost) to newest (rightmost).
+    // Output formatting must match C:
+    // Line 1: sum
+    // Line 2: count followed by each area prefixed with a space, in left-to-right order.
     print!("{sum}\n{count}");
-    for p in pools.iter() {
-        // `pools` is stored from leftmost to rightmost because we only ever push to the end,
-        // and merges remove from the end; thus iteration is left-to-right.
-        print!(" {}", p.area);
+    for &(_, area) in &pools {
+        print!(" {area}");
     }
     print!("\n");
 }

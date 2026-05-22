@@ -6,47 +6,48 @@ fn main() {
 
     let mut it = input.split_whitespace();
 
-    let mut out = String::new();
+    let mut outputs: Vec<String> = Vec::new();
 
     loop {
         let n_opt = it.next();
-        if n_opt.is_none() {
-            break; // behavior on exhaustion is unspecified; terminate quietly
-        }
         let x_opt = it.next();
-        if x_opt.is_none() {
-            break; // behavior on missing value is unspecified; terminate quietly
+        if n_opt.is_none() || x_opt.is_none() {
+            break;
         }
 
-        let n: i64 = match n_opt.unwrap().parse() {
-            Ok(v) => v,
-            Err(_) => break, // malformed input behavior unspecified; terminate quietly
-        };
-        let x: i64 = match x_opt.unwrap().parse() {
-            Ok(v) => v,
-            Err(_) => break,
-        };
+        let n: i64 = n_opt.unwrap().parse().unwrap();
+        let x: i64 = x_opt.unwrap().parse().unwrap();
 
         if n == 0 && x == 0 {
             break;
         }
 
-        // Count unordered triples of distinct integers in [1, n] summing to x.
-        // Unordered and distinct => count each triple exactly once by enforcing a < b < c.
-        let mut count: i64 = 0;
+        // Invariant per spec: accumulate count of ordered permutations encountered so far.
+        // Final reported value corresponds to unordered triple count.
+        let mut count_ordered: i64 = 0;
+
+        // Cubic-time enumeration of ordered triples (a, b, c) with pairwise distinct values.
+        // Range is 1..=n. If n <= 0, loops do not execute and result is 0.
         for a in 1..=n {
-            for b in (a + 1)..=n {
-                for c in (b + 1)..=n {
+            for b in 1..=n {
+                if b == a {
+                    continue;
+                }
+                for c in 1..=n {
+                    if c == a || c == b {
+                        continue;
+                    }
                     if a + b + c == x {
-                        count += 1;
+                        count_ordered += 1;
                     }
                 }
             }
         }
 
-        out.push_str(&count.to_string());
-        out.push('\n');
+        // Each unordered triple of distinct integers has exactly 6 ordered permutations.
+        let count_unordered = count_ordered / 6;
+        outputs.push(count_unordered.to_string());
     }
 
-    print!("{out}");
+    print!("{}", outputs.join("\n"));
 }

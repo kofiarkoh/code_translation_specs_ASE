@@ -1,38 +1,42 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin (scanf-style tokenization).
+    // Read entire stdin (matches scanf-style tokenization for this program).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let n: i32 = it.next().unwrap().parse().unwrap();
-    let s = it.next().unwrap_or("");
+    let n: i32 = it.next().unwrap_or("0").parse().unwrap_or(0);
+    let s_token = it.next().unwrap_or("");
 
-    // C uses a fixed char array and scanf("%s") which stops at whitespace.
-    // We'll operate on bytes; the C code compares to ASCII chars.
-    let bytes = s.as_bytes();
+    // C uses a fixed char array of size 51 and scanf("%s") which:
+    // - stops at whitespace
+    // - writes a NUL terminator
+    // - has undefined behavior if input exceeds 50 chars
+    // We emulate the in-bounds, intended behavior by truncating to 50 bytes.
+    let mut bytes = s_token.as_bytes().to_vec();
+    if bytes.len() > 50 {
+        bytes.truncate(50);
+    }
 
     let mut count: i32 = 0;
+
+    // C loop: for (int i=0; i<n-2; i++) { ... possibly i+=2; }
+    // Note: if n < 2, then n-2 is negative and the loop doesn't run.
     let mut i: i32 = 0;
-
-    // Preserve C loop semantics: for (int i=0; i<n-2; i++)
-    // Note: if n < 2, then n-2 is negative and the loop never runs.
     while i < n - 2 {
-        let idx = i as usize;
-
-        // In the original C, accessing beyond the scanned string would be UB.
-        // Here we avoid panics by checking bounds; if out of bounds, treat as no match.
-        if idx + 2 < bytes.len()
-            && bytes[idx] == b'A'
-            && bytes[idx + 1] == b'B'
-            && bytes[idx + 2] == b'C'
+        let iu = i as usize;
+        // In the original C, indexing beyond the actual string length would be UB.
+        // Here we guard to avoid panics; for valid inputs (length >= n) behavior matches.
+        if iu + 2 < bytes.len()
+            && bytes[iu] == b'A'
+            && bytes[iu + 1] == b'B'
+            && bytes[iu + 2] == b'C'
         {
             count += 1;
-            i += 2; // matches C's i+=2 inside the loop body
+            i += 2;
         }
-
-        i += 1; // matches the for-loop increment
+        i += 1;
     }
 
     print!("{}", count);

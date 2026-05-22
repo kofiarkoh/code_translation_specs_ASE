@@ -1,40 +1,64 @@
 use std::io::{self, Read};
 
-fn is_cyclic(adj: &[Vec<usize>]) -> i32 {
-    let v = adj.len();
+#[derive(Clone, Copy)]
+struct Edge {
+    tgt: usize,
+    // Present in the C struct but unused by the algorithm/spec.
+    cost: i32,
+}
+
+struct AdjacencyList {
+    src: Vec<Vec<Edge>>,
+    num_vertex: usize,
+}
+
+fn make_adjacency_list(v: usize) -> AdjacencyList {
+    AdjacencyList {
+        src: vec![Vec::new(); v],
+        num_vertex: v,
+    }
+}
+
+fn push_edge(graph: &mut AdjacencyList, source: usize, edge: Edge) {
+    // Spec says behavior is undefined for out-of-range indices; we do not add checks.
+    graph.src[source].push(edge);
+}
+
+/// Returns 1 if cyclic, 0 if acyclic.
+/// This matches the C code's Kahn-like removal process with O(V^2 + E) scanning.
+fn is_cyclic(g: &AdjacencyList) -> i32 {
+    let v = g.num_vertex;
     let mut indeg = vec![0i32; v];
 
-    // Compute indegree of each vertex.
-    for edges in adj.iter() {
-        for &tgt in edges.iter() {
-            indeg[tgt] += 1;
+    // Compute indegree counts (duplicates and self-loops included).
+    for i in 0..v {
+        for e in &g.src[i] {
+            indeg[e.tgt] += 1;
         }
     }
 
-    // This mirrors the C code's behavior: repeatedly find a vertex with indegree 0,
-    // "remove" it (mark as -1), and decrement indegrees of its outgoing neighbors.
-    // If at some iteration no indegree-0 vertex exists, a cycle is present.
+    // Repeatedly find a vertex with indegree 0, "remove" it, and decrement its outgoing targets.
     for _ in 0..v {
         let mut flag = true;
         for i in 0..v {
             if indeg[i] == 0 {
-                indeg[i] = -1;
+                indeg[i] = -1; // mark removed/processed
                 flag = false;
-                for &tgt in adj[i].iter() {
-                    indeg[tgt] -= 1;
+                for e in &g.src[i] {
+                    indeg[e.tgt] -= 1;
                 }
                 break;
             }
         }
         if flag {
-            return 1;
+            return 1; // no removable vertex => cycle exists
         }
     }
     0
 }
 
 fn main() {
-    // Read all input (no explicit error handling, per spec).
+    // Read all input, parse as integers.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -42,14 +66,15 @@ fn main() {
     let v: usize = it.next().unwrap().parse().unwrap();
     let e: usize = it.next().unwrap().parse().unwrap();
 
-    // Build adjacency list; edge "cost" is irrelevant and omitted.
-    let mut adj: Vec<Vec<usize>> = vec![Vec::new(); v];
+    let mut graph = make_adjacency_list(v);
+
     for _ in 0..e {
         let s: usize = it.next().unwrap().parse().unwrap();
         let t: usize = it.next().unwrap().parse().unwrap();
-        adj[s].push(t);
+        let edge = Edge { tgt: t, cost: 0 };
+        push_edge(&mut graph, s, edge);
     }
 
-    let res = is_cyclic(&adj);
+    let res = is_cyclic(&graph);
     print!("{res}\n");
 }

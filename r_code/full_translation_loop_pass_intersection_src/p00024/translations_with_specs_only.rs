@@ -1,39 +1,28 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin as text, then parse whitespace-separated tokens as f64.
-    // If a token cannot be parsed as a real number, behavior is unspecified by the spec;
-    // we choose the narrowest reasonable behavior: stop processing at the first parse failure.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
 
     let mut out = String::new();
 
     for tok in input.split_whitespace() {
-        let v: f64 = match tok.parse() {
-            Ok(x) => x,
-            Err(_) => break,
-        };
+        // Contract: if token is not a valid real number, behavior is undefined.
+        // We choose to stop (panic) rather than invent recovery behavior.
+        let v: f64 = tok.parse().unwrap();
 
         // x = (4.9 * v^2) / (9.8^2)
-        // Use f64 operations; preconditions state values are finite and intermediate results do not overflow.
         let x = (4.9_f64 * v * v) / (9.8_f64 * 9.8_f64);
 
-        // truncate_toward_zero for f64 -> integer is modeled by Rust's `trunc()`,
-        // then cast to i64. Preconditions guarantee representability.
-        let t_f = (x + 5.0).trunc();
-        let t: i64 = t_f as i64;
+        // k = truncate(x + 5) toward zero
+        // Contract: conversion must be representable; otherwise undefined.
+        let k: i64 = (x + 5.0).trunc() as i64;
 
-        // q = truncate_toward_zero(t / 5)
-        // Since t is integer, t/5 in the spec is interpreted as real division followed by truncation.
-        // That equals trunc((t as f64)/5.0). This differs from integer division for negative values,
-        // so we implement the spec literally.
-        let q_f = (t as f64 / 5.0).trunc();
-        let q: i64 = q_f as i64;
+        // m = truncate(k / 5) (integer division in Rust truncates toward zero)
+        let m: i64 = k / 5;
 
-        let n: i64 = q + 1;
-
-        out.push_str(&n.to_string());
+        // output m + 1
+        out.push_str(&(m + 1).to_string());
         out.push('\n');
     }
 
