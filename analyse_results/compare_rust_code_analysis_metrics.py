@@ -122,6 +122,12 @@ def parse_args() -> argparse.Namespace:
         default="all",
         help="Where to apply Markdown highlight markers for better values (default: all).",
     )
+    parser.add_argument(
+        "--no-plots",
+        action="store_true",
+        default=False,
+        help="Skip saving PNG plot images.",
+    )
     return parser.parse_args()
 
 
@@ -582,7 +588,7 @@ def main() -> int:
     output_path.write_text(report, encoding="utf-8")
     write_long_csv(by_folder, output_csv_path, averages)
     write_wide_csv(by_folder, output_csv_wide_path, averages)
-    if PLOT_AVERAGE_ONLY:
+    if PLOT_AVERAGE_ONLY and not args.no_plots:
         plot_average_graphs(
             averages,
             METRIC_FIELDS,
@@ -594,7 +600,7 @@ def main() -> int:
     print(f"Wrote report to: {output_path.resolve()}")
     print(f"Wrote CSV (long) to: {output_csv_path.resolve()}")
     print(f"Wrote CSV (wide) to: {output_csv_wide_path.resolve()}")
-    if PLOT_AVERAGE_ONLY:
+    if PLOT_AVERAGE_ONLY and not args.no_plots:
         print(f"Wrote average values plot to: {values_plot_path.resolve()}")
         print(f"Wrote average deltas plot to: {deltas_plot_path.resolve()}")
     return 0
