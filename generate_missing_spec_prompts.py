@@ -21,75 +21,38 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent
 
 # Directory whose *_spec.txt files need matching *_prompt.txt files
-SPEC_DIR = PROJECT_ROOT / "api_responses" / "open_ai" / "optimized_prompt@1" / "C" / "specs"
+SPEC_DIR = PROJECT_ROOT / "api_responses" / "open_ai" / "optimized_prompt@1" / "C" / "specs_WITH_GPT_5_2"
 
 # Where the original C source files live
 C_SOURCE_ROOT = PROJECT_ROOT / "collected_dataset" / "C" / "final_problems"
 
-SKIP_IF_EXISTS = True
+SKIP_IF_EXISTS = False
 
 # Copied verbatim from generate_code_specs_with_openai.py
 SYSTEM_PROMPT = "You are a helpful coding assistant."
 
 USER_PROMPT_TEMPLATE = """You are an expert senior software engineer.
+Given source code, generate a precise, structured behavioral specification that states WHAT the code guarantees, not HOW it achieves it.
 
-Given the following source code, generate a precise and structured code specification.
-
-The goal is to describe WHAT the code does (behavioral contract), not HOW it is implemented.
-
-Return the specification using the following structured sections:
-
+Output must use exactly these sections and headings:
 1. Functional Description
-   - High-level description of the purpose
-   - What problem it solves
-   - Core behavior
-
 2. Inputs
-   - Parameters
-   - Data types
-   - Valid ranges or constraints
-   - Assumptions about inputs
-
 3. Outputs
-   - Return values
-   - Side effects
-   - Output format/schema (if applicable)
-
 4. Preconditions
-   - Conditions that must hold before execution
-   - Explicit logical constraints
-
 5. Postconditions
-   - Conditions guaranteed after execution
-   - State changes
-   - Return guarantees
-
 6. Invariants
-   - Conditions that must always remain true
-   - Class-level invariants (if object-oriented)
-
 7. Error Handling / Exceptional Behavior
-   - What happens on invalid input?
-   - Exceptions thrown?
-   - Edge-case behavior
-
 8. State Transitions (if applicable)
-   - Valid object states
-   - State changes caused by execution
-
 9. Non-functional Constraints (if inferable)
-   - Time complexity
-   - Space complexity
-   - Performance assumptions
 
-Content Requirements:
-- Do NOT rewrite the code.
-- Do NOT summarize implementation details.
-- Focus strictly on behavioral specification.
-- If behavior is ambiguous, state assumptions explicitly.
-- If certain aspects cannot be inferred, state "Not inferable from code."
-- Do not make any extreme assumptions.
-- Your output should not be too wordy and must focus on core aspects
+Content requirements:
+- Be concise and contract-focused; omit incidental or low-level details.
+- Do not reference language/library APIs, format strings, or identifiers.
+- Describe I/O abstractly; never cite exact parsing patterns or format specifiers.
+- Do not restate implementation structure or control flow.
+- If behavior is ambiguous, state explicit assumptions.
+- Avoid extreme assumptions. Capture only behavior implied by the code's observable contract.
+- Return only the nine sections with the exact headings and numbering specified.
 
 Now generate the specification for the code below:
 
