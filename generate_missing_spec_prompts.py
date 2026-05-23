@@ -21,7 +21,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent
 
 # Directory whose *_spec.txt files need matching *_prompt.txt files
-SPEC_DIR = PROJECT_ROOT / "api_responses" / "open_ai" / "optimized_prompt@1" / "C" / "specs_WITH_GPT_5_2"
+SPEC_DIR = PROJECT_ROOT / "api_responses" / "open_ai" / "optimized_prompt@1" / "C" / "specs"
 
 # Where the original C source files live
 C_SOURCE_ROOT = PROJECT_ROOT / "collected_dataset" / "C" / "final_problems"
