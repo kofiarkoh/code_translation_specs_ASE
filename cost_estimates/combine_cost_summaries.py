@@ -26,9 +26,10 @@ import pandas as pd
 # ================================================================
 # Configure here
 # ================================================================
-TRANSLATION_CSV = Path("translation_cost_estimate_summary.csv")
-SPEC_GEN_CSV    = Path("spec_generation_cost_estimate_summary.csv")
-OUTPUT_CSV      = Path("combined_cost_summary.csv")
+SCRIPT_DIR      = Path(__file__).resolve().parent
+TRANSLATION_CSV = SCRIPT_DIR / "translation_cost_estimate_summary.csv"
+SPEC_GEN_CSV    = SCRIPT_DIR / "spec_generation_cost_estimate_summary.csv"
+OUTPUT_CSV      = SCRIPT_DIR / "combined_cost_summary.csv"
 
 # Map each pipeline to the spec-generation directory whose cost it consumed.
 # Pipelines not listed here are assumed to have no external spec cost.
@@ -91,9 +92,11 @@ def print_table(df: pd.DataFrame) -> None:
     print("-" * (col + 68))
 
     for pipeline, grp in df.groupby("pipeline", sort=False):
+        pip_label = PIPELINE_LABELS.get(pipeline, pipeline).replace("\n", " ")
         for _, row in grp.iterrows():
+            prof_label = PROFILE_LABELS.get(row["profile"], row["profile"])
             print(
-                f"{row['pipeline']:<{col}} {row['model']:<14} {row['profile']:<15}"
+                f"{pip_label:<{col}} {row['model']:<14} {prof_label:<15}"
                 f" ${row['translation_cost']:>9.4f} ${row['spec_gen_cost']:>14.4f}"
                 f" ${row['total_cost']:>9.4f}"
             )
@@ -118,10 +121,15 @@ def print_table(df: pd.DataFrame) -> None:
 
 
 PIPELINE_LABELS: dict[str, str] = {
-    "full_translation_loop":                              "full_loop\n(4o-mini)",
-    "full_translation_loop_GPT_5_2":                      "full_loop\n(gpt-5.2)",
-    "full_translation_loop_GPT_5_2_using_GPT_5_2_SPECS":  "full_loop_5.2\nSPECS",
-    "translation_with_validated_specs_GPT_5_2":           "validated_specs\n(gpt-5.2)",
+    "full_translation_loop_GPT_5_2":                      "Translation with \nGPT 4o-mini specs",
+    "full_translation_loop_GPT_5_2_using_GPT_5_2_SPECS":  "Translation with \nGPT 5.2 specs",
+    "translation_with_validated_specs_GPT_5_2":           "Translation with \nvalidated specs\n(GPT-5.2)",
+}
+
+PROFILE_LABELS: dict[str, str] = {
+    "code_only":     "Code Only",
+    "specs_only":    "Specs Only",
+    "code_and_spec": "Code and Specs",
 }
 
 # Pipelines to exclude from the plot (still appear in the CSV)
@@ -135,26 +143,37 @@ PROFILE_COLORS = {
 
 BAR_WIDTH = 0.22
 
+# ── Font sizes ────────────────────────────────────────────────────
+FONT_TITLE       = 14
+FONT_AXIS_LABEL  = 18
+FONT_TICK        = 18
+FONT_BAR_LABEL   = 18   # value labels on top of bars
+FONT_SPEC_LABEL  = 15    # value labels inside hatched spec-gen segment
+FONT_LEGEND      = 15
+
+
 
 def plot_combined(df: pd.DataFrame, output_file: Path) -> None:
     df = df[~df["pipeline"].isin(EXCLUDED_PIPELINES)].copy()
-    df["label"] = df["pipeline"].map(lambda p: PIPELINE_LABELS.get(p, p))
+    df["pip_label"]  = df["pipeline"].map(lambda p: PIPELINE_LABELS.get(p, p))
+    df["prof_label"] = df["profile"].map(lambda p: PROFILE_LABELS.get(p, p))
 
-    pipelines = list(df["label"].unique())
-    profiles  = list(PROFILE_COLORS)
-    n_pip     = len(pipelines)
-    n_prof    = len(profiles)
+    pipelines     = list(df["pip_label"].unique())
+    profile_keys  = list(PROFILE_COLORS)
+    n_pip         = len(pipelines)
+    n_prof        = len(profile_keys)
 
     fig, ax = plt.subplots(figsize=(max(12, n_pip * 3), 7))
 
     offsets = [(i - (n_prof - 1) / 2) * BAR_WIDTH for i in range(n_prof)]
     x = np.arange(n_pip)
 
-    for offset, profile in zip(offsets, profiles):
+    for offset, profile in zip(offsets, profile_keys):
+        prof_label = PROFILE_LABELS.get(profile, profile)
         trans_vals = []
         spec_vals  = []
-        for label in pipelines:
-            row = df[(df["label"] == label) & (df["profile"] == profile)]
+        for pip_label in pipelines:
+            row = df[(df["pip_label"] == pip_label) & (df["profile"] == profile)]
             if row.empty:
                 trans_vals.append(0.0)
                 spec_vals.append(0.0)
@@ -176,7 +195,7 @@ def plot_combined(df: pd.DataFrame, output_file: Path) -> None:
                 ax.text(
                     x[xi] + offset, sv / 2,
                     f"${sv:.2f}",
-                    ha="center", va="center", fontsize=8,
+                    ha="center", va="center", fontsize=FONT_SPEC_LABEL,
                     fontweight="bold", color="black",
                 )
             bottoms = spec_vals
@@ -187,7 +206,7 @@ def plot_combined(df: pd.DataFrame, output_file: Path) -> None:
         ax.bar(
             x + offset, trans_vals,
             width=BAR_WIDTH, bottom=bottoms,
-            color=color, label=f"{profile}",
+            color=color, label=prof_label,
         )
 
         # Value label on top of full bar
@@ -198,15 +217,15 @@ def plot_combined(df: pd.DataFrame, output_file: Path) -> None:
             ax.text(
                 x[xi] + offset, total + ax.get_ylim()[1] * 0.005,
                 f"${total:.2f}",
-                ha="center", va="bottom", fontsize=10, rotation=45,
+                ha="center", va="bottom", fontsize=FONT_BAR_LABEL, rotation=45,
             )
 
     ax.set_xticks(x)
-    ax.set_xticklabels(pipelines, fontsize=13)
-    ax.set_ylabel("Cost (USD)", fontsize=14)
+    ax.set_xticklabels(pipelines, fontsize=FONT_TICK)
+    ax.set_ylabel("Cost (USD)", fontsize=FONT_AXIS_LABEL)
     subtitle = "(solid = translation, hatched = spec generation)" if SHOW_SPEC_GEN_COST else "(translation cost only)"
-    ax.set_title(f"Total Cost by Pipeline and Profile\n{subtitle}", fontsize=14)
-    ax.tick_params(axis="y", labelsize=13)
+    ax.set_title(f"Total Cost by Pipeline and Profile\n{subtitle}", fontsize=FONT_TITLE)
+    ax.tick_params(axis="y", labelsize=FONT_TICK)
 
     handles, labels = ax.get_legend_handles_labels()
     if SHOW_SPEC_GEN_COST:
@@ -215,15 +234,18 @@ def plot_combined(df: pd.DataFrame, output_file: Path) -> None:
                             label="spec gen (allocated)")
         handles += [hatch_patch]
         labels  += ["spec gen (allocated)"]
-    ax.legend(handles, labels, fontsize=12, title="Profile", title_fontsize=12)
+    ax.legend(handles, labels, fontsize=FONT_LEGEND, title="Profile", title_fontsize=FONT_LEGEND)
 
     ax.margins(x=0.05)
     import matplotlib.ticker as mticker
     ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: f"${v:,.2f}"))
     fig.tight_layout()
     fig.savefig(output_file, dpi=150)
+    pdf_file = output_file.with_suffix(".pdf")
+    fig.savefig(pdf_file)
     plt.close(fig)
     print(f"Plot saved: {output_file}")
+    print(f"Plot saved: {pdf_file}")
 
 
 def main() -> None:
@@ -245,7 +267,7 @@ def main() -> None:
     print(f"\nCombined summary written to: {OUTPUT_CSV}")
 
     plot_file = OUTPUT_CSV.with_suffix(".png")
-    plot_combined(combined, plot_file)
+    plot_combined(combined, plot_file)  # also saves .pdf alongside
 
 
 if __name__ == "__main__":
