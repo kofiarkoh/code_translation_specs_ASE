@@ -7,7 +7,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-PIPELINE_NAME = "translation_with_validated_specs_using_GPT_4O_mini"
+PIPELINE_NAME = "translation_with_validated_specs_GPT_5_2"
 DATASET_NAME = "optimized_prompt@1"
 PIPELINE_ROOT = PROJECT_ROOT / "repairs" / PIPELINE_NAME
 OUTPUT_ROOT = PROJECT_ROOT / "repairs" / f"{PIPELINE_NAME}_analysis" / DATASET_NAME
