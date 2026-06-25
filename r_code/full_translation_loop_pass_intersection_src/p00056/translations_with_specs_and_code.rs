@@ -2,45 +2,47 @@ use std::io::{self, Read};
 
 const MAX: usize = 50001;
 
-fn make_prime_table() -> Vec<bool> {
-    // In the C code: table[k] == 0 means "prime" (for k>=2), 1 means "composite".
-    // We'll store "is_composite" with the same meaning for direct semantic translation.
-    let mut is_composite = vec![false; MAX];
+fn make_prime_table() -> Vec<u8> {
+    // table[x] == 0 => prime (or 0/1 treated as non-prime by usage), table[x] == 1 => composite
+    let mut table = vec![0u8; MAX];
 
     for i in 2..MAX {
-        if !is_composite[i] {
+        if table[i] == 0 {
             let mut j = 2usize;
             while i * j < MAX {
-                is_composite[i * j] = true;
+                table[i * j] = 1;
                 j += 1;
             }
         }
     }
-    is_composite
+    table
 }
 
 fn main() {
-    let is_composite = make_prime_table();
-
+    // Read entire stdin; if tokens can't be parsed as i32, stop processing (no error output).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).ok();
 
+    let ptable = make_prime_table();
     let mut out = String::new();
 
     for tok in input.split_whitespace() {
-        let n: usize = match tok.parse() {
+        let n: i32 = match tok.parse() {
             Ok(v) => v,
-            Err(_) => break, // stop processing on parse failure
+            Err(_) => break, // per spec: terminate with no further output
         };
 
         if n == 0 {
-            break;
+            break; // no output for terminating zero
         }
 
-        // Spec guarantees behavior only for 0..=50000; we follow the spec and do not add checks.
-        let mut cnt = 0i32;
-        for i in 2..=n / 2 {
-            if !is_composite[i] && !is_composite[n - i] {
+        // Per spec, behavior is undefined if n is negative or exceeds supported range.
+        // We mirror the C behavior by assuming inputs are within 0..=50000.
+        let n_usize = n as usize;
+
+        let mut cnt: i32 = 0;
+        for i in 2..=n_usize / 2 {
+            if ptable[i] == 0 && ptable[n_usize - i] == 0 {
                 cnt += 1;
             }
         }

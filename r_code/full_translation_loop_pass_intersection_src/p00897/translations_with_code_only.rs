@@ -4,113 +4,110 @@ use std::io::{self, Read};
 
 const HASHSIZ: usize = 29989;
 const MAX: usize = 6002;
-const CAPMAX: usize = 2002; // dist[][0..2001] in C
+// C uses dist[MAX][2002]; cap = 10*in(), so cap is expected <= 2001.
+const CAP_MAX: usize = 2002;
 
-// Fast input matching the C code's tokenization behavior.
+#[derive(Clone, Copy)]
+struct HashEnt {
+    // Store index into `cities` (string table). None means empty.
+    idx: Option<usize>,
+    id: i16,
+}
+
+fn hash_key(s: &str) -> usize {
+    // Emulate C: unsigned long long i; i = (i<<6) + *p++;
+    // Use wrapping arithmetic to match modulo 2^64 behavior.
+    let mut i: u64 = 0;
+    for &b in s.as_bytes() {
+        i = i.wrapping_shl(6).wrapping_add(b as u64);
+    }
+    (i % (HASHSIZ as u64)) as usize
+}
+
+// Returns existing id if found, else inserts and returns -1 (like C).
+fn insert(hash: &mut [HashEnt; HASHSIZ + 2], cities: &[String], s_idx: usize, id: i16) -> i16 {
+    let s = &cities[s_idx];
+    let mut tp = hash_key(s);
+    let hashend = HASHSIZ;
+    loop {
+        match hash[tp].idx {
+            Some(existing_idx) => {
+                if cities[existing_idx] == *s {
+                    return hash[tp].id;
+                }
+                tp += 1;
+                if tp == hashend {
+                    tp = 0;
+                }
+            }
+            None => {
+                hash[tp].idx = Some(s_idx);
+                hash[tp].id = id;
+                return -1;
+            }
+        }
+    }
+}
+
 struct Scanner {
     buf: Vec<u8>,
-    idx: usize,
+    pos: usize,
 }
 impl Scanner {
     fn new() -> Self {
         let mut input = String::new();
         io::stdin().read_to_string(&mut input).unwrap();
-        Self { buf: input.into_bytes(), idx: 0 }
+        Self { buf: input.into_bytes(), pos: 0 }
     }
-    fn skip_ws(&mut self) {
-        while self.idx < self.buf.len() && self.buf[self.idx] <= b' ' {
-            self.idx += 1;
+
+    fn getc(&mut self) -> Option<u8> {
+        if self.pos >= self.buf.len() {
+            None
+        } else {
+            let c = self.buf[self.pos];
+            self.pos += 1;
+            Some(c)
         }
     }
-    fn next_int(&mut self) -> i32 {
-        // C in(): reads digits, assumes first char is a digit (caller ensures).
-        // Stops when c < '0'. It does not skip whitespace itself.
-        // In main, they call while (N = in()) so N==0 ends.
-        self.skip_ws();
+
+    // Emulate C in(): reads digits, assumes first char is a digit.
+    // Stops when next char < '0'. Returns 0 if EOF before any digit.
+    fn in_int(&mut self) -> i32 {
         let mut n: i32 = 0;
-        while self.idx < self.buf.len() {
-            let c = self.buf[self.idx];
+        let mut c = match self.getc() {
+            Some(x) => x,
+            None => return 0,
+        };
+        // C does: do { ... } while (c >= '0');
+        // If input is well-formed, first c is digit. We keep same structure.
+        loop {
+            n = (n << 3) + (n << 1) + ((c & 0x0f) as i32);
+            c = match self.getc() {
+                Some(x) => x,
+                None => break,
+            };
             if c < b'0' {
                 break;
             }
-            n = n.wrapping_mul(10).wrapping_add((c & 0x0f) as i32);
-            self.idx += 1;
         }
         n
     }
-    fn next_token(&mut self) -> String {
-        // C ins(): reads until <= ' ' and null-terminates.
-        self.skip_ws();
-        let start = self.idx;
-        while self.idx < self.buf.len() && self.buf[self.idx] > b' ' {
-            self.idx += 1;
-        }
-        String::from_utf8_lossy(&self.buf[start..self.idx]).into_owned()
-    }
-}
 
-// Hash table emulating the C open-addressing table.
-// Stores owned Strings; comparisons are by string content (strcmp).
-struct HashTable {
-    slots: Vec<Option<(String, i16)>>, // (s, id)
-}
-impl HashTable {
-    fn new() -> Self {
-        Self { slots: vec![None; HASHSIZ] }
-    }
-    fn clear(&mut self) {
-        for s in self.slots.iter_mut() {
-            *s = None;
-        }
-    }
-    fn hash(s: &str) -> u64 {
-        // C: i = (i<<6) + *p++ with unsigned long long.
-        let mut i: u64 = 0;
-        for &b in s.as_bytes() {
-            i = i.wrapping_shl(6).wrapping_add(b as u64);
-        }
-        i
-    }
-    // Returns existing id if found; otherwise inserts (s,id) and returns -1.
-    fn insert(&mut self, s: String, id: i16) -> i16 {
-        let h = (Self::hash(&s) % (HASHSIZ as u64)) as usize;
-        let mut idx = h;
+    // Emulate C ins(): reads a token (bytes > ' '), then terminates.
+    // Returns empty string on EOF.
+    fn ins_token(&mut self) -> String {
+        let mut out: Vec<u8> = Vec::new();
         loop {
-            match &self.slots[idx] {
-                Some((existing, existing_id)) => {
-                    if existing == &s {
-                        return *existing_id;
-                    }
-                    idx += 1;
-                    if idx == HASHSIZ {
-                        idx = 0;
-                    }
-                }
-                None => {
-                    self.slots[idx] = Some((s, id));
-                    return -1;
-                }
+            let c = match self.getc() {
+                Some(x) => x,
+                None => break,
+            };
+            if c <= b' ' {
+                break;
             }
+            out.push(c);
         }
-    }
-    // Lookup without inserting; returns Some(id) if present.
-    fn get(&self, s: &str) -> Option<i16> {
-        let h = (Self::hash(s) % (HASHSIZ as u64)) as usize;
-        let mut idx = h;
-        loop {
-            match &self.slots[idx] {
-                Some((existing, existing_id)) => {
-                    if existing == s {
-                        return Some(*existing_id);
-                    }
-                    idx += 1;
-                    if idx == HASHSIZ {
-                        idx = 0;
-                    }
-                }
-                None => return None,
-            }
-        }
+        String::from_utf8(out).unwrap_or_default()
     }
 }
 
@@ -119,19 +116,22 @@ fn dijkstra(
     cap: usize,
     start: usize,
     goal: usize,
-    adj: &Vec<Vec<(usize, i16)>>, // (to, dist)
-    lpg: &Vec<bool>,
+    lpg: &[bool],
+    adj: &[Vec<(usize, i16)>],
 ) -> i32 {
-    // C: memset(dist, 0x10, sizeof(dist)) on int dist[MAX][2002]
-    // That yields 0x10101010 = 269488144 as "infinity".
-    const INF: i32 = 0x1010_1010u32 as i32;
+    // dist initialized to 0x10101010 in C via memset(0x10) on int array.
+    // That value is 0x10101010 = 269_488_144.
+    const INF: i32 = 0x1010_1010;
 
-    // dist[node][fuel]
-    let mut dist = vec![vec![INF; cap + 1]; sz];
+    // dist[city][fuel]
+    let mut dist = vec![vec![INF; CAP_MAX]; sz];
 
-    // Min-heap by time: (t, s, c)
     let mut heap: BinaryHeap<(Reverse<i32>, usize, usize)> = BinaryHeap::new();
-
+    if cap >= CAP_MAX {
+        // C would write out of bounds; we clamp to preserve memory safety.
+        // This is a best-effort emulation; typical AOJ constraints keep cap < CAP_MAX.
+        return -1;
+    }
     dist[start][cap] = 0;
     heap.push((Reverse(0), start, cap));
 
@@ -147,13 +147,13 @@ fn dijkstra(
         }
         for &(e, w) in &adj[s] {
             let w_i32 = w as i32;
-            let nc_i32 = c as i32 - w_i32;
+            let nc_i32 = (c as i32) - w_i32;
             if nc_i32 < 0 {
                 continue;
             }
             let nc = nc_i32 as usize;
-            let nd = d.wrapping_add(w_i32);
-            if dist[e][nc] > nd {
+            let nd = d + w_i32;
+            if nd < dist[e][nc] {
                 dist[e][nc] = nd;
                 heap.push((Reverse(nd), e, nc));
             }
@@ -166,82 +166,76 @@ fn main() {
     let mut sc = Scanner::new();
     let mut out = String::new();
 
-    let mut hash = HashTable::new();
-
     loop {
-        let n = sc.next_int();
+        let n = sc.in_int();
         if n == 0 {
             break;
         }
-        let m = sc.next_int();
-        let cap = (10 * sc.next_int()) as usize;
+        let m = sc.in_int();
+        let cap = (10 * sc.in_int()) as usize;
 
-        hash.clear();
+        let mut hash = [HashEnt { idx: None, id: 0 }; HASHSIZ + 2];
 
-        // City storage (C uses fixed char city[MAX][17]; we use Vec<String>)
         let mut cities: Vec<String> = Vec::with_capacity(MAX);
+        cities.push(sc.ins_token()); // city[0]
+        cities.push(sc.ins_token()); // city[1]
+        // Insert start/goal
+        insert(&mut hash, &cities, 0, 0);
+        insert(&mut hash, &cities, 1, 1);
 
-        let c0 = sc.next_token();
-        let c1 = sc.next_token();
-        cities.push(c0.clone());
-        cities.push(c1.clone());
-        hash.insert(c0, 0);
-        hash.insert(c1, 1);
-
-        // First pass: read edges, build degrees and memo.
         let mut hi = vec![0usize; MAX];
         let mut memo: Vec<i32> = Vec::with_capacity((n as usize) * 3);
 
         let mut sz: usize = 2;
         for _ in 0..n {
-            let s1 = sc.next_token();
-            let a_id = match hash.get(&s1) {
-                Some(id) => id as i32,
-                None => {
-                    // Insert with id=sz
-                    let _ = hash.insert(s1.clone(), sz as i16);
-                    cities.push(s1);
-                    let id = sz as i32;
-                    sz += 1;
-                    id
-                }
-            };
-            hi[a_id as usize] += 1;
-            memo.push(a_id);
+            // first city
+            let s1 = sc.ins_token();
+            cities.push(s1);
+            let idx1 = cities.len() - 1;
+            let mut a = insert(&mut hash, &cities, idx1, sz as i16);
+            let a_usize: usize;
+            if a < 0 {
+                a_usize = sz;
+                sz += 1;
+            } else {
+                a_usize = a as usize;
+            }
+            memo.push(a_usize as i32);
+            hi[a_usize] += 1;
 
-            let s2 = sc.next_token();
-            let b_id = match hash.get(&s2) {
-                Some(id) => id as i32,
-                None => {
-                    let _ = hash.insert(s2.clone(), sz as i16);
-                    cities.push(s2);
-                    let id = sz as i32;
-                    sz += 1;
-                    id
-                }
-            };
-            hi[b_id as usize] += 1;
-            memo.push(b_id);
+            // second city
+            let s2 = sc.ins_token();
+            cities.push(s2);
+            let idx2 = cities.len() - 1;
+            let mut b = insert(&mut hash, &cities, idx2, sz as i16);
+            let b_usize: usize;
+            if b < 0 {
+                b_usize = sz;
+                sz += 1;
+            } else {
+                b_usize = b as usize;
+            }
+            memo.push(b_usize as i32);
+            hi[b_usize] += 1;
 
-            let c = sc.next_int();
+            let c = sc.in_int();
             memo.push(c);
         }
 
-        // Build adjacency lists (undirected), matching C's two insertions per edge.
+        // Build adjacency lists (undirected), using hi counts as degrees.
         let mut adj: Vec<Vec<(usize, i16)>> = vec![Vec::new(); sz];
-        for a in 0..sz {
-            if hi[a] > 0 {
-                adj[a].reserve(hi[a]);
+        for v in 0..sz {
+            if hi[v] > 0 {
+                adj[v].reserve(hi[v]);
             }
         }
-
-        let mut idx = 0usize;
+        // Fill edges
+        let mut j = 0usize;
         for _ in 0..n {
-            let a = memo[idx] as usize;
-            let b = memo[idx + 1] as usize;
-            let c = memo[idx + 2] as i16; // C stores in short arrays dd[]; input assumed fits.
-            idx += 3;
-
+            let a = memo[j] as usize;
+            let b = memo[j + 1] as usize;
+            let c = memo[j + 2] as i16;
+            j += 3;
             adj[a].push((b, c));
             adj[b].push((a, c));
         }
@@ -249,17 +243,16 @@ fn main() {
         // LPG flags
         let mut lpg = vec![false; sz];
         for _ in 0..m {
-            let name = sc.next_token();
-            if let Some(id) = hash.get(&name) {
-                let u = id as usize;
-                if u < sz {
-                    lpg[u] = true;
-                }
+            let name = sc.ins_token();
+            cities.push(name);
+            let idx = cities.len() - 1;
+            let a = insert(&mut hash, &cities, idx, -1);
+            if a >= 0 {
+                lpg[a as usize] = true;
             }
         }
 
-        // Note: C passes n=sz but doesn't use it inside dijkstra; we do similarly.
-        let ans = dijkstra(sz, cap, 0, 1, &adj, &lpg);
+        let ans = dijkstra(sz, cap, 0, 1, &lpg, &adj);
         out.push_str(&format!("{ans}\n"));
     }
 

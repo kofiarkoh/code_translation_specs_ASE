@@ -2,112 +2,110 @@ use std::cmp::Reverse;
 use std::collections::BinaryHeap;
 use std::io::{self, Read};
 
-const FIXED_CONST: i64 = 1_000_000;
+const S: i64 = 1_000_000_000_000_000_000; // fixed constant > 1e9
+const NEG_SENTINEL: i64 = -1_000_000_000_000_000_000; // large-magnitude negative 64-bit integer
+
+#[derive(Clone, Copy)]
+struct Edge {
+    to: usize,
+    w: i64,
+}
 
 fn main() {
-    // Read entire stdin
+    // Read all input
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
     let n: usize = match it.next() {
         Some(x) => x.parse().unwrap(),
-        None => return, // unspecified; choose to do nothing if no input
+        None => return,
     };
     let m: usize = it.next().unwrap().parse().unwrap();
     let k: usize = it.next().unwrap().parse().unwrap();
 
-    // Per-vertex attributes: three parallel arrays of length n.
-    // Narrowest interpretation consistent with the spec:
-    // - first attribute: used in inter-layer edge weight (FIXED_CONST - a1[v])
-    // - second attribute: category index in 1..=k
-    // - third attribute: added to score
-    let mut a1 = vec![0i64; n];
-    let mut cat = vec![0usize; n];
-    let mut a3 = vec![0i64; n];
+    // Per-vertex arrays
+    // p[i]: used in cross-layer edge weight (S - p[i])
+    // c[i]: category index in 1..k (otherwise behavior undefined per spec)
+    // t[i]: additive term in final score
+    let mut p = vec![0i64; n];
+    let mut c = vec![0usize; n];
+    let mut t = vec![0i64; n];
 
     for i in 0..n {
-        a1[i] = it.next().unwrap().parse().unwrap();
+        p[i] = it.next().unwrap().parse().unwrap();
     }
     for i in 0..n {
-        cat[i] = it.next().unwrap().parse::<usize>().unwrap();
+        c[i] = it.next().unwrap().parse().unwrap();
     }
     for i in 0..n {
-        a3[i] = it.next().unwrap().parse().unwrap();
+        t[i] = it.next().unwrap().parse().unwrap();
     }
 
-    // Derived graph: 2 layers, total 2*n vertices.
-    // Indexing: layer0 vertex v => v, layer1 vertex v => v + n
-    let total = 2 * n;
-    let mut adj: Vec<Vec<(usize, i64)>> = vec![Vec::new(); total];
+    // Build graph with 2n vertices
+    let nn = 2 * n;
+    let mut g: Vec<Vec<Edge>> = vec![Vec::new(); nn];
 
-    // Inter-layer directed edges: v(layer0) -> v(layer1) with weight (FIXED_CONST - a1[v])
-    for v in 0..n {
-        let w = FIXED_CONST - a1[v];
-        adj[v].push((v + n, w));
-    }
-
-    // For each undirected input edge (u, v, w):
-    // add bidirectional directed edges within each layer.
+    // Add undirected edges in both layers as directed edges
     for _ in 0..m {
-        let u1: usize = it.next().unwrap().parse().unwrap();
-        let v1: usize = it.next().unwrap().parse().unwrap();
+        let a1: usize = it.next().unwrap().parse().unwrap();
+        let b1: usize = it.next().unwrap().parse().unwrap();
         let w: i64 = it.next().unwrap().parse().unwrap();
-        let u = u1 - 1;
-        let v = v1 - 1;
+        let a = a1 - 1;
+        let b = b1 - 1;
 
-        // layer 0
-        adj[u].push((v, w));
-        adj[v].push((u, w));
-        // layer 1
-        adj[u + n].push((v + n, w));
-        adj[v + n].push((u + n, w));
+        g[a].push(Edge { to: b, w });
+        g[b].push(Edge { to: a, w });
+
+        g[a + n].push(Edge { to: b + n, w });
+        g[b + n].push(Edge { to: a + n, w });
     }
 
-    // Dijkstra from source original vertex 0 in layer 0.
-    let inf: i64 = i64::MAX / 4;
-    let mut dist = vec![inf; total];
-    let mut pq: BinaryHeap<(Reverse<i64>, usize)> = BinaryHeap::new();
+    // Add cross-layer edges i -> i+n with weight (S - p[i])
+    for i in 0..n {
+        let w = S - p[i];
+        g[i].push(Edge { to: i + n, w });
+    }
 
+    // Dijkstra from source 0
+    let inf: i64 = i64::MAX / 4;
+    let mut dist = vec![inf; nn];
     dist[0] = 0;
+
+    let mut pq: BinaryHeap<(Reverse<i64>, usize)> = BinaryHeap::new();
     pq.push((Reverse(0), 0));
 
-    while let Some((Reverse(d), u)) = pq.pop() {
-        if d != dist[u] {
+    while let Some((Reverse(d), v)) = pq.pop() {
+        // Ignore stale candidates
+        if d != dist[v] {
             continue;
         }
-        for &(v, w) in &adj[u] {
-            // Spec preconditions guarantee no overflow and non-negative weights.
+        for &Edge { to, w } in &g[v] {
+            // Spec assumes no overflow; we use normal i64 arithmetic.
             let nd = d + w;
-            if nd < dist[v] {
-                dist[v] = nd;
-                pq.push((Reverse(nd), v));
+            if nd < dist[to] {
+                dist[to] = nd;
+                pq.push((Reverse(nd), to));
             }
         }
     }
 
-    // Sentinel: "a large negative value"
-    let sentinel: i64 = -9_000_000_000_000_000_000i64;
-    let mut best = vec![sentinel; k];
+    // Aggregate per-category maxima (1-based categories)
+    let mut best = vec![NEG_SENTINEL; k + 1]; // index 0 unused
 
-    // Score for vertex v:
-    // (FIXED_CONST - dist[v_layer1]) - dist[v_layer0] + a3[v]
-    for v in 0..n {
-        let d0 = dist[v];
-        let d1 = dist[v + n];
-        let score = (FIXED_CONST - d1) - d0 + a3[v];
-
-        let c = cat[v];
-        // Preconditions say category is within 1..=k.
-        let idx = c - 1;
-        if score > best[idx] {
-            best[idx] = score;
+    for i in 0..n {
+        // score(i) = (S - dist(i+n)) - dist(i) + t[i]
+        let score = (S - dist[i + n]) - dist[i] + t[i];
+        let cat = c[i]; // assumed 1..k per spec; otherwise undefined behavior
+        if score > best[cat] {
+            best[cat] = score;
         }
     }
 
+    // Output exactly k lines
     let mut out = String::new();
-    for i in 0..k {
-        out.push_str(&format!("{}\n", best[i]));
+    for j in 1..=k {
+        out.push_str(&format!("{}\n", best[j]));
     }
     print!("{out}");
 }

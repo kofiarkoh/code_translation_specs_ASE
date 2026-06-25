@@ -1,16 +1,21 @@
 use std::io::{self, Read};
 
-fn calc(n: usize, v: &[f64], x: usize, k: usize) -> f64 {
+static mut N: i32 = 0;
+static mut V: [f64; 10] = [0.0; 10];
+
+fn calc(x: i32, k: i32) -> f64 {
+    // Uses global N and V exactly like the C code.
+    let n = unsafe { N };
+    let v = unsafe { &V };
+
     let mut s = 0.0f64;
     for i in 0..n {
         if i != k && i != x {
-            let mut t = v[i];
+            let mut t = v[i as usize];
             for j in 0..n {
                 if j != i && j != k && j != x {
-                    // C: t = (t*(k-j)) /(i-j); with int diffs promoted to double.
-                    let num = (k as i32 - j as i32) as f64;
-                    let den = (i as i32 - j as i32) as f64;
-                    t = (t * num) / den;
+                    // All arithmetic is in f64, matching C's double behavior.
+                    t = (t * ((k - j) as f64)) / ((i - j) as f64);
                 }
             }
             s += t;
@@ -20,87 +25,51 @@ fn calc(n: usize, v: &[f64], x: usize, k: usize) -> f64 {
 }
 
 fn main() {
-    // Fast tokenization to avoid potential timeouts from split_whitespace on large inputs.
-    let mut input = Vec::new();
-    io::stdin().read_to_end(&mut input).unwrap();
-    let mut idx = 0usize;
-
-    fn next_i32(buf: &[u8], idx: &mut usize) -> Option<i32> {
-        while *idx < buf.len() && buf[*idx].is_ascii_whitespace() {
-            *idx += 1;
-        }
-        if *idx >= buf.len() {
-            return None;
-        }
-        let mut sign = 1i32;
-        if buf[*idx] == b'-' {
-            sign = -1;
-            *idx += 1;
-        }
-        let mut val: i32 = 0;
-        while *idx < buf.len() && !buf[*idx].is_ascii_whitespace() {
-            val = val * 10 + (buf[*idx] - b'0') as i32;
-            *idx += 1;
-        }
-        Some(sign * val)
-    }
-
-    fn next_f64(buf: &[u8], idx: &mut usize) -> Option<f64> {
-        while *idx < buf.len() && buf[*idx].is_ascii_whitespace() {
-            *idx += 1;
-        }
-        if *idx >= buf.len() {
-            return None;
-        }
-        let start = *idx;
-        while *idx < buf.len() && !buf[*idx].is_ascii_whitespace() {
-            *idx += 1;
-        }
-        // Safe because input is ASCII numeric tokens; matches scanf("%lf").
-        let s = std::str::from_utf8(&buf[start..*idx]).ok()?;
-        s.parse::<f64>().ok()
-    }
-
-    let mut out = String::new();
+    // Read entire stdin and parse as whitespace-separated tokens (scanf-like).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
     loop {
-        let d = match next_i32(&input, &mut idx) {
-            Some(x) => x,
-            None => break,
-        };
+        let d_opt = it.next();
+        if d_opt.is_none() {
+            break;
+        }
+        let d: i32 = d_opt.unwrap().parse().unwrap();
         if d == 0 {
             break;
         }
 
-        let n = (d + 3) as usize;
-        let mut v = [0.0f64; 10];
-        for i in 0..n {
-            v[i] = next_f64(&input, &mut idx).unwrap();
+        let n = d + 3;
+        unsafe {
+            N = n;
         }
 
-        // Preserve the C control flow:
-        // for i=0..n-1:
-        //   for j=0..:
-        //     if j==n goto done (print i)
-        //     if j!=i and |calc(i,j)-v[j]|>0.1 break (next i)
-        let mut ans_i = 0usize;
-        'outer: for i in 0..n {
-            for j in 0..=n {
-                if j == n {
-                    ans_i = i;
-                    break 'outer;
-                }
-                if j != i {
-                    let t = calc(n, &v, i, j) - v[j];
-                    if t < -0.1 || t > 0.1 {
-                        break; // next i
-                    }
-                }
+        for i in 0..n {
+            let val: f64 = it.next().unwrap().parse().unwrap();
+            unsafe {
+                V[i as usize] = val;
             }
         }
 
-        out.push_str(&format!("{}\n", ans_i));
-    }
+        let mut i_found: i32 = 0;
+        'outer: for i in 0..n {
+            let mut j: i32 = 0;
+            loop {
+                if j == n {
+                    i_found = i;
+                    break 'outer; // corresponds to goto done;
+                }
+                if j != i {
+                    let t = calc(i, j) - unsafe { V[j as usize] };
+                    if t < -0.1 || t > 0.1 {
+                        break; // break inner loop, continue with next i
+                    }
+                }
+                j += 1;
+            }
+        }
 
-    print!("{out}");
+        print!("{}\n", i_found);
+    }
 }

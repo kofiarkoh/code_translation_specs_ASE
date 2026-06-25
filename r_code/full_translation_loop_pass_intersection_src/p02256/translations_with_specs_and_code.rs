@@ -5,7 +5,9 @@ const INPUT_NUM_MIN: u32 = 1;
 const INPUT_NUM_MAX: u32 = 1_000_000_000;
 
 fn calc_gcd_u32(mut large: u32, mut small: u32) -> u32 {
-    // Mirrors the C logic, including the "divisor becomes zero" early break.
+    // Euclidean algorithm, matching the C loop structure:
+    // - If divisor becomes 0, stop and return current divisor (0).
+    // - Otherwise iterate until remainder becomes 0, then return divisor.
     loop {
         if small == 0 {
             break;
@@ -21,28 +23,20 @@ fn calc_gcd_u32(mut large: u32, mut small: u32) -> u32 {
 }
 
 fn main() {
-    // Spec note: behavior when fewer than two integers are readable is "not inferable";
-    // the C code does not validate scanf success. We similarly do not add explicit
-    // validation beyond attempting to parse what is present.
+    // Read entire stdin; behavior for malformed/missing input is unspecified by spec.
     let mut input = String::new();
-    io::stdin().read_to_string(&mut input).ok();
+    io::stdin().read_to_string(&mut input).unwrap();
 
     let mut it = input.split_whitespace();
-    let x_opt = it.next().and_then(|s| s.parse::<u32>().ok());
-    let y_opt = it.next().and_then(|s| s.parse::<u32>().ok());
+    let x: u32 = it.next().unwrap().parse().unwrap();
+    let y: u32 = it.next().unwrap().parse().unwrap();
 
-    // If parsing fails, we do not guarantee any output; exit non-zero to avoid
-    // producing a potentially incorrect GCD.
-    let (x, y) = match (x_opt, y_opt) {
-        (Some(x), Some(y)) => (x, y),
-        _ => process::exit(1),
-    };
-
+    // Range validation: if out of range, produce no output and exit with status 1.
     if x < INPUT_NUM_MIN || x > INPUT_NUM_MAX || y < INPUT_NUM_MIN || y > INPUT_NUM_MAX {
-        // On invalid range: terminate with status 1 and no output.
         process::exit(1);
     }
 
+    // Order so first argument is larger (or equal), per spec.
     let gcd = if x > y {
         calc_gcd_u32(x, y)
     } else {

@@ -3,15 +3,15 @@ use std::io::{self, Read};
 const N: usize = 1_000_000;
 
 fn partition(a: &mut [i32], p: usize, r: usize) -> usize {
-    // Mirrors the C logic with 1-based indices for p..=r.
+    // Mirrors the C logic exactly (1-based indices for p..=r).
     let x = a[r];
     let mut i: isize = p as isize - 1;
 
     for j in p..r {
         if a[j] <= x {
             i += 1;
-            let iu = i as usize;
-            a.swap(iu, j);
+            let ii = i as usize;
+            a.swap(ii, j);
         }
     }
 
@@ -21,24 +21,24 @@ fn partition(a: &mut [i32], p: usize, r: usize) -> usize {
 }
 
 fn main() {
-    // Read all input, parse as integers like scanf("%d", ...).
+    // Read all input, parse as integers like scanf("%d").
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
     let n: usize = match it.next() {
-        Some(s) => s.parse::<i32>().unwrap() as usize, // C int -> allow negative to wrap? Here parse i32 then cast.
+        Some(s) => s.parse::<i32>().unwrap() as usize, // C int -> allow negative parse then cast (matches typical behavior loosely)
         None => return,
     };
 
-    // Global C array is zero-initialized; emulate with a fixed-size Vec.
+    // Global C array A[N] is zero-initialized; we emulate with a vec of length N.
     let mut a = vec![0i32; N];
 
     for i in 1..=n {
         if let Some(s) = it.next() {
             a[i] = s.parse::<i32>().unwrap();
         } else {
-            // If input is short, leave remaining as 0 (closest to C's global zero-init).
+            // If input is short, leave remaining as 0 (closest to zero-initialized global behavior).
             break;
         }
     }

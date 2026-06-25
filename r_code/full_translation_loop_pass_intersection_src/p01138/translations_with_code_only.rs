@@ -29,67 +29,75 @@ fn main() {
             let c = bytes[*idx];
             if c.is_ascii_digit() {
                 any = true;
-                val = val.saturating_mul(10).saturating_add((c - b'0') as i32);
+                val = val.wrapping_mul(10).wrapping_add((c - b'0') as i32);
                 *idx += 1;
             } else {
                 break;
             }
         }
-        if any { Some(val * sign) } else { None }
-    }
-
-    fn expect_byte(bytes: &[u8], idx: &mut usize, b: u8) {
-        // The C code assumes the input matches "%d:%d:%d" exactly.
-        // We mirror that by consuming the expected ':' if present; otherwise we still advance
-        // only if it matches (best-effort without panicking on malformed input).
-        if *idx < bytes.len() && bytes[*idx] == b {
-            *idx += 1;
+        if !any {
+            None
+        } else {
+            Some(val.wrapping_mul(sign))
         }
     }
 
-    fn read_hms(bytes: &[u8], idx: &mut usize) -> Option<(i32, i32, i32)> {
-        let h = read_i32(bytes, idx)?;
-        expect_byte(bytes, idx, b':');
-        let m = read_i32(bytes, idx)?;
-        expect_byte(bytes, idx, b':');
-        let s = read_i32(bytes, idx)?;
-        Some((h, m, s))
+    fn expect_char(bytes: &[u8], idx: &mut usize, ch: u8) -> bool {
+        if *idx < bytes.len() && bytes[*idx] == ch {
+            *idx += 1;
+            true
+        } else {
+            false
+        }
+    }
+
+    fn read_time_seconds(bytes: &[u8], idx: &mut usize) -> Option<i32> {
+        // Matches scanf("%d:%d:%d") behavior: leading whitespace is skipped for the first %d,
+        // then literal ':' must appear between numbers.
+        let hour = read_i32(bytes, idx)?;
+        if !expect_char(bytes, idx, b':') {
+            return None;
+        }
+        let min = read_i32(bytes, idx)?;
+        if !expect_char(bytes, idx, b':') {
+            return None;
+        }
+        let sec = read_i32(bytes, idx)?;
+        Some(hour.wrapping_mul(3600).wrapping_add(min.wrapping_mul(60)).wrapping_add(sec))
     }
 
     let mut out = String::new();
-    let mut time = vec![0i32; 24 * 3600];
-
     loop {
         let n = match read_i32(bytes, &mut idx) {
             Some(v) => v,
-            None => break, // no more input
+            None => break, // EOF / parse failure: C code would have undefined behavior; we stop.
         };
         if n == 0 {
             break;
         }
 
-        // memset(time, 0, sizeof(time));
-        time.fill(0);
+        let mut time = vec![0i32; 24 * 3600];
 
         for _ in 0..n {
-            let (hour, min, sec) = read_hms(bytes, &mut idx).unwrap_or((0, 0, 0));
-            let depature = hour * 3600 + min * 60 + sec;
+            let dep = match read_time_seconds(bytes, &mut idx) {
+                Some(v) => v,
+                None => return,
+            };
+            let arr = match read_time_seconds(bytes, &mut idx) {
+                Some(v) => v,
+                None => return,
+            };
 
-            let (hour2, min2, sec2) = read_hms(bytes, &mut idx).unwrap_or((0, 0, 0));
-            let arrival = hour2 * 3600 + min2 * 60 + sec2;
-
-            // for (j = depature; j < arrival; j++) time[j]++;
-            // In the original C, out-of-range indices would be undefined behavior.
-            // We preserve intended behavior for valid inputs; for invalid indices we clamp
-            // to avoid Rust panics while keeping a reasonable approximation.
-            let start = depature.max(0).min((24 * 3600) as i32);
-            let end = arrival.max(0).min((24 * 3600) as i32);
+            // C code assumes indices are within [0, 24*3600). If not, it would be UB.
+            // We emulate the intended behavior by only updating within bounds.
+            let start = dep.max(0) as usize;
+            let end = arr.min((24 * 3600) as i32).max(0) as usize;
             for j in start..end {
-                time[j as usize] += 1;
+                time[j] = time[j].wrapping_add(1);
             }
         }
 
-        let mut maxv = 0i32;
+        let mut maxv: i32 = 0;
         for &v in &time {
             if maxv < v {
                 maxv = v;

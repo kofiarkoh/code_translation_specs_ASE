@@ -13,11 +13,10 @@ fn main() {
 
     let mut count: i32 = 0;
 
-    // Preserve C loop semantics: if A/B/C are negative, loops execute zero times.
+    // Use i32 and wrapping arithmetic to emulate C int overflow behavior as closely as possible.
     for i in 0..=a {
         for j in 0..=b {
             for k in 0..=c {
-                // Use wrapping arithmetic to emulate C signed overflow behavior as closely as possible.
                 let sum = 500i32
                     .wrapping_mul(i)
                     .wrapping_add(100i32.wrapping_mul(j))
@@ -29,6 +28,6 @@ fn main() {
         }
     }
 
-    // Match C output: no trailing newline.
+    // Match C's printf("%d", count) (no trailing newline).
     print!("{}", count);
 }

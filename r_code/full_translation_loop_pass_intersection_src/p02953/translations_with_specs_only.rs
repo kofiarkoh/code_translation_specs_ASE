@@ -1,32 +1,30 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin; specification provides no defined behavior for invalid input.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
     let n: usize = it.next().unwrap().parse().unwrap();
 
-    // Fixed maximum capacity is 100,009; behavior is undefined if exceeded.
-    // We still allocate based on n to keep the program compilable and simple.
-    let mut a: Vec<i64> = Vec::with_capacity(n);
-    for _ in 0..n {
-        let v: i64 = it.next().unwrap().parse().unwrap();
-        a.push(v);
+    // Fixed-size storage up to 100009 as specified.
+    // Only the first n elements are used.
+    let mut a: Vec<i64> = vec![0; 100_009];
+    for i in 0..n {
+        a[i] = it.next().unwrap().parse().unwrap();
     }
 
-    // Right-to-left pass; elements to the right are never modified.
-    // Each element may be decremented by at most 1, only when it is the left member
-    // of the currently examined adjacent pair.
+    // Process from right to left: i = n-1 down to 1
+    // For each adjacent pair (a[i-1], a[i]), if a[i-1] > a[i],
+    // decrement a[i-1] exactly once, then check again; reject if still greater.
     if n >= 2 {
-        for i in (0..(n - 1)).rev() {
-            if a[i] > a[i + 1] {
-                a[i] -= 1;
-            }
-            if a[i] > a[i + 1] {
-                print!("No");
-                return;
+        for i in (1..n).rev() {
+            if a[i - 1] > a[i] {
+                a[i - 1] -= 1;
+                if a[i - 1] > a[i] {
+                    print!("No");
+                    return;
+                }
             }
         }
     }

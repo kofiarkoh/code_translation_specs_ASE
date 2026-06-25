@@ -1,37 +1,36 @@
-use std::cmp::min;
 use std::io::{self, Read};
 
 #[derive(Clone, Copy, Debug)]
 struct Node {
-    id: usize,
-    count: i32,
     prev: Option<usize>,
     next: Option<usize>,
+    id: usize,
+    count: i32,
 }
 
 fn main() {
-    // Read all input
+    // Read all input (matches C scanf behavior for whitespace-separated ints).
     let mut s = String::new();
     io::stdin().read_to_string(&mut s).unwrap();
     let mut it = s.split_whitespace();
 
-    let n: i32 = it.next().unwrap().parse().unwrap(); // capacity (positive per spec)
-    let m: usize = it.next().unwrap().parse().unwrap(); // number of categories (>= 0)
-    let q: usize = it.next().unwrap().parse().unwrap(); // sequence length (>= 0)
+    let n: i32 = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
+    let q: usize = it.next().unwrap().parse().unwrap();
 
-    // a[1..=q] used; a[0] unused to match C indexing
+    // a[1..=q], with a[0] unused (as in the C code).
     let mut a = vec![0usize; q + 1];
     for i in 1..=q {
         a[i] = it.next().unwrap().parse().unwrap();
     }
 
-    // Prepare nodes 0..=m
+    // Allocate nodes 0..=m.
     let mut d = vec![
         Node {
-            id: 0,
-            count: 0,
             prev: None,
-            next: None
+            next: None,
+            id: 0,
+            count: 0
         };
         m + 1
     ];
@@ -39,49 +38,49 @@ fn main() {
         d[i].id = i;
     }
 
-    // Build linked list in the same way as the C code.
-    // p is the tail of the list; initially points to node 0.
-    let mut p: usize = 0;
+    // Build linked list by reverse scan.
+    let mut p: usize = 0; // tail pointer, initially node 0
     d[0].count = n;
 
     for i in (1..=q).rev() {
-        let idx = a[i];
+        let x = a[i];
 
-        // If first time this category is seen (count == 0), link it after current tail.
-        if d[idx].count == 0 {
-            d[idx].prev = Some(p);
-            d[p].next = Some(idx);
-            p = idx;
+        if d[x].count == 0 {
+            d[x].prev = Some(p);
+            d[p].next = Some(x);
+            p = x;
         }
 
-        // Propagate required count with capacity rule:
-        // d[idx].count = min(d[idx].count + 1, d[idx].prev->count)
-        // Note: In the C code, this assumes prev is valid when used; preconditions ensure this.
-        let prev_idx = d[idx].prev.expect("prev must exist when updating count");
-        let new_count = min(d[idx].count + 1, d[prev_idx].count);
-        d[idx].count = new_count;
+        // In the C program, prev is guaranteed to be set when count[x] is updated:
+        // - if x==0, prev is never read because count[0] starts at n and thus the append branch doesn't run.
+        // - otherwise, the first time x is seen, it is appended and prev is set.
+        let prev_idx = d[x].prev.expect("precondition violated: prev must exist here");
+        let capped = d[prev_idx].count;
+        let new_count = d[x].count + 1;
+        d[x].count = if new_count < capped { new_count } else { capped };
     }
 
-    // Core verification
+    // Validation traversal from head (node 0).
     let mut complete = vec![false; m + 1];
     let mut allow: usize = 0;
 
-    // Traverse from head of list (node 0), marking initial complete nodes with count == n.
     let mut cur: Option<usize> = Some(0);
-    while let Some(ci) = cur {
-        if d[ci].count != n {
+
+    // Phase 1: automatic prefix completion while count == n.
+    while let Some(idx) = cur {
+        if d[idx].count != n {
             break;
         }
-        complete[d[ci].id] = true;
+        complete[d[idx].id] = true;
         while allow <= m && complete[allow] {
             allow += 1;
         }
-        cur = d[ci].next;
+        cur = d[idx].next;
     }
 
-    // Remaining nodes must appear in increasing "allow" order.
-    while let Some(ci) = cur {
-        if d[ci].id != allow {
+    // Phase 2: ordered completion check.
+    while let Some(idx) = cur {
+        if d[idx].id != allow {
             print!("No\n");
             return;
         }
@@ -89,7 +88,7 @@ fn main() {
         while allow <= m && complete[allow] {
             allow += 1;
         }
-        cur = d[ci].next;
+        cur = d[idx].next;
     }
 
     print!("Yes\n");

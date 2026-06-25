@@ -1,40 +1,24 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin; if parsing fails or inputs are missing, behavior is unspecified by the spec.
+    // Read entire stdin; behavior is unspecified if input is missing/invalid (per spec),
+    // so we keep parsing simple and assume preconditions hold.
     let mut input = String::new();
-    io::stdin().read_to_string(&mut input).ok();
-
+    io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let n: i32 = match it.next().and_then(|s| s.parse::<i32>().ok()) {
-        Some(v) => v,
-        None => return, // No explicit error handling per spec.
-    };
-
-    // Spec: if initial count <= 0, produce no output.
-    if n <= 0 {
-        return;
-    }
-
+    let n: i64 = it.next().unwrap().parse().unwrap();
     let mut out = String::new();
 
     for _ in 0..n {
-        let x: i32 = match it.next().and_then(|s| s.parse::<i32>().ok()) {
-            Some(v) => v,
-            None => break, // Unspecified; we stop producing further outputs.
-        };
-        let y: i32 = match it.next().and_then(|s| s.parse::<i32>().ok()) {
-            Some(v) => v,
-            None => break,
-        };
+        let x: i64 = it.next().unwrap().parse().unwrap();
+        let y: i64 = it.next().unwrap().parse().unwrap(); // modulus; spec says y > 0
 
-        // Preconditions: y != 0 and no overflow. We do not add checks to preserve "undefined" behavior.
-        // Note: This uses Rust's remainder semantics (truncating division), matching C for i32.
-        let r = (x - 1) % y + 1;
+        // Normalize into 1..=y, congruent to x mod y.
+        // Use Euclidean remainder to avoid negative results when x <= 0.
+        let r = (x - 1).rem_euclid(y) + 1;
 
-        out.push_str(&r.to_string());
-        out.push('\n');
+        out.push_str(&format!("{r}\n"));
     }
 
     print!("{out}");

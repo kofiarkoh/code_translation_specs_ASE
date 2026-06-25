@@ -1,17 +1,16 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, parse as C's scanf("%d") would for integers separated by whitespace.
+    // Read entire stdin, parse as C-like whitespace-separated integers.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    // In the C code, failing scanf would leave variables uninitialized (UB),
-    // but we assume valid input as typical for such tasks.
+    // In the C code, failing scanf would leave variables uninitialized (UB).
+    // Here we assume inputs are present as intended.
     let n: i32 = it.next().unwrap().parse().unwrap();
 
-    // Use i32 with wrapping arithmetic to emulate C signed overflow behavior
-    // as it would occur on typical two's-complement machines.
+    // Use i32 with wrapping arithmetic to emulate typical C `int` overflow behavior.
     let mut odd: i32 = 1;
     let mut exp: i32 = 1;
 
@@ -26,6 +25,6 @@ fn main() {
         exp = exp.wrapping_mul(3);
     }
 
-    let result = exp.wrapping_sub(odd);
-    print!("{}", result);
+    let out = exp.wrapping_sub(odd);
+    print!("{}", out);
 }

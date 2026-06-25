@@ -1,14 +1,8 @@
+use std::collections::HashSet;
 use std::io::{self, Read};
 
-const GRID_SIZE: usize = 201; // fixed bounded square grid
-const START_X: i32 = 100; // fixed initial position (center of 0..=200)
-const START_Y: i32 = 100;
-
-fn idx(x: i32, y: i32) -> usize {
-    (x as usize) * GRID_SIZE + (y as usize)
-}
-
 fn main() {
+    // Read entire stdin as whitespace-separated tokens.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -18,73 +12,54 @@ fn main() {
     loop {
         let n_opt = it.next();
         if n_opt.is_none() {
-            break;
+            break; // No more scenarios.
         }
-        let n: usize = n_opt.unwrap().parse().unwrap();
+        let n: i64 = n_opt.unwrap().parse().unwrap();
+
+        // Termination condition: initial target count is zero.
         if n == 0 {
             break;
         }
 
-        // Fixed-size bounded grid; each cell is either marked or unmarked.
-        let mut marked = vec![false; GRID_SIZE * GRID_SIZE];
-        let mut remaining: usize = 0;
-
+        // Targets: duplicates behave as a single target at that cell.
+        let mut targets: HashSet<(i64, i64)> = HashSet::new();
         for _ in 0..n {
-            let x: i32 = it.next().unwrap().parse().unwrap();
-            let y: i32 = it.next().unwrap().parse().unwrap();
-            let p = idx(x, y);
-            if !marked[p] {
-                marked[p] = true;
-                remaining += 1;
-            }
+            let x: i64 = it.next().unwrap().parse().unwrap();
+            let y: i64 = it.next().unwrap().parse().unwrap();
+            targets.insert((x, y));
         }
 
-        let mut x = START_X;
-        let mut y = START_Y;
+        // Fixed starting position. The specification does not provide coordinates;
+        // choose the narrowest conventional interpretation: origin (0,0).
+        let mut x: i64 = 0;
+        let mut y: i64 = 0;
 
-        // Clear any marked cell at the start position before processing commands.
-        {
-            let p = idx(x, y);
-            if marked[p] {
-                marked[p] = false;
-                remaining -= 1;
-            }
-        }
+        // If the starting cell contains a target, it is immediately collected.
+        targets.remove(&(x, y));
 
-        let m: usize = it.next().unwrap().parse().unwrap();
+        let m: i64 = it.next().unwrap().parse().unwrap();
         for _ in 0..m {
             let dir = it.next().unwrap();
-            let steps: usize = it.next().unwrap().parse().unwrap();
+            let steps: i64 = it.next().unwrap().parse().unwrap(); // nonnegative per preconditions
 
-            let (dx, dy) = match dir.as_bytes()[0] {
-                b'N' => (-1, 0),
-                b'S' => (1, 0),
-                b'W' => (0, -1),
-                b'E' => (0, 1),
-                _ => (0, 0), // unsupported directions are not expected per preconditions
+            // Any other token is treated as west.
+            let (dx, dy) = match dir {
+                "north" => (0, 1),
+                "east" => (1, 0),
+                "south" => (0, -1),
+                "west" => (-1, 0),
+                _ => (-1, 0),
             };
 
+            // Advance one cell per step; after each step, collect any target at the new cell.
             for _ in 0..steps {
                 x += dx;
                 y += dy;
-
-                let p = idx(x, y);
-                if marked[p] {
-                    marked[p] = false;
-                    remaining -= 1;
-                    if remaining == 0 {
-                        // Invariant: remaining never increases; can short-circuit clearing work.
-                        // Still must consume input, but movement simulation can stop early.
-                        // We keep updating position to preserve semantics only if it were observable,
-                        // but output depends solely on remaining, so we can stop stepping.
-                        // However, to preserve the stated "position always updated by unit steps",
-                        // we do not short-circuit the loop here.
-                    }
-                }
+                targets.remove(&(x, y));
             }
         }
 
-        if remaining == 0 {
+        if targets.is_empty() {
             out.push_str("Yes\n");
         } else {
             out.push_str("No\n");

@@ -7,37 +7,60 @@ fn main() {
 
     let mut it = input.split_whitespace();
 
-    // SPEC precondition: input is a sequence of complete integer pairs.
-    // If there's an incomplete trailing integer, behavior is not inferable;
-    // we stop processing when a full pair can't be read.
     let mut out = String::new();
+
     loop {
-        let a = match it.next() {
-            Some(s) => s.parse::<i32>().unwrap(),
+        let x_str = match it.next() {
+            Some(s) => s,
+            None => break, // end-of-input
+        };
+        let y_str = match it.next() {
+            Some(s) => s,
+            None => break, // incomplete pair: behavior undefined by spec; stop producing output
+        };
+
+        // Parse as i32 to match C's typical `int` behavior.
+        // Spec says abs must be representable; if not, behavior is undefined.
+        let x: i32 = match x_str.parse() {
+            Ok(v) => v,
+            Err(_) => break, // malformed input: undefined; stop
+        };
+        let y: i32 = match y_str.parse() {
+            Ok(v) => v,
+            Err(_) => break, // malformed input: undefined; stop
+        };
+
+        // Use i64 for intermediate sums to avoid overflow in addition.
+        // Abs overflow (e.g., i32::MIN) is undefined by spec; we stop in that case.
+        let ax_i64 = match x.checked_abs() {
+            Some(v) => v as i64,
             None => break,
         };
-        let b = match it.next() {
-            Some(s) => s.parse::<i32>().unwrap(),
+        let ay_i64 = match y.checked_abs() {
+            Some(v) => v as i64,
             None => break,
         };
 
-        // Match C's abs(int) behavior for all values except potential overflow on i32::MIN,
-        // which the SPEC says is not handled/inferable. We use i64 to avoid overflow here.
-        let x = (a as i64).abs();
-        let y = (b as i64).abs();
+        let sum = ax_i64 + ay_i64;
 
-        let t: i64;
-        if x + y == 1 {
-            t = 1;
-        } else if (x % 2 != 0) && (y % 2 != 0) {
-            t = x + y - 1;
-        } else if (x % 2 == 0) && (y % 2 == 0) {
-            t = x + y;
-        } else if x != 0 && y != 0 {
-            t = x + y;
+        let t = if sum == 1 {
+            1
         } else {
-            t = x + y + 1;
-        }
+            let ax_odd = (ax_i64 % 2) != 0;
+            let ay_odd = (ay_i64 % 2) != 0;
+            let ax_even = !ax_odd;
+            let ay_even = !ay_odd;
+
+            if ax_odd && ay_odd {
+                sum - 1
+            } else if ax_even && ay_even {
+                sum
+            } else if ax_i64 != 0 && ay_i64 != 0 {
+                sum
+            } else {
+                sum + 1
+            }
+        };
 
         out.push_str(&format!("{t}\n"));
     }

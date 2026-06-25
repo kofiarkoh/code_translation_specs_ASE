@@ -5,31 +5,32 @@ fn min_i32(a: i32, b: i32) -> i32 {
 }
 
 fn main() {
-    // Read entire stdin, parse as whitespace-separated integers (like scanf("%d")).
+    // Read entire stdin, parse as whitespace-separated integers (like scanf).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
     let n: usize = match it.next() {
-        Some(v) => v.parse::<i32>().unwrap() as usize,
+        Some(v) => v.parse().unwrap(),
         None => return,
     };
-    let m: usize = it.next().unwrap().parse::<i32>().unwrap() as usize;
+    let m: usize = it.next().unwrap().parse().unwrap();
 
     let mut a: Vec<usize> = vec![0; m];
     let mut b: Vec<usize> = vec![0; m];
     let mut c: Vec<i32> = vec![0; m];
 
     for i in 0..m {
-        let ai = it.next().unwrap().parse::<i32>().unwrap() - 1;
-        let bi = it.next().unwrap().parse::<i32>().unwrap() - 1;
-        let ci = it.next().unwrap().parse::<i32>().unwrap();
-        a[i] = ai as usize;
-        b[i] = bi as usize;
+        let ai: i32 = it.next().unwrap().parse().unwrap();
+        let bi: i32 = it.next().unwrap().parse().unwrap();
+        let ci: i32 = it.next().unwrap().parse().unwrap();
+        // C code decrements after reading.
+        a[i] = (ai - 1) as usize;
+        b[i] = (bi - 1) as usize;
         c[i] = ci;
     }
 
-    // dist initialized to 0 on diagonal, 1_000_000_000 otherwise.
+    // dist[N][N] initialized with 0 on diagonal, 1e9 otherwise.
     let inf: i32 = 1_000_000_000;
     let mut dist: Vec<Vec<i32>> = vec![vec![inf; n]; n];
     for i in 0..n {
@@ -46,8 +47,7 @@ fn main() {
     }
 
     // Floyd–Warshall.
-    // In C, `dist[i][k] + dist[k][j]` is signed int addition; overflow would be UB.
-    // Here we use wrapping_add to emulate typical two's-complement wraparound behavior.
+    // Use wrapping_add to emulate C's potential signed overflow behavior as closely as possible.
     for k in 0..n {
         for i in 0..n {
             for j in 0..n {

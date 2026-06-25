@@ -1,85 +1,26 @@
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
 use std::io::{self, Read};
 
 const INF: i64 = 0x1010_1010;
 
-#[derive(Clone, Copy)]
-struct HeapItem {
-    v: usize,
-    d: i64,
-}
-
-struct MinHeap {
-    a: Vec<HeapItem>,
-}
-impl MinHeap {
-    fn new() -> Self {
-        Self { a: Vec::new() }
-    }
-    fn push(&mut self, it: HeapItem) {
-        self.a.push(it);
-        let mut i = self.a.len() - 1;
-        while i > 0 {
-            let p = (i - 1) / 2;
-            if self.a[p].d <= self.a[i].d {
-                break;
-            }
-            self.a.swap(p, i);
-            i = p;
-        }
-    }
-    fn pop(&mut self) -> Option<HeapItem> {
-        if self.a.is_empty() {
-            return None;
-        }
-        let res = self.a[0];
-        let last = self.a.pop().unwrap();
-        if !self.a.is_empty() {
-            self.a[0] = last;
-            self.heapify(0);
-        }
-        Some(res)
-    }
-    fn heapify(&mut self, mut i: usize) {
-        let n = self.a.len();
-        loop {
-            let l = i * 2 + 1;
-            let r = i * 2 + 2;
-            let mut m = i;
-            if l < n && self.a[l].d < self.a[m].d {
-                m = l;
-            }
-            if r < n && self.a[r].d < self.a[m].d {
-                m = r;
-            }
-            if m == i {
-                break;
-            }
-            self.a.swap(i, m);
-            i = m;
-        }
-    }
-}
-
 struct Scanner {
-    buf: Vec<u8>,
+    input: Vec<u8>,
     idx: usize,
 }
 impl Scanner {
     fn new() -> Self {
-        let mut input = String::new();
-        io::stdin().read_to_string(&mut input).unwrap();
-        Self {
-            buf: input.into_bytes(),
-            idx: 0,
-        }
+        let mut input = Vec::new();
+        io::stdin().read_to_end(&mut input).unwrap();
+        Self { input, idx: 0 }
     }
     fn next_usize(&mut self) -> usize {
-        while self.idx < self.buf.len() && self.buf[self.idx].is_ascii_whitespace() {
+        while self.idx < self.input.len() && self.input[self.idx].is_ascii_whitespace() {
             self.idx += 1;
         }
         let mut n: usize = 0;
-        while self.idx < self.buf.len() && !self.buf[self.idx].is_ascii_whitespace() {
-            n = n * 10 + (self.buf[self.idx] - b'0') as usize;
+        while self.idx < self.input.len() && !self.input[self.idx].is_ascii_whitespace() {
+            n = n * 10 + (self.input[self.idx] - b'0') as usize;
             self.idx += 1;
         }
         n
@@ -89,83 +30,27 @@ impl Scanner {
     }
 }
 
-fn dijkstra(start: usize, g: &[Vec<(usize, i64)>]) -> Vec<i64> {
-    let n = g.len();
+fn dijkstra(start: usize, adj: &[Vec<(usize, i64)>]) -> Vec<i64> {
+    let n = adj.len();
     let mut dist = vec![INF; n];
-    let mut pq = MinHeap::new();
+    let mut pq: BinaryHeap<(Reverse<i64>, usize)> = BinaryHeap::new();
+
     dist[start] = 0;
-    pq.push(HeapItem { v: start, d: 0 });
-    while let Some(HeapItem { v: s, d }) = pq.pop() {
-        if d != dist[s] {
+    pq.push((Reverse(0), start));
+
+    while let Some((Reverse(d), u)) = pq.pop() {
+        if d != dist[u] {
             continue;
         }
-        for &(e, w) in &g[s] {
+        for &(v, w) in &adj[u] {
             let nd = d + w;
-            if nd < dist[e] {
-                dist[e] = nd;
-                pq.push(HeapItem { v: e, d: nd });
+            if nd < dist[v] {
+                dist[v] = nd;
+                pq.push((Reverse(nd), v));
             }
         }
     }
     dist
-}
-
-/// Builds the directed shortest-path subgraph (edges oriented from smaller dist to larger dist
-/// along some shortest path to `goal`), then topologically orders the reachable part from `start`.
-fn build_shortest_subgraph_and_order(
-    start: usize,
-    goal: usize,
-    g: &[Vec<(usize, i64)>],
-    dist: &[i64],
-) -> (Vec<Vec<usize>>, Vec<usize>) {
-    let n = g.len();
-    let mut to2: Vec<Vec<usize>> = vec![Vec::new(); n];
-
-    // Reverse BFS/queue from goal, adding directed edges e -> s when dist[s] == dist[e] + w.
-    let mut mk = vec![false; n];
-    let mut q: Vec<usize> = Vec::with_capacity(n);
-    q.push(goal);
-    let mut top = 0usize;
-    while top < q.len() {
-        let s = q[top];
-        top += 1;
-        if mk[s] {
-            continue;
-        }
-        for &(e, w) in &g[s] {
-            if dist[s] == dist[e] + w {
-                q.push(e);
-                to2[e].push(s); // e -> s
-            }
-        }
-        mk[s] = true;
-    }
-
-    // Kahn topological order on the directed subgraph, starting from `start`.
-    let mut deg = vec![0i32; n];
-    for u in 0..n {
-        for &v in &to2[u] {
-            deg[v] += 1;
-        }
-    }
-
-    let mut ord: Vec<usize> = Vec::new();
-    let mut q2: Vec<usize> = Vec::with_capacity(n);
-    q2.push(start);
-    let mut top2 = 0usize;
-    while top2 < q2.len() {
-        let s = q2[top2];
-        top2 += 1;
-        ord.push(s);
-        for &e in &to2[s] {
-            deg[e] -= 1;
-            if deg[e] == 0 {
-                q2.push(e);
-            }
-        }
-    }
-
-    (to2, ord)
 }
 
 fn main() {
@@ -174,41 +59,95 @@ fn main() {
     let s = sc.next_usize();
     let r = sc.next_usize();
 
-    // Read edges, build undirected adjacency list.
-    let mut g: Vec<Vec<(usize, i64)>> = vec![Vec::new(); s];
+    // Build undirected adjacency list.
+    let mut adj: Vec<Vec<(usize, i64)>> = vec![Vec::new(); s];
     for _ in 0..r {
         let u = sc.next_usize() - 1;
         let v = sc.next_usize() - 1;
         let w = sc.next_i64();
-        g[u].push((v, w));
-        g[v].push((u, w));
+        adj[u].push((v, w));
+        adj[v].push((u, w));
     }
 
     let a = sc.next_usize() - 1;
     let b = sc.next_usize() - 1;
     let qn = sc.next_usize();
 
-    let mut c: Vec<usize> = Vec::with_capacity(qn);
-    let mut d: Vec<usize> = Vec::with_capacity(qn);
-    for _ in 0..qn {
-        c.push(sc.next_usize() - 1);
-        d.push(sc.next_usize() - 1);
+    let mut c = vec![0usize; qn];
+    let mut d = vec![0usize; qn];
+    for i in 0..qn {
+        c[i] = sc.next_usize() - 1;
+        d[i] = sc.next_usize() - 1;
     }
 
-    let dist = dijkstra(a, &g);
-    let (to2, ord) = build_shortest_subgraph_and_order(a, b, &g, &dist);
+    // 1) Dijkstra from a
+    let dist = dijkstra(a, &adj);
 
-    // Batch queries in groups of 64 using bitset DP, matching the C behavior.
+    // 2) Reverse exploration from b to build shortest-path-consistent directed edges e -> s
+    //    but only for nodes that can reach b via such transitions (as in the C code).
+    let mut mk = vec![false; s];
+    let mut to2: Vec<Vec<usize>> = vec![Vec::new(); s]; // forward edges in the DAG
+    let mut queue: Vec<usize> = Vec::with_capacity(s);
+    let mut head = 0usize;
+
+    queue.push(b);
+    while head < queue.len() {
+        let cur = queue[head];
+        head += 1;
+        if mk[cur] {
+            continue;
+        }
+        // For each undirected neighbor e of cur, if e -> cur is shortest-consistent, add edge e -> cur.
+        for &(e, w) in &adj[cur] {
+            if dist[cur] == dist[e] + w {
+                queue.push(e);
+                to2[e].push(cur);
+            }
+        }
+        mk[cur] = true;
+    }
+
+    // 3) Kahn-style topological order starting from a, using indegrees computed on to2.
+    let mut deg = vec![0i32; s];
+    for u in 0..s {
+        for &v in &to2[u] {
+            deg[v] += 1;
+        }
+    }
+
+    let mut ord: Vec<usize> = Vec::with_capacity(s);
+    let mut q2: Vec<usize> = Vec::with_capacity(s);
+    let mut h2 = 0usize;
+    q2.push(a);
+
+    while h2 < q2.len() {
+        let u = q2[h2];
+        h2 += 1;
+        ord.push(u);
+        for &v in &to2[u] {
+            deg[v] -= 1;
+            if deg[v] == 0 {
+                q2.push(v);
+            }
+        }
+    }
+
+    // 4) Batch queries in chunks of 64 using u64 bitsets.
     let mut out = String::new();
-    let batches = (qn + 63) / 64;
+    let batches = (qn + 63) >> 6;
+
     for bi in 0..batches {
         let mut dp = vec![0u64; s];
+
+        // Initialize starting bits at x nodes.
         for j in 0..64 {
-            let qi = bi * 64 + j;
+            let qi = (bi << 6) + j;
             if qi < qn {
                 dp[c[qi]] |= 1u64 << j;
             }
         }
+
+        // Propagate along DAG in topological order.
         for &u in &ord {
             let bits = dp[u];
             if bits == 0 {
@@ -218,11 +157,17 @@ fn main() {
                 dp[v] |= bits;
             }
         }
+
+        // Answer queries in this batch.
         for j in 0..64 {
-            let qi = bi * 64 + j;
+            let qi = (bi << 6) + j;
             if qi < qn {
                 let ok = (dp[d[qi]] & (1u64 << j)) != 0;
-                out.push_str(if ok { "Yes\n" } else { "No\n" });
+                if ok {
+                    out.push_str("Yes\n");
+                } else {
+                    out.push_str("No\n");
+                }
             }
         }
     }

@@ -29,41 +29,32 @@ fn max_i64(a: i64, b: i64) -> i64 {
 }
 
 fn main() {
-    // Read all input, tokenized like scanf("%lld%lld%lld") and scanf("%s")
+    // Read all input, then parse like scanf("%lld%lld%lld") and scanf("%s")
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let h0: i64 = match it.next() {
+    let h: i64 = match it.next() {
         Some(v) => v.parse().unwrap(),
         None => return,
     };
-    let w0: i64 = it.next().unwrap().parse().unwrap();
+    let w: i64 = it.next().unwrap().parse().unwrap();
     let k: i64 = it.next().unwrap().parse().unwrap();
-
-    let mut h = h0;
-    let mut w = w0;
 
     let max_hw = max_i64(h, w) as usize;
 
     // Emulate the C allocation: char** with max_hw rows, each length max_hw+1.
-    // We'll store as bytes; uninitialized bytes in C are UB if read, but the C code
-    // only reads within [0..H) x [0..W) after filling those rows, except during
-    // transpose which touches [0..max_hw) x [0..max_hw). In the original C, that
-    // would read uninitialized memory if max_hw > H or W. We avoid UB by
-    // initializing with 0; this is the closest safe approximation.
+    // We'll store as bytes; uninitialized bytes in C are never read in this program.
     let mut s: Vec<Vec<u8>> = vec![vec![0u8; max_hw + 1]; max_hw];
 
     for i in 0..(h as usize) {
         let row = it.next().unwrap_or("");
         let bytes = row.as_bytes();
-        // scanf("%s") writes a NUL terminator; we keep an extra byte but it's unused.
+        // scanf("%s") writes a NUL terminator; we keep the rest as 0.
         for j in 0..bytes.len().min(max_hw) {
             s[i][j] = bytes[j];
         }
-        if bytes.len() < max_hw + 1 {
-            s[i][bytes.len()] = 0;
-        }
+        // s[i][bytes.len()] is already 0
     }
 
     if k == 0 {
@@ -71,8 +62,8 @@ fn main() {
         return;
     }
 
-    let mut f_yoko: i64 = 0;
-    let mut f_tate: i64 = 0;
+    let mut f_yoko = 0i64;
+    let mut f_tate = 0i64;
 
     for i in 0..(h as usize) {
         if s[i][0] == b'#' && s[i][(w as usize) - 1] == b'#' {
@@ -90,8 +81,11 @@ fn main() {
         return;
     }
 
+    let mut h2 = h;
+    let mut w2 = w;
+
     if f_tate == 1 {
-        // Transpose the max_hw x max_hw area (as in the C code).
+        // Transpose the max_hw x max_hw area, exactly like the C code.
         for i in 0..max_hw {
             for j in 0..max_hw {
                 if i < j {
@@ -101,10 +95,10 @@ fn main() {
                 }
             }
         }
-        // Swap H and W using XOR trick (preserve behavior).
-        h ^= w;
-        w ^= h;
-        h ^= w;
+        // XOR swap H and W (kept for semantic fidelity)
+        h2 ^= w2;
+        w2 ^= h2;
+        h2 ^= w2;
     }
 
     let mut x: i64 = 0;
@@ -112,24 +106,24 @@ fn main() {
     let mut b: i64 = 0;
     let mut c: i64 = 0;
 
-    for i in 0..(h as usize) {
+    for i in 0..(h2 as usize) {
         let mut x_sub: i64 = 0;
-        for j in 0..(w as usize) {
+        for j in 0..(w2 as usize) {
             if s[i][j] == b'#' {
                 x_sub += 1;
             }
         }
         let mut e: i64 = 0;
-        for j in 1..(w as usize) {
+        for j in 1..(w2 as usize) {
             if s[i][j - 1] == b'#' && s[i][j] == b'#' {
                 e += 1;
             }
         }
-        if x_sub == w {
+        if x_sub == w2 {
             c += 1;
         } else {
             a += x_sub - e;
-            if s[i][0] == b'#' && s[i][(w as usize) - 1] == b'#' {
+            if s[i][0] == b'#' && s[i][(w2 as usize) - 1] == b'#' {
                 a -= 2;
                 b += 1;
             }
@@ -142,12 +136,19 @@ fn main() {
     } else if a == 0 && b == 0 {
         print!("{}\n", power(c, k - 1));
     } else {
-        // Carefully mirror C's modular arithmetic; use wrapping for intermediate products.
-        let term1 = (a + b).wrapping_mul(power(x, k - 1));
-        let term2 = (x - (a + 2 * b + c)).wrapping_mul(power(b + c, k - 1));
-        let num = mod_p(mod_p(term1.wrapping_add(term2)));
-        let den = x - (b + c);
-        let ans = mod_p(num.wrapping_mul(inverse(den)));
+        // Use wrapping arithmetic to emulate C signed overflow behavior as closely as possible.
+        let ab = a.wrapping_add(b);
+        let term1 = ab.wrapping_mul(power(x, k - 1));
+        let inner = a
+            .wrapping_add(b.wrapping_mul(2))
+            .wrapping_add(c);
+        let term2 = x
+            .wrapping_sub(inner)
+            .wrapping_mul(power(b.wrapping_add(c), k - 1));
+        let num = term1.wrapping_add(term2);
+        let num_mod = mod_p(num);
+        let denom = x.wrapping_sub(b.wrapping_add(c));
+        let ans = mod_p(num_mod.wrapping_mul(inverse(denom)));
         print!("{}\n", ans);
     }
 }

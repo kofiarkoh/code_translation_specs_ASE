@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-PIPELINE_NAME = "full_translation_loop_GPT_5_2_using_GPT_5_2_SPECS"
+PIPELINE_NAME = "translation_with_validated_specs_GPT_5_2"
 DATASET_NAME = "optimized_prompt@1"
 TARGET_INTERSECTION = "code_and_spec | code_only | specs_only"
 
@@ -58,7 +58,7 @@ def prepare_source_tree(problem_ids: list[str]) -> int:
         target_problem_dir.mkdir(parents=True, exist_ok=True)
 
         for profile_name, target_filename in PROFILE_TO_COMPARE_FILENAME.items():
-            source_file = PIPELINE_ROOT / profile_name / DATASET_NAME / problem_id / "full_translation_loop_GPT_5_2_using_GPT_5_2_SPECS.rs"
+            source_file = PIPELINE_ROOT / profile_name / DATASET_NAME / problem_id / "translation_with_validated_specs_GPT_5_2.rs"
             if not source_file.is_file():
                 print(f"[SKIP] missing source file: {source_file}")
                 continue

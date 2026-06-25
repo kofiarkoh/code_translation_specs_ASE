@@ -1,38 +1,49 @@
 use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin; behavior is undefined for malformed input per spec.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let n: usize = match it.next() {
-        Some(s) => s.parse().unwrap(),
-        None => return,
-    };
+    // Spec: n is non-negative; if negative, behavior undefined.
+    let n: i64 = it.next().unwrap().parse().unwrap();
 
-    // Use i64 for parsing/summing; overflow behavior is not specified if it occurs.
+    // Use i64 for sums; spec assumes values fit in the execution environment's integer range.
     let mut sum: i64 = 0;
-    let mut min_non_multiple_of_10: Option<i64> = None;
+
+    // Track smallest value not divisible by 10.
+    // Spec notes an assumption about input range; we implement the intended logic directly.
+    let mut min_not_div10: Option<i64> = None;
+
+    // Spec says memory grows linearly due to storing the input sequence.
+    // We store all values even though not strictly necessary for the computation.
+    let mut values: Vec<i64> = Vec::new();
+    if n > 0 {
+        values.reserve(n as usize);
+    }
 
     for _ in 0..n {
         let x: i64 = it.next().unwrap().parse().unwrap();
+        values.push(x);
         sum += x;
 
         if x % 10 != 0 {
-            min_non_multiple_of_10 = Some(match min_non_multiple_of_10 {
-                Some(m) => if x < m { x } else { m },
-                None => x,
-            });
+            min_not_div10 = match min_not_div10 {
+                None => Some(x),
+                Some(m) => Some(if x < m { x } else { m }),
+            };
         }
     }
 
-    let out = if sum % 10 != 0 {
+    let result = if sum % 10 != 0 {
         sum
-    } else if let Some(m) = min_non_multiple_of_10 {
-        sum - m
     } else {
-        0
+        match min_not_div10 {
+            Some(m) => sum - m,
+            None => 0,
+        }
     };
 
-    print!("{}", out);
+    print!("{}", result);
 }

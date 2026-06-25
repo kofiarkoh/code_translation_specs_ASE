@@ -2,6 +2,8 @@ use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 use std::io::{self, Read};
 
+const EPS: f64 = 1e-12;
+
 #[derive(Clone)]
 struct Edge {
     to: usize,
@@ -19,26 +21,28 @@ impl MinCostFlow {
         Self { g: vec![Vec::new(); n] }
     }
 
-    fn add_edge(&mut self, fr: usize, to: usize, cap: i64, cost: f64) {
-        let rev_to = self.g[to].len();
-        let rev_fr = self.g[fr].len();
-        self.g[fr].push(Edge {
-            to,
-            rev: rev_to,
+    fn add_edge(&mut self, u: usize, v: usize, cap: i64, cost: f64) {
+        let rev_u = self.g[v].len();
+        let rev_v = self.g[u].len();
+        self.g[u].push(Edge {
+            to: v,
+            rev: rev_u,
             cap,
             cost,
         });
-        self.g[to].push(Edge {
-            to: fr,
-            rev: rev_fr,
+        self.g[v].push(Edge {
+            to: u,
+            rev: rev_v,
             cap: 0,
             cost: -cost,
         });
     }
 
+    // Successive shortest augmenting path with potentials (Johnson reweighting).
+    // Costs are nonnegative in the original network, but residual edges can be negative.
     fn min_cost_flow(&mut self, s: usize, t: usize, mut f: i64) -> Option<f64> {
         let n = self.g.len();
-        let mut potential = vec![0.0f64; n];
+        let mut pot = vec![0.0f64; n];
         let mut dist = vec![0.0f64; n];
         let mut prev_v = vec![0usize; n];
         let mut prev_e = vec![0usize; n];
@@ -46,8 +50,8 @@ impl MinCostFlow {
         let mut total_cost = 0.0f64;
 
         while f > 0 {
-            for i in 0..n {
-                dist[i] = f64::INFINITY;
+            for d in dist.iter_mut() {
+                *d = f64::INFINITY;
             }
             dist[s] = 0.0;
 
@@ -64,16 +68,10 @@ impl MinCostFlow {
             }
             impl Ord for State {
                 fn cmp(&self, other: &Self) -> Ordering {
-                    // Reverse for min-heap behavior; handle NaN by treating it as worst.
-                    match (self.d.is_nan(), other.d.is_nan()) {
-                        (true, true) => self.v.cmp(&other.v),
-                        (true, false) => Ordering::Less,
-                        (false, true) => Ordering::Greater,
-                        (false, false) => other
-                            .d
-                            .partial_cmp(&self.d)
-                            .unwrap_or(Ordering::Equal)
-                            .then_with(|| self.v.cmp(&other.v)),
+                    // Min-heap via reversed ordering; handle NaN by treating it as equal.
+                    match other.d.partial_cmp(&self.d).unwrap_or(Ordering::Equal) {
+                        Ordering::Equal => self.v.cmp(&other.v),
+                        ord => ord,
                     }
                 }
             }
@@ -87,30 +85,30 @@ impl MinCostFlow {
             pq.push(State { d: 0.0, v: s });
 
             while let Some(State { d, v }) = pq.pop() {
-                if d > dist[v] {
+                if d > dist[v] + EPS {
                     continue;
                 }
-                for (ei, e) in self.g[v].iter().enumerate() {
+                for (i, e) in self.g[v].iter().enumerate() {
                     if e.cap <= 0 {
                         continue;
                     }
-                    let nd = dist[v] + e.cost + potential[v] - potential[e.to];
-                    if nd < dist[e.to] {
+                    let nd = dist[v] + e.cost + pot[v] - pot[e.to];
+                    if nd + EPS < dist[e.to] {
                         dist[e.to] = nd;
                         prev_v[e.to] = v;
-                        prev_e[e.to] = ei;
+                        prev_e[e.to] = i;
                         pq.push(State { d: nd, v: e.to });
                     }
                 }
             }
 
             if !dist[t].is_finite() {
-                return None; // impossible to send remaining flow
+                return None; // cannot send remaining flow
             }
 
             for v in 0..n {
                 if dist[v].is_finite() {
-                    potential[v] += dist[v];
+                    pot[v] += dist[v];
                 }
             }
 
@@ -130,17 +128,18 @@ impl MinCostFlow {
             while v != s {
                 let pv = prev_v[v];
                 let pe = prev_e[v];
+                let to = self.g[pv][pe].to;
                 let rev = self.g[pv][pe].rev;
+                let cost = self.g[pv][pe].cost;
 
-                // Update forward edge
+                // Update residual capacities.
                 self.g[pv][pe].cap -= add;
-                // Update reverse edge
-                self.g[v][rev].cap += add;
+                self.g[to][rev].cap += add;
 
+                total_cost += (add as f64) * cost;
                 v = pv;
             }
 
-            total_cost += (add as f64) * potential[t];
             f -= add;
         }
 
@@ -148,30 +147,21 @@ impl MinCostFlow {
     }
 }
 
-// Gaussian elimination with partial pivoting on f64.
-// The spec says singular/numerically singular is "not meaningfully defined"; we still return None.
-fn solve_linear_system(a: Vec<Vec<f64>>, b: Vec<f64>) -> Option<Vec<f64>> {
+// Gaussian elimination with partial pivoting for a unique solution.
+// Specification says uniqueness is a precondition; if violated, behavior is not defined.
+// We still proceed in a best-effort manner.
+fn solve_linear_system(a: Vec<Vec<f64>>, b: Vec<f64>) -> Vec<f64> {
     let n = a.len();
-    if b.len() != n {
-        return None;
-    }
     let mut aug = vec![vec![0.0f64; n + 1]; n];
     for i in 0..n {
-        if a[i].len() != n {
-            return None;
-        }
         for j in 0..n {
             aug[i][j] = a[i][j];
         }
         aug[i][n] = b[i];
     }
 
-    // Tolerance: spec mentions "small comparison tolerance" but does not define it.
-    // Use a narrow, conventional epsilon for pivot detection.
-    let eps = 1e-12f64;
-
     for col in 0..n {
-        // Find pivot row
+        // Find pivot row.
         let mut pivot = col;
         let mut best = aug[col][col].abs();
         for r in (col + 1)..n {
@@ -181,30 +171,29 @@ fn solve_linear_system(a: Vec<Vec<f64>>, b: Vec<f64>) -> Option<Vec<f64>> {
                 pivot = r;
             }
         }
-        if best <= eps || !best.is_finite() {
-            return None;
-        }
         if pivot != col {
             aug.swap(pivot, col);
         }
 
-        // Normalize pivot row
         let piv = aug[col][col];
-        for j in col..=n {
-            aug[col][j] /= piv;
-        }
-
-        // Eliminate other rows
-        for r in 0..n {
-            if r == col {
-                continue;
-            }
-            let factor = aug[r][col];
-            if factor == 0.0 {
-                continue;
-            }
+        // If piv is ~0, system is singular/ill-conditioned; proceed without checked contract.
+        if piv.abs() > EPS {
+            // Normalize pivot row.
             for j in col..=n {
-                aug[r][j] -= factor * aug[col][j];
+                aug[col][j] /= piv;
+            }
+            // Eliminate other rows.
+            for r in 0..n {
+                if r == col {
+                    continue;
+                }
+                let factor = aug[r][col];
+                if factor.abs() <= EPS {
+                    continue;
+                }
+                for j in col..=n {
+                    aug[r][j] -= factor * aug[col][j];
+                }
             }
         }
     }
@@ -213,7 +202,7 @@ fn solve_linear_system(a: Vec<Vec<f64>>, b: Vec<f64>) -> Option<Vec<f64>> {
     for i in 0..n {
         x[i] = aug[i][n];
     }
-    Some(x)
+    x
 }
 
 fn main() {
@@ -226,14 +215,13 @@ fn main() {
         None => return,
     };
 
-    let mut out = String::new();
-
     for _case in 0..t {
         let n: usize = it.next().unwrap().parse().unwrap();
         let s: usize = it.next().unwrap().parse().unwrap();
         let tnode: usize = it.next().unwrap().parse().unwrap();
         let req_flow: i64 = it.next().unwrap().parse().unwrap();
 
+        // Read integer coefficient matrix and RHS vector; solve in f64.
         let mut a = vec![vec![0.0f64; n]; n];
         for i in 0..n {
             for j in 0..n {
@@ -247,58 +235,46 @@ fn main() {
             b[i] = v as f64;
         }
 
-        let x = match solve_linear_system(a, b) {
-            Some(sol) => sol,
-            None => {
-                // Spec: behavior not meaningfully defined if singular; choose narrow behavior:
-                // treat as impossible (still produces a defined single-line output).
-                out.push_str("impossible\n");
-                // Still need to consume the network description for this test case.
-                for _i in 0..n {
-                    let m: usize = it.next().unwrap().parse().unwrap();
-                    for _ in 0..m {
-                        let _dst: usize = it.next().unwrap().parse().unwrap();
-                    }
-                    for _ in 0..m {
-                        let _cap: i64 = it.next().unwrap().parse().unwrap();
-                    }
-                }
-                continue;
-            }
-        };
+        let labels = solve_linear_system(a, b);
 
+        // Read adjacency/capacities.
+        // Specification: "For each node, a list of outgoing neighbor node indices,
+        // followed by a nonnegative integer capacity for each listed outgoing edge."
+        // The only well-formed way without extra delimiters is:
+        //   k, then k neighbor indices, then k capacities.
+        // We adopt this narrow interpretation.
         let mut mcf = MinCostFlow::new(n);
+        for u in 0..n {
+            let k: usize = it.next().unwrap().parse().unwrap();
+            let mut vs = Vec::with_capacity(k);
+            for _ in 0..k {
+                let v: usize = it.next().unwrap().parse().unwrap();
+                vs.push(v);
+            }
+            for idx in 0..k {
+                let cap: i64 = it.next().unwrap().parse().unwrap();
+                let v = vs[idx];
+                let cost = (labels[u] - labels[v]).abs();
+                mcf.add_edge(u, v, cap, cost);
+            }
+        }
 
-        for i in 0..n {
-            let m: usize = it.next().unwrap().parse().unwrap();
-            let mut dsts = vec![0usize; m];
-            for k in 0..m {
-                dsts[k] = it.next().unwrap().parse().unwrap();
-            }
-            let mut caps = vec![0i64; m];
-            for k in 0..m {
-                caps[k] = it.next().unwrap().parse().unwrap();
-            }
-            for k in 0..m {
-                let j = dsts[k];
-                let cap = caps[k];
-                // Spec: capacities are treated as non-negative integers.
-                // If negative appears, narrowest reasonable interpretation is to treat as 0.
-                let cap = if cap < 0 { 0 } else { cap };
-                let cost = (x[i] - x[j]).abs();
-                mcf.add_edge(i, j, cap, cost);
-            }
+        if req_flow == 0 {
+            // Minimum cost to send zero flow is zero.
+            println!("0");
+            continue;
         }
 
         match mcf.min_cost_flow(s, tnode, req_flow) {
-            None => out.push_str("impossible\n"),
-            Some(ans) => {
-                // Spec: print as a real number; no formatting requirements given.
-                // Use a stable, conventional fixed precision.
-                out.push_str(&format!("{:.10}\n", ans));
+            Some(cost) => {
+                // Specification: output as a real number; no format specified.
+                // Use a stable, reasonably precise representation.
+                println!("{:.10}", cost);
+            }
+            None => {
+                // Specification: "outputs a single line indicating impossibility."
+                println!("impossible");
             }
         }
     }
-
-    print!("{out}");
 }

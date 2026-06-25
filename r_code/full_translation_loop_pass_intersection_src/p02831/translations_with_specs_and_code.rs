@@ -1,7 +1,7 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, parse exactly two integers (as in the C code: long int).
+    // Read entire stdin, parse two signed integers.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -9,15 +9,13 @@ fn main() {
     let a: i64 = it.next().unwrap().parse().unwrap();
     let b: i64 = it.next().unwrap().parse().unwrap();
 
-    // Spec note: if b is negative, the loop condition i <= b + 1 is false for i=1,
-    // so no checks occur and no output is produced (matches C behavior).
+    // Spec precondition: b != 0 and no overflow in (a*i) and (b+1).
+    // We preserve C semantics: iterate i = 1..=b+1 (inclusive) and print first a*i divisible by b.
     for i in 1..=b + 1 {
-        // Spec: b is nonzero; otherwise behavior is undefined (C would divide by zero).
-        // Spec: no overflow occurs; we use normal multiplication.
-        let v = a * i;
-        if v % b == 0 {
-            print!("{v}\n");
-            break; // At most one value is written.
+        let candidate = a * i;
+        if candidate % b == 0 {
+            print!("{}\n", candidate);
+            break;
         }
     }
 }

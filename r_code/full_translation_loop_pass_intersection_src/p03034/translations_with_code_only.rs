@@ -1,36 +1,36 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, parse as whitespace-separated tokens (matches scanf behavior).
+    // Read entire stdin
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
     let n: i32 = match it.next() {
-        Some(t) => t.parse().unwrap(),
-        None => return, // No input: C would have undefined behavior; we just exit.
+        Some(v) => v.parse().unwrap(),
+        None => return,
     };
 
-    // C uses a fixed global array a[100010]; we only need first n elements.
-    let mut a: Vec<i64> = vec![0; n.max(0) as usize];
-    for i in 0..(n.max(0) as usize) {
-        if let Some(t) = it.next() {
-            a[i] = t.parse::<i64>().unwrap();
+    // Mirror C's fixed-size global array (only first n elements used).
+    let mut a = vec![0i64; 100_010];
+    for i in 0..(n as usize) {
+        if let Some(v) = it.next() {
+            a[i] = v.parse::<i64>().unwrap();
         } else {
-            // Missing input: C would read uninitialized/undefined; we keep 0.
-            break;
+            // If input is short, C would read garbage/leave uninitialized; here we keep 0.
+            // This situation shouldn't occur for valid inputs.
+            a[i] = 0;
         }
     }
 
     let mut ans: i64 = 0;
 
-    // for (int d=1; d*2 < n-1; d++)
-    // Use i64 for loop arithmetic to avoid overflow in d*2 and comparisons.
-    let n_i64 = n as i64;
-    let mut d: i64 = 1;
-    while d * 2 < n_i64 - 1 {
-        let mut s: i64 = 0;
-        let mut g: i64 = n_i64 - 1;
+    // C loop: for (int d=1; d*2 < n-1; d++)
+    // Use i32 arithmetic to match C's int behavior (no overflow expected for typical n).
+    let mut d: i32 = 1;
+    while d * 2 < n - 1 {
+        let mut s: i32 = 0;
+        let mut g: i32 = n - 1;
         let mut crr: i64 = 0;
 
         loop {
@@ -42,7 +42,8 @@ fn main() {
             s = ns;
             g = ng;
 
-            // C signed overflow is UB; use wrapping to emulate typical two's-complement behavior.
+            // C uses signed long long; overflow is UB in C, but we emulate typical 2's-complement
+            // wraparound using wrapping_add to preserve behavior on overflow.
             let add = a[s as usize].wrapping_add(a[g as usize]);
             crr = crr.wrapping_add(add);
 
@@ -54,6 +55,6 @@ fn main() {
         d += 1;
     }
 
-    // Match C: no trailing newline.
+    // C prints without trailing newline.
     print!("{}", ans);
 }

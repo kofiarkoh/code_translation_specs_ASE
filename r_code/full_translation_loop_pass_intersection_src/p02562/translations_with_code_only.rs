@@ -1,25 +1,30 @@
 use std::cmp::Ordering;
 use std::io::{self, Read};
 
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy)]
 struct Data {
     key: i64,
     id: i32,
 }
 
-// 1-indexed min-heap by key (matches C heap behavior)
 struct MinHeap {
+    // 1-based heap array, obj[0] unused
     obj: Vec<Data>,
     size: usize,
 }
+
 impl MinHeap {
-    fn with_capacity(n: usize) -> Self {
-        // index 0 unused
+    fn with_capacity(cap: usize) -> Self {
+        // Fill with dummy; index 0 unused.
         Self {
-            obj: vec![Data::default(); n + 1],
+            obj: vec![
+                Data { key: 0, id: 0 };
+                cap.max(1) + 1
+            ],
             size: 0,
         }
     }
+
     fn push(&mut self, x: Data) {
         self.size += 1;
         let mut i = self.size;
@@ -35,6 +40,7 @@ impl MinHeap {
             }
         }
     }
+
     fn pop(&mut self) -> Data {
         let mut i = 1usize;
         let mut j = 2usize;
@@ -42,11 +48,15 @@ impl MinHeap {
         self.obj[1] = self.obj[self.size];
         self.size -= 1;
         while j <= self.size {
-            if j < self.size && self.obj[j ^ 1].key < self.obj[j].key {
-                j ^= 1;
+            if j < self.size {
+                // j^1 toggles between 2k and 2k+1
+                let alt = j ^ 1;
+                if self.obj[alt].key < self.obj[j].key {
+                    j = alt;
+                }
             }
             if self.obj[j].key < self.obj[i].key {
-                self.obj.swap(j, i);
+                self.obj.swap(i, j);
                 i = j;
                 j <<= 1;
             } else {
@@ -55,12 +65,9 @@ impl MinHeap {
         }
         output
     }
-    fn is_empty(&self) -> bool {
-        self.size == 0
-    }
 }
 
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy)]
 struct Edge {
     id: i32,
     head: i32,
@@ -70,10 +77,10 @@ struct Edge {
     cost: i32,
 }
 
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy)]
 struct ListNode {
-    next: i32, // index into nodes, -1 for null
-    e: i32,    // index into edges
+    next: i32, // index into nodes vec, -1 for NULL
+    e: i32,    // index into edges vec
 }
 
 const SUP: i64 = 1i64 << 60;
@@ -82,10 +89,10 @@ const INF: i64 = -SUP;
 fn succesive_shortest_path(
     n: usize,
     m: usize,
-    adj: &[i32],          // head indices into nodes, -1 for null; 1..=n used
-    nodes: &[ListNode],   // adjacency nodes
-    edges: &mut [Edge],   // length m
-    b: &[i32],            // 1..=n used
+    adj: &Vec<i32>, // 1..=n head indices into nodes, -1 for NULL
+    nodes: &Vec<ListNode>,
+    edges: &mut Vec<Edge>,
+    b: &Vec<i32>, // 1..=n
 ) -> i64 {
     let mut flag = vec![0i32; n + 1];
     let mut def = vec![0i32; n + 1];
@@ -105,7 +112,6 @@ fn succesive_shortest_path(
     let mut h_def = MinHeap::with_capacity(n + 2);
     let mut h_dist = MinHeap::with_capacity(m * 2 + 2);
 
-    // Initial deficits and potentials (Bellman-Ford-like)
     for i in 1..=n {
         def[i] = b[i];
         let mut p = adj[i];
@@ -127,8 +133,7 @@ fn succesive_shortest_path(
                 pi[i] = 0;
                 let mut j_done = 0usize;
                 for j in 1..=n {
-                    j_done = j;
-                    let mut changed = 0i32;
+                    flag[0] = 0;
                     for k in 0..m {
                         if edges[k].flow == edges[k].cap {
                             continue;
@@ -138,23 +143,25 @@ fn succesive_shortest_path(
                         if pi[u] != SUP {
                             let cand = pi[u] + edges[k].cost as i64;
                             if pi[w] > cand {
-                                changed = 1;
+                                flag[0] = 1;
                                 pi[w] = cand;
                             }
                         }
                     }
-                    if changed == 0 {
+                    if flag[0] == 0 {
+                        j_done = j;
                         break;
                     }
                 }
-                if j_done > n {
+                if j_done == 0 {
+                    // means loop didn't break early => j > N in C
                     return INF;
                 }
             }
         }
     }
 
-    while !h_def.is_empty() {
+    while h_def.size > 0 {
         let d = h_def.pop();
         let s = d.id as usize;
 
@@ -167,8 +174,7 @@ fn succesive_shortest_path(
         h_dist.size = 0;
         h_dist.push(Data { key: 0, id: s as i32 });
 
-        // Dijkstra with reduced costs
-        while !h_dist.is_empty() {
+        while h_dist.size > 0 {
             let d2 = h_dist.pop();
             let u = d2.id as usize;
             if flag[u] != 0 {
@@ -181,13 +187,10 @@ fn succesive_shortest_path(
                 let node = nodes[p as usize];
                 let ei = node.e as usize;
                 let w = edges[ei].head as usize;
-
                 if edges[ei].flow == edges[ei].cap {
                     p = node.next;
                     continue;
                 }
-
-                // dist[w] > dist[u] + cost + pi[u] - pi[w]
                 let cand = dist[u]
                     .wrapping_add(edges[ei].cost as i64)
                     .wrapping_add(pi[u])
@@ -200,7 +203,6 @@ fn succesive_shortest_path(
                         id: w as i32,
                     });
                 }
-
                 p = node.next;
             }
         }
@@ -230,7 +232,7 @@ fn succesive_shortest_path(
         u = t;
         while prev[u] != -1 {
             let ei = prev[u] as usize;
-            let rev = (ei ^ 1) as usize;
+            let rev = (edges[ei].id as usize) ^ 1;
             if edges[rev].flow > 0 {
                 edges[rev].flow -= minv;
                 edges[ei].cap -= minv;
@@ -267,7 +269,10 @@ fn main() {
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let n_in: usize = it.next().unwrap().parse().unwrap();
+    let n_in: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
     let k_in: i32 = it.next().unwrap().parse().unwrap();
 
     let mut a = vec![vec![0i32; 51]; 51];
@@ -277,141 +282,129 @@ fn main() {
         }
     }
 
-    // Build graph
-    // Node indices: 1..=2N+2
-    let n_nodes = n_in * 2 + 2;
-    let source = n_in * 2 + 1;
-    let sink = n_in * 2 + 2;
-
-    // Maximum sizes as in C: edges/nodes arrays sized 6000
-    let mut edges: Vec<Edge> = vec![Edge::default(); 6000];
-    let mut nodes: Vec<ListNode> = vec![ListNode::default(); 6000];
-    let mut adj: Vec<i32> = vec![-1; 103];
+    // Build graph using index-based adjacency lists to avoid unsafe pointers.
+    // Max sizes follow the C arrays: d[6000], e[6000], adj[103]
+    let mut adj = vec![-1i32; 103];
+    let mut nodes: Vec<ListNode> = vec![
+        ListNode { next: -1, e: -1 };
+        6000
+    ];
+    let mut edges: Vec<Edge> = vec![
+        Edge {
+            id: 0,
+            head: 0,
+            tail: 0,
+            flow: 0,
+            cap: 0,
+            cost: 0
+        };
+        6000
+    ];
 
     let mut k: usize = 0;
-
-    // bipartite edges u -> w (N+1..2N)
     for u in 1..=n_in {
         for w in (n_in + 1)..=(n_in * 2) {
-            let cost = -a[u][w - n_in];
-            edges[k * 2] = Edge {
-                id: (k * 2) as i32,
-                tail: u as i32,
-                head: w as i32,
-                flow: 0,
-                cap: 1,
-                cost,
-            };
-            edges[k * 2 + 1] = Edge {
-                id: (k * 2 + 1) as i32,
-                tail: w as i32,
-                head: u as i32,
-                flow: 0,
-                cap: 0,
-                cost: -cost,
-            };
+            let e0 = k * 2;
+            let e1 = k * 2 + 1;
+            edges[e0].id = e0 as i32;
+            edges[e0].tail = u as i32;
+            edges[e0].head = w as i32;
+            edges[e0].cap = 1;
+            edges[e0].cost = -a[u][w - n_in];
 
-            nodes[k * 2] = ListNode {
-                e: (k * 2) as i32,
-                next: adj[u],
-            };
-            nodes[k * 2 + 1] = ListNode {
-                e: (k * 2 + 1) as i32,
-                next: adj[w],
-            };
-            adj[u] = (k * 2) as i32;
-            adj[w] = (k * 2 + 1) as i32;
+            edges[e1].id = e1 as i32;
+            edges[e1].tail = w as i32;
+            edges[e1].head = u as i32;
+            edges[e1].cap = 0;
+            edges[e1].cost = a[u][w - n_in];
+
+            nodes[e0].e = e0 as i32;
+            nodes[e1].e = e1 as i32;
+
+            nodes[e0].next = adj[u];
+            nodes[e1].next = adj[w];
+            adj[u] = e0 as i32;
+            adj[w] = e1 as i32;
 
             k += 1;
         }
     }
 
-    // source -> left
     for w in 1..=n_in {
-        edges[k * 2] = Edge {
-            id: (k * 2) as i32,
-            tail: source as i32,
-            head: w as i32,
-            flow: 0,
-            cap: k_in,
-            cost: 0,
-        };
-        edges[k * 2 + 1] = Edge {
-            id: (k * 2 + 1) as i32,
-            tail: w as i32,
-            head: source as i32,
-            flow: 0,
-            cap: 0,
-            cost: 0,
-        };
+        let u = n_in * 2 + 1;
+        let e0 = k * 2;
+        let e1 = k * 2 + 1;
 
-        nodes[k * 2] = ListNode {
-            e: (k * 2) as i32,
-            next: adj[source],
-        };
-        nodes[k * 2 + 1] = ListNode {
-            e: (k * 2 + 1) as i32,
-            next: adj[w],
-        };
-        adj[source] = (k * 2) as i32;
-        adj[w] = (k * 2 + 1) as i32;
+        edges[e0].id = e0 as i32;
+        edges[e0].tail = u as i32;
+        edges[e0].head = w as i32;
+        edges[e0].cap = k_in;
+        edges[e0].cost = 0;
+
+        edges[e1].id = e1 as i32;
+        edges[e1].tail = w as i32;
+        edges[e1].head = u as i32;
+        edges[e1].cap = 0;
+        edges[e1].cost = 0;
+
+        nodes[e0].e = e0 as i32;
+        nodes[e1].e = e1 as i32;
+
+        nodes[e0].next = adj[u];
+        nodes[e1].next = adj[w];
+        adj[u] = e0 as i32;
+        adj[w] = e1 as i32;
 
         k += 1;
     }
 
-    // right -> sink
     for u in (n_in + 1)..=(n_in * 2) {
-        edges[k * 2] = Edge {
-            id: (k * 2) as i32,
-            tail: u as i32,
-            head: sink as i32,
-            flow: 0,
-            cap: k_in,
-            cost: 0,
-        };
-        edges[k * 2 + 1] = Edge {
-            id: (k * 2 + 1) as i32,
-            tail: sink as i32,
-            head: u as i32,
-            flow: 0,
-            cap: 0,
-            cost: 0,
-        };
+        let w = n_in * 2 + 2;
+        let e0 = k * 2;
+        let e1 = k * 2 + 1;
 
-        nodes[k * 2] = ListNode {
-            e: (k * 2) as i32,
-            next: adj[u],
-        };
-        nodes[k * 2 + 1] = ListNode {
-            e: (k * 2 + 1) as i32,
-            next: adj[sink],
-        };
-        adj[u] = (k * 2) as i32;
-        adj[sink] = (k * 2 + 1) as i32;
+        edges[e0].id = e0 as i32;
+        edges[e0].tail = u as i32;
+        edges[e0].head = w as i32;
+        edges[e0].cap = k_in;
+        edges[e0].cost = 0;
+
+        edges[e1].id = e1 as i32;
+        edges[e1].tail = w as i32;
+        edges[e1].head = u as i32;
+        edges[e1].cap = 0;
+        edges[e1].cost = 0;
+
+        nodes[e0].e = e0 as i32;
+        nodes[e1].e = e1 as i32;
+
+        nodes[e0].next = adj[u];
+        nodes[e1].next = adj[w];
+        adj[u] = e0 as i32;
+        adj[w] = e1 as i32;
 
         k += 1;
     }
 
-    let m_edges = k * 2;
+    let n_total = n_in * 2 + 2;
+    let m_total = k * 2;
 
     let mut b = vec![0i32; 103];
     let mut argmax: i32 = 0;
     let mut maxv: i64 = 0;
 
-    for i in 1..=(n_in as i32 * k_in) {
-        b[source] = -i;
-        b[sink] = i;
-        let tmp = -succesive_shortest_path(n_nodes, m_edges, &adj, &nodes, &mut edges, &b);
+    for i in 1..=((n_in as i32) * k_in) {
+        b[n_in * 2 + 1] = -i;
+        b[n_in * 2 + 2] = i;
+        let tmp = -succesive_shortest_path(n_total, m_total, &adj, &nodes, &mut edges, &b);
         if tmp != SUP && maxv < tmp {
             maxv = tmp;
             argmax = i;
         }
     }
 
-    let mut out = String::new();
-    out.push_str(&format!("{maxv}\n"));
+    print!("{maxv}\n");
 
-    // Build answer grid
     let mut ans = vec![vec!['.'; 52]; 52];
     for i in 1..=n_in {
         for j in 1..=n_in {
@@ -419,30 +412,35 @@ fn main() {
         }
     }
 
-    b[source] = -argmax;
-    b[sink] = argmax;
+    b[n_in * 2 + 1] = -argmax;
+    b[n_in * 2 + 2] = argmax;
 
     for j in 0..k {
-        edges[j * 2].flow = 0;
-        edges[j * 2 + 1].cap = 0;
+        let e0 = j * 2;
+        let e1 = j * 2 + 1;
+        edges[e0].flow = 0;
+        edges[e1].cap = 0;
     }
 
-    succesive_shortest_path(n_nodes, m_edges, &adj, &nodes, &mut edges, &b);
+    succesive_shortest_path(n_total, m_total, &adj, &nodes, &mut edges, &b);
 
     for j in 0..k {
-        let u = edges[j * 2].tail as usize;
-        let w = edges[j * 2].head as usize;
-        if u <= n_in && w <= n_in * 2 && edges[j * 2].flow == 1 {
+        let e0 = j * 2;
+        let u = edges[e0].tail as usize;
+        let w = edges[e0].head as usize;
+        if u <= n_in && w <= n_in * 2 && edges[e0].flow == 1 {
             ans[u][w - n_in] = 'X';
         }
     }
 
     for i in 1..=n_in {
-        let line: String = (1..=n_in).map(|j| ans[i][j]).collect();
-        out.push_str(&line);
-        out.push('\n');
+        let mut line = String::with_capacity(n_in);
+        for j in 1..=n_in {
+            line.push(ans[i][j]);
+        }
+        print!("{line}\n");
     }
 
-    print!("{out}");
-    // stdout flush is implicit at program end; C calls fflush(stdout) but output is identical.
+    // Match C's fflush(stdout)
+    io::Write::flush(&mut io::stdout()).unwrap();
 }

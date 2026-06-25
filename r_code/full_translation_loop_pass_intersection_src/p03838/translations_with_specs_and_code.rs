@@ -6,34 +6,32 @@ fn main() {
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    // As in the C code: no explicit error handling if missing/invalid.
+    // Spec: two signed integers provided as input
     let x: i64 = it.next().unwrap().parse().unwrap();
     let y: i64 = it.next().unwrap().parse().unwrap();
 
-    // Solve (constant time), preserving the C logic exactly.
-    let ans: i64;
-    if x >= 0 {
-        if y >= x {
-            ans = -x + y;
-        } else if y > 0 {
-            ans = x - y + 2;
-        } else if y >= -x {
-            ans = x + y + 1;
-        } else {
-            ans = -y - x + 1;
-        }
-    } else {
-        if y >= -x {
-            ans = x + y + 1;
-        } else if y > 0 {
-            ans = -x - y + 1;
-        } else if y >= x {
-            ans = -x + y;
-        } else {
-            ans = x - y + 2;
-        }
+    // Minimum operations to transform x -> y using:
+    // 1) increment by 1
+    // 2) multiply by -1 (sign flip)
+    //
+    // Consider two strategies:
+    // - No flip: only increments, possible iff y >= x, cost = y - x
+    // - One flip at some time: flip once (cost 1), then only increments.
+    //   If we flip immediately, value becomes -x, then need y - (-x) increments, possible iff y >= -x.
+    //   Cost = 1 + (y + x).
+    //
+    // Flipping later after some increments from x to x+k yields -(x+k) <= -x, which cannot reduce
+    // required increments to reach y compared to flipping immediately (since only increments allowed after).
+    // Thus, it suffices to take min of the feasible strategies above.
+    let mut ans = i64::MAX;
+
+    if y >= x {
+        ans = ans.min(y - x);
+    }
+    if y >= -x {
+        ans = ans.min(1 + (y + x));
     }
 
-    // Output: no trailing newline, matching the C program.
-    print!("{ans}");
+    // Per spec, result fits in i64 and is non-negative.
+    print!("{}", ans);
 }

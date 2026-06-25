@@ -1,28 +1,24 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin (no explicit error handling specified).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
 
     let mut it = input.split_whitespace();
 
-    // First value: non-negative count (precondition). If missing/invalid, behavior is unspecified;
-    // we unwrap to match "no explicit handling".
-    let count: usize = it.next().unwrap().parse().unwrap();
+    let count: i64 = it.next().unwrap().parse().unwrap();
 
-    // Memory proportional to number of integers read: store the entire sequence.
-    let mut values: Vec<i64> = Vec::with_capacity(count);
+    // Memory usage grows linearly with the count (stores the sequence).
+    let mut values: Vec<i64> = Vec::with_capacity(count as usize);
     for _ in 0..count {
         let v: i64 = it.next().unwrap().parse().unwrap();
         values.push(v);
     }
 
-    // Sum over all elements of (value - 1).
-    // Preconditions state the result fits in the program's integer type; use i64.
+    // Running total equals sum of first k integers minus k.
     let mut total: i64 = 0;
-    for &v in &values {
-        total += v - 1;
+    for v in &values {
+        total += *v - 1;
     }
 
     print!("{}", total);

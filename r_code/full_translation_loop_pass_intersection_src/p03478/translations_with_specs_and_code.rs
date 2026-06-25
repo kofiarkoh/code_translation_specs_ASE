@@ -1,7 +1,7 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read all input (matches typical scanf behavior for whitespace-separated ints).
+    // Read all input (behavior unspecified on invalid/missing input, matching C).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -12,21 +12,20 @@ fn main() {
 
     let mut total: i32 = 0;
 
-    // Spec: if N < 1, output 0. This loop naturally does that.
     for i in 1..=n {
-        // digitSum5(i): sum of five least significant decimal digits.
-        // For N > 99,999, this still only considers the last five digits, per spec.
-        let mut x = i;
-        let mut sum = 0;
-        for _ in 0..5 {
-            sum += x % 10;
-            x /= 10;
-        }
+        // digitSum5: sum of five least significant decimal digits
+        let e = i % 10;
+        let d = ((i - e) / 10) % 10;
+        let c = ((i - 10 * d - e) / 100) % 10;
+        let b = ((i - 100 * c - 10 * d - e) / 1000) % 10;
+        let a = ((i - 1000 * b - 100 * c - 10 * d - e) / 10000) % 10;
 
+        let sum = a + b + c + d + e;
         if a_bound <= sum && sum <= b_bound {
-            total = total + i; // overflow behavior intentionally unspecified, matching spec.
+            total += i;
         }
     }
 
-    print!("{}", total);
+    // Match C output formatting: no trailing newline.
+    print!("{total}");
 }

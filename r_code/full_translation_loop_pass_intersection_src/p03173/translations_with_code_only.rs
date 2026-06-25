@@ -4,13 +4,13 @@ const SUP: i64 = 1i64 << 60;
 
 fn recursion(l: usize, r: usize, dp: &mut Vec<Vec<i64>>, sum: &Vec<i64>) -> i64 {
     // Mirrors: if (dp[l][r] != 0 || l == r) return dp[l][r];
+    // Note: dp is zero-initialized; for l==r it returns 0 (base case).
     if dp[l][r] != 0 || l == r {
         return dp[l][r];
     } else {
         dp[l][r] = SUP;
     }
 
-    // for (k = l + 1; k <= r; k++)
     for k in (l + 1)..=r {
         let tmp = recursion(l, k - 1, dp, sum) + recursion(k, r, dp, sum);
         if tmp < dp[l][r] {
@@ -30,31 +30,27 @@ fn main() {
     let mut it = input.split_whitespace();
 
     let n: usize = match it.next() {
-        Some(x) => x.parse().unwrap(),
+        Some(v) => v.parse().unwrap(),
         None => return,
     };
 
-    // C arrays are 1-based here; keep same indexing.
-    let mut a = vec![0i64; 401];
+    // a[1..=N], sum[0..=N], dp[0..=N][0..=N]
+    let mut a = vec![0i64; n + 1];
     for i in 1..=n {
-        if let Some(x) = it.next() {
-            a[i] = x.parse::<i64>().unwrap();
+        if let Some(v) = it.next() {
+            a[i] = v.parse::<i64>().unwrap();
         }
     }
 
-    let mut sum = vec![0i64; 401];
+    let mut sum = vec![0i64; n + 1];
     sum[0] = 0;
     for i in 1..=n {
         sum[i] = sum[i - 1] + a[i];
     }
 
-    // dp initialized to 0 like in C: long long dp[401][401] = {};
-    let mut dp = vec![vec![0i64; 401]; 401];
+    let mut dp = vec![vec![0i64; n + 1]; n + 1];
 
     let ans = recursion(1, n, &mut dp, &sum);
     print!("{ans}\n");
-
-    // fflush(stdout) equivalent: ensure output is flushed.
-    use std::io::Write;
-    io::stdout().flush().unwrap();
+    // stdout is flushed on program exit; explicit fflush not needed.
 }

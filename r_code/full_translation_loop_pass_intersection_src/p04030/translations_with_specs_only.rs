@@ -1,32 +1,39 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, then take the first whitespace-delimited token as the input string.
+    // Fixed examined range: the specification states processing stops at the end marker
+    // or after a fixed maximum number of examined positions. The exact bound is not given,
+    // so we choose the narrowest reasonable "small fixed" bound without inventing extra
+    // functionality: 256 examined positions.
+    const MAX_EXAMINED: usize = 256;
+
+    // Read all input; then take the first whitespace-delimited token as the character sequence.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).ok();
-    let token = input.split_whitespace().next().unwrap_or("");
 
-    // Fixed-size internal storage: up to 10 characters plus a terminating marker (conceptually).
-    // The specification states behavior is undefined if input exceeds capacity; we do not add
-    // explicit error handling. We still process whatever is present in `token`.
-    let mut out: Vec<char> = Vec::with_capacity(10);
+    let token = match input.split_whitespace().next() {
+        Some(t) => t,
+        None => return, // No token => no output specified; do nothing.
+    };
 
-    // Process left-to-right with the specified "B as backspace" semantics.
-    // Processing is bounded by the fixed maximum input size in the spec; we iterate over the token.
-    for ch in token.chars() {
+    // Apply the backspace rule left-to-right, examining at most MAX_EXAMINED characters.
+    // We operate on Unicode scalar values (Rust `char`) since the spec only says "character sequence".
+    let mut out: Vec<char> = Vec::new();
+    for (i, ch) in token.chars().enumerate() {
+        if i >= MAX_EXAMINED {
+            break;
+        }
         if ch == 'B' {
-            if !out.is_empty() {
-                out.pop();
-            }
+            out.pop();
         } else {
             out.push(ch);
         }
     }
 
-    // Output the transformed sequence.
-    // The spec's "properly terminated within fixed output storage" corresponds to producing a
-    // valid Rust String; if the spec's precondition is violated, behavior is undefined there,
-    // and we do not attempt to emulate UB beyond simply printing what we computed.
+    // Output the processed result as a character sequence.
+    // Note: The spec mentions undefined behavior if the terminating end marker is not encountered
+    // within the examined range; in Rust we cannot emit unterminated strings, so we print the
+    // computed prefix result for the examined range.
     let result: String = out.into_iter().collect();
     print!("{result}");
 }

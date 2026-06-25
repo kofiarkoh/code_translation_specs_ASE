@@ -1,46 +1,69 @@
 use std::io::{self, Read};
 
+fn is_prime(x: usize) -> bool {
+    if x < 2 {
+        return false;
+    }
+    if x == 2 {
+        return true;
+    }
+    if x % 2 == 0 {
+        return false;
+    }
+    let mut d = 3usize;
+    while d * d <= x {
+        if x % d == 0 {
+            return false;
+        }
+        d += 2;
+    }
+    true
+}
+
 fn main() {
-    // Read input
-    let mut s = String::new();
-    io::stdin().read_to_string(&mut s).unwrap();
-    let n: usize = s.split_whitespace().next().unwrap().parse().unwrap();
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let n: i32 = input.split_whitespace().next().unwrap().parse().unwrap();
 
-    // Fixed, bounded storage for prime exponents in n! (supported up to n <= 100).
-    // Invariant: exp[p] is the exponent of prime p in n!, and exp[k]=0 for non-prime k.
-    let mut exp = vec![0u32; 101];
+    if n < 2 {
+        println!("0");
+        return;
+    }
 
-    // Factorize each i in 2..=n and accumulate prime exponents.
-    for i in 2..=n {
+    // Fixed-size storage implied by the specification (supports up to ~100).
+    // For non-primes, values are not used to define the result.
+    let mut exp = vec![0i32; 101];
+
+    // Compute prime exponents in n! by factoring each i in 2..=n.
+    for i in 2..=(n as usize) {
         let mut x = i;
         let mut p = 2usize;
         while p * p <= x {
             while x % p == 0 {
-                exp[p] += 1;
+                if p < exp.len() {
+                    exp[p] += 1;
+                }
                 x /= p;
             }
-            p += 1;
+            p += if p == 2 { 1 } else { 2 };
         }
-        if x > 1 {
+        if x > 1 && x < exp.len() {
             exp[x] += 1;
         }
     }
 
-    // Count primes with exponent >= thresholds needed for divisor-count 75 patterns.
-    // If d = Π p_i^{a_i}, then tau(d) = Π (a_i+1).
-    // We need tau(d) = 75 = 3 * 5^2.
-    // Possible (a_i+1) factorizations:
-    //  - 75            => a = 74
-    //  - 25 * 3        => a = 24 and a = 2 (distinct primes)
-    //  - 15 * 5        => a = 14 and a = 4 (distinct primes)
-    //  - 5 * 5 * 3     => a = 4, 4, 2 (three distinct primes)
-    let mut c2 = 0u64;  // exp >= 2
-    let mut c4 = 0u64;  // exp >= 4
-    let mut c14 = 0u64; // exp >= 14
-    let mut c24 = 0u64; // exp >= 24
-    let mut c74 = 0u64; // exp >= 74
+    // Count primes with exponent >= thresholds.
+    let mut c2 = 0i32;
+    let mut c4 = 0i32;
+    let mut c14 = 0i32;
+    let mut c24 = 0i32;
+    let mut c74 = 0i32;
 
-    for &e in &exp {
+    for k in 2..exp.len() {
+        if !is_prime(k) {
+            continue;
+        }
+        let e = exp[k];
         if e >= 2 {
             c2 += 1;
         }
@@ -58,24 +81,37 @@ fn main() {
         }
     }
 
-    // Combinatorial counting of choices of distinct primes for each pattern.
-    let mut ans = 0u64;
+    // Number of divisors with exactly 75 divisors:
+    // 75 = 75
+    // 75 = 25 * 3
+    // 75 = 15 * 5
+    // 75 = 5 * 5 * 3
+    //
+    // In terms of (exponent+1) factors:
+    // (75) -> exponent 74
+    // (25,3) -> exponents (24,2)
+    // (15,5) -> exponents (14,4)
+    // (5,5,3) -> exponents (4,4,2)
+    let mut ans: i64 = 0;
 
-    // Pattern: 75 => choose one prime with exp >= 74
-    ans += c74;
+    // One prime with exponent >= 74
+    ans += c74 as i64;
 
-    // Pattern: 25 * 3 => choose p with exp >= 24 and q != p with exp >= 2
-    // Count ordered by selecting p first, then q.
-    ans += c24 * (c2.saturating_sub(1));
-
-    // Pattern: 15 * 5 => choose p with exp >= 14 and q != p with exp >= 4
-    ans += c14 * (c4.saturating_sub(1));
-
-    // Pattern: 5 * 5 * 3 => choose two distinct primes with exp >= 4, and a third distinct with exp >= 2
-    // Choose the two exp>=4 primes as an unordered pair, then choose the exp>=2 prime distinct from both.
-    if c4 >= 2 {
-        ans += (c4 * (c4 - 1) / 2) * (c2.saturating_sub(2));
+    // One prime with exponent >= 24 and a different prime with exponent >= 2
+    if c24 > 0 && c2 > 1 {
+        ans += (c24 as i64) * ((c2 - 1) as i64);
     }
 
-    print!("{ans}");
+    // One prime with exponent >= 14 and a different prime with exponent >= 4
+    if c14 > 0 && c4 > 1 {
+        ans += (c14 as i64) * ((c4 - 1) as i64);
+    }
+
+    // Two distinct primes with exponent >= 4 and a third distinct prime with exponent >= 2
+    if c4 > 1 && c2 > 2 {
+        // Choose 2 primes from c4, then choose 1 from remaining primes with exp>=2.
+        ans += ((c4 as i64) * ((c4 - 1) as i64) / 2) * ((c2 - 2) as i64);
+    }
+
+    println!("{}", ans);
 }

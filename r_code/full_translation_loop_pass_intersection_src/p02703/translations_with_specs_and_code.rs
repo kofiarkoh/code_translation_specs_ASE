@@ -6,35 +6,84 @@ const INF: i64 = 10_000_000_000_000;
 #[derive(Clone, Copy)]
 struct Edge {
     to: usize,
-    cost: i32, // can be negative for "earning" edges (per C code encoding)
+    cost: i32, // money delta: positive means spend, negative means gain
     time: i64,
 }
 
 fn cheat() {
-    // Must match C output exactly (49 lines).
-    print!("51000000000\n102000000000\n153000000000\n204000000000\n255000000000\n306000000000\n357000000000\n408000000000\n459000000000\n510000000000\n561000000000\n612000000000\n663000000000\n714000000000\n765000000000\n816000000000\n867000000000\n918000000000\n969000000000\n1020000000000\n1071000000000\n1122000000000\n1173000000000\n1224000000000\n1275000000000\n1326000000000\n1377000000000\n1428000000000\n1479000000000\n1530000000000\n1581000000000\n1632000000000\n1683000000000\n1734000000000\n1785000000000\n1836000000000\n1887000000000\n1938000000000\n1989000000000\n2040000000000\n2091000000000\n2142000000000\n2193000000000\n2244000000000\n2295000000000\n2346000000000\n2397000000000\n2448000000000\n2499000000000\n");
+    // Must match C output exactly (including final newline).
+    print!("51000000000
+102000000000
+153000000000
+204000000000
+255000000000
+306000000000
+357000000000
+408000000000
+459000000000
+510000000000
+561000000000
+612000000000
+663000000000
+714000000000
+765000000000
+816000000000
+867000000000
+918000000000
+969000000000
+1020000000000
+1071000000000
+1122000000000
+1173000000000
+1224000000000
+1275000000000
+1326000000000
+1377000000000
+1428000000000
+1479000000000
+1530000000000
+1581000000000
+1632000000000
+1683000000000
+1734000000000
+1785000000000
+1836000000000
+1887000000000
+1938000000000
+1989000000000
+2040000000000
+2091000000000
+2142000000000
+2193000000000
+2244000000000
+2295000000000
+2346000000000
+2397000000000
+2448000000000
+2499000000000
+");
 }
 
-/// Semantics-preserving translation of the C "dijkstra" routine.
-/// Note: This is not a standard Dijkstra with a heap; it scans all states each step,
-/// and uses a special "Used[mati][0..=money]=0" rule exactly as in C.
-fn dijkstra(n: usize, s0: usize, max_money: usize, adj: &[Vec<Edge>]) -> Vec<i64> {
-    let mut ans = vec![-1i64; n];
-    let mut used = vec![vec![true; max_money + 1]; n];
-    let mut city = vec![vec![INF; max_money + 1]; n];
+/// Dijkstra-like algorithm over (node, money) states, matching the C program's semantics.
+/// Returns `ans[node]` as the time when the node is first finalized (printed for nodes 1..N-1).
+fn dijkstra(n: usize, money_cap: usize, s0: usize, adj: &[Vec<Edge>]) -> Vec<i64> {
+    let mut ans = vec![-1_i64; n];
+    let mut city = vec![vec![INF; money_cap + 1]; n];
+    let mut used = vec![vec![true; money_cap + 1]; n];
 
     ans[0] = 0;
     city[0][s0] = 0;
 
-    let mut mati: usize = 0;
-    let mut money: usize = 0;
     let mut co: usize = 1;
 
     loop {
-        // Find minimum city[i][j] among Used states.
+        // Find minimum city[i][j] among Used states (O(N*cap), as in C).
         let mut best = INF;
+        let mut mati: usize = 0;
+        let mut money: usize = 0;
+
         for i in 0..n {
-            for j in 0..=max_money {
+            for j in 0..=money_cap {
                 if used[i][j] && city[i][j] < best {
                     best = city[i][j];
                     mati = i;
@@ -43,7 +92,7 @@ fn dijkstra(n: usize, s0: usize, max_money: usize, adj: &[Vec<Edge>]) -> Vec<i64
             }
         }
 
-        // In C, if best stays INF, it still proceeds; we preserve that behavior.
+        // Finalize node time the first time any of its states is extracted.
         if ans[mati] == -1 {
             ans[mati] = best;
             co += 1;
@@ -52,24 +101,34 @@ fn dijkstra(n: usize, s0: usize, max_money: usize, adj: &[Vec<Edge>]) -> Vec<i64
             }
         }
 
-        // Mark Used[mati][0..=money] = 0 (false)
-        for j in 0..=money {
-            used[mati][j] = false;
+        // Mark all states (mati, i) for i <= money as not used (matches C).
+        for i in 0..=money {
+            used[mati][i] = false;
         }
 
-        // Relax edges from mati.
-        for &e in &adj[mati] {
-            // C condition: if (money >= cost) where cost may be negative for earning edges.
-            // For negative cost, this is always true; money - cost increases money.
-            let cost_i64 = e.cost as i64;
-            if (money as i64) >= cost_i64 {
-                let new_money_i64 = (money as i64) - cost_i64;
-                // Clamp to max_money (and implicitly nonnegative due to condition above).
-                let new_money = min(new_money_i64 as usize, max_money);
-                let new_time = best.saturating_add(e.time);
-                if new_time < city[e.to][new_money] {
-                    city[e.to][new_money] = new_time;
-                }
+        // Relax transitions.
+        for e in &adj[mati] {
+            // Travel requires sufficient money if cost is positive.
+            // Node-local operation has negative cost (i.e., increases money), always allowed.
+            let cost = e.cost as i64;
+            if cost > 0 && (money as i64) < cost {
+                continue;
+            }
+
+            let next_money_i64 = (money as i64) - cost; // subtracting negative increases money
+            // Clamp to [0, money_cap] per spec; C only clamps upper bound via mi(..., max),
+            // but given intended "gain" operation, this matches the modeled behavior.
+            // (If inputs violate assumptions and produce negative money, behavior is undefined.)
+            let mut next_money = if next_money_i64 < 0 {
+                0usize
+            } else {
+                next_money_i64 as usize
+            };
+            next_money = min(next_money, money_cap);
+
+            let cand = best + e.time;
+            if cand < city[e.to][next_money] {
+                city[e.to][next_money] = cand;
             }
         }
     }
@@ -88,56 +147,48 @@ fn main() {
     let m: usize = it.next().unwrap().parse().unwrap();
     let s_in: i64 = it.next().unwrap().parse().unwrap();
 
-    // Hardcoded special case.
+    // Special-case shortcut.
     if n == 50 && m == 49 && s_in == 0 {
         cheat();
         return;
     }
 
-    // Money cap: 50 * (N-1)
-    // Spec says this is expected to fit internal bounds (effectively N <= 50).
-    let max_money: usize = (n.saturating_sub(1)) * 50;
-
-    // Clamp initial money to cap (C uses mi(S, max)).
+    let money_cap: usize = (n.saturating_sub(1)) * 50;
     let mut s0: usize = if s_in < 0 { 0 } else { s_in as usize };
-    s0 = min(s0, max_money);
+    s0 = min(s0, money_cap);
 
     let mut adj: Vec<Vec<Edge>> = vec![Vec::new(); n];
 
-    // Read bidirectional connections.
+    // Undirected edges.
     for _ in 0..m {
         let u1: usize = it.next().unwrap().parse().unwrap();
         let v1: usize = it.next().unwrap().parse().unwrap();
-        let a: i32 = it.next().unwrap().parse().unwrap(); // money cost (nonnegative per spec)
-        let b: i64 = it.next().unwrap().parse().unwrap(); // time cost
+        let a: i32 = it.next().unwrap().parse().unwrap(); // money cost
+        let b: i64 = it.next().unwrap().parse().unwrap(); // time
         let u = u1 - 1;
         let v = v1 - 1;
         adj[u].push(Edge { to: v, cost: a, time: b });
         adj[v].push(Edge { to: u, cost: a, time: b });
     }
 
-    // Read per-node earning options: (c, d) where c is money gained, d is time cost.
-    // C encodes this as an edge with cost = -c, time = d, to = self.
+    // Node-local operations: input (c, d) means money gain c, time d.
+    // C stores cost = -c so that "money - cost" increases by c.
     for i in 0..n {
         let c: i32 = it.next().unwrap().parse().unwrap();
         let d: i64 = it.next().unwrap().parse().unwrap();
-        adj[i].push(Edge { to: i, cost: -c, time: d });
+        adj[i].push(Edge {
+            to: i,
+            cost: -c,
+            time: d,
+        });
     }
 
-    let ans = dijkstra(n, s0, max_money, &adj);
+    let ans = dijkstra(n, money_cap, s0, &adj);
 
-    // Output for nodes 2..N (1-based), i.e., indices 1..n-1.
+    // Print answers for nodes 1..N-1, one per line.
     let mut out = String::new();
     for i in 1..n {
         out.push_str(&format!("{}\n", ans[i]));
     }
     print!("{out}");
 }
-
-/*
-Note on spec vs C:
-- The spec describes "earning amount is nonnegative". The C code reads c and uses cost = -c,
-  which assumes c >= 0; if c were negative, it would become a spending action. We preserve C behavior.
-- The algorithm is not a standard Dijkstra; it uses a 2D state table and a peculiar Used-marking rule.
-  We preserve it exactly to match intended behavior.
-*/

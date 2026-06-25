@@ -1,114 +1,95 @@
 use std::cmp::Ordering;
 use std::io::{self, Read};
 
-#[derive(Clone, Debug)]
-struct Item {
-    // delta = attribute2[i] - attribute3[0], guaranteed > 0 for collected items
-    delta: i64,
-    // count = ceil(attribute1[i] / (attribute2[0] - attribute3[i])) for collected items
-    count: i64,
+#[derive(Clone, Copy, Debug)]
+struct Pair {
+    t: i64,
+    k: i64,
 }
 
 fn main() {
-    // Read all input
+    // Read all input as whitespace-separated decimal integers.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
     let n: usize = match it.next() {
-        Some(s) => s.parse().unwrap(),
+        Some(x) => x.parse().unwrap(),
         None => return,
     };
 
-    // Fixed capacity constraint is stated but not enforced by spec beyond "within capacity".
-    // We still allocate dynamically; behavior for out-of-range n is unspecified.
-    let mut a1: Vec<i64> = Vec::with_capacity(n + 1);
-    let mut a2: Vec<i64> = Vec::with_capacity(n + 1);
-    let mut a3: Vec<i64> = Vec::with_capacity(n + 1);
-    let mut a4: Vec<i64> = Vec::with_capacity(n + 1);
+    // Store as i64 to match "64-bit signed integers" behavior.
+    let mut h = vec![0i64; n + 1];
+    let mut a = vec![0i64; n + 1];
+    let mut d = vec![0i64; n + 1];
+    let mut s = vec![0i64; n + 1];
 
-    for _ in 0..=n {
-        let x1: i64 = it.next().unwrap().parse().unwrap();
-        let x2: i64 = it.next().unwrap().parse().unwrap();
-        let x3: i64 = it.next().unwrap().parse().unwrap();
-        let x4: i64 = it.next().unwrap().parse().unwrap();
-        a1.push(x1);
-        a2.push(x2);
-        a3.push(x3);
-        a4.push(x4);
+    for i in 0..=n {
+        h[i] = it.next().unwrap().parse().unwrap();
+        a[i] = it.next().unwrap().parse().unwrap();
+        d[i] = it.next().unwrap().parse().unwrap();
+        s[i] = it.next().unwrap().parse().unwrap();
     }
 
-    // Entity 0 provides thresholds/baselines.
-    let base_a1_0 = a1[0];
-    let base_a2_0 = a2[0];
-    let base_a3_0 = a3[0];
-
-    let mut items: Vec<Item> = Vec::new();
     let mut turn: i64 = 0;
+    let mut ans: i64 = 0;
+    let mut pairs: Vec<Pair> = Vec::new();
 
-    // Feasibility-check state: collect only entities with positive delta.
+    // Phase 1: initial aggregation and collection.
     for i in 1..=n {
-        let delta = a2[i] - base_a3_0;
-        if delta <= 0 {
-            continue;
+        let k = a[i].wrapping_sub(d[0]);
+        if k <= 0 {
+            continue; // ignored entirely
         }
 
-        // Infeasibility condition: attribute2[0] <= attribute3[i]
-        if base_a2_0 <= a3[i] {
-            print!("-1\n");
+        // Feasibility check for relevant entities.
+        if a[0] <= d[i] {
+            println!("-1");
             return;
         }
 
-        // Divisor derived from entity 0 and i: (attribute2[0] - attribute3[i])
-        // Spec assumption: for feasible records, this divisor is strictly positive.
-        let div = base_a2_0 - a3[i];
-        // Compute count as ceil(attribute1[i] / div) with non-negative integers.
-        // Inputs are non-negative; div > 0 here.
-        let num = a1[i];
-        let count = (num + div - 1) / div;
+        // t(i) = (h[i] - d[i] + (a[0] - 1)) / (a[0] - d[i])
+        // Use wrapping arithmetic to emulate unchecked 64-bit signed behavior.
+        let denom = a[0].wrapping_sub(d[i]); // > 0 due to check above
+        let numer = h[i]
+            .wrapping_sub(d[i])
+            .wrapping_add(a[0].wrapping_sub(1));
+        let t = numer / denom;
 
-        items.push(Item { delta, count });
-        turn += delta;
+        turn = turn.wrapping_add(k);
+        if s[i] > s[0] {
+            ans = ans.wrapping_add(k);
+        }
+        pairs.push(Pair { t, k });
     }
 
-    // Deterministic ordering based on ratio involving count and delta.
-    // Narrowest reasonable interpretation: sort by increasing (count / delta),
-    // using exact cross-multiplication to avoid floating error.
-    items.sort_by(|x, y| {
-        // Compare x.count/x.delta vs y.count/y.delta:
-        // x.count * y.delta ? y.count * x.delta
-        let left = (x.count as i128) * (y.delta as i128);
-        let right = (y.count as i128) * (x.delta as i128);
-        match left.cmp(&right) {
-            Ordering::Equal => {
-                // Deterministic tie-breaker: keep stable by delta then count.
-                // (Spec only requires deterministic ordering.)
-                match x.delta.cmp(&y.delta) {
-                    Ordering::Equal => x.count.cmp(&y.count),
-                    o => o,
-                }
-            }
-            o => o,
+    // Phase 2: sort by decreasing ratio t/k using cross-multiplication.
+    // Ties are left unspecified; we return Ordering::Equal for exact ties.
+    pairs.sort_unstable_by(|p1, p2| {
+        let left = (p1.t as i128) * (p2.k as i128);
+        let right = (p2.t as i128) * (p1.k as i128);
+        if left > right {
+            Ordering::Less // p1 before p2
+        } else if left < right {
+            Ordering::Greater
+        } else {
+            Ordering::Equal
         }
     });
 
-    // Aggregation state
-    let mut acc: i64 = 0;
-    for item in items {
-        // Contribution: count * current turn
-        // Spec notes overflow is not handled; we use i128 for intermediate and cast back.
-        let contrib = (item.count as i128) * (turn as i128);
-        acc = (acc as i128 + contrib) as i64;
+    for Pair { t, k } in pairs {
+        // ans = ans + turn * t - k
+        ans = ans
+            .wrapping_add(turn.wrapping_mul(t))
+            .wrapping_sub(k);
 
-        // Unsafe condition: accumulated reaches or exceeds attribute1[0]
-        if acc >= base_a1_0 {
-            print!("-1\n");
+        if ans >= h[0] {
+            println!("-1");
             return;
         }
 
-        // Reduce turn by this delta exactly once.
-        turn -= item.delta;
+        turn = turn.wrapping_sub(k);
     }
 
-    print!("{}\n", acc);
+    println!("{}", ans);
 }

@@ -3,17 +3,17 @@ use std::io::{self, Read};
 const INF: i32 = 0x7fffffff;
 
 struct SegTree2D {
+    // Flat storage for seg[r][c] (row-major), size = h2 * w2.
+    seg: Vec<i32>,
     h: usize,
     w: usize,
     w2: usize,
-    // Flattened storage for seg[r][c] where r in [0..h2), c in [0..w2)
-    seg: Vec<i32>,
 
-    // Query parameters (mirrors C globals)
-    r1: usize,
-    c1: usize,
-    r2: usize,
-    c2: usize,
+    // Query parameters (match C globals)
+    r1: i32,
+    c1: i32,
+    r2: i32,
+    c2: i32,
     g: usize,
 }
 
@@ -30,15 +30,14 @@ impl SegTree2D {
         let h2 = (h << 1) - 1;
         let w2 = (w << 1) - 1;
 
-        // C code memset(pool,0) then writes only some leaves; internal nodes are computed
-        // during updates. Uninitialized leaves remain 0, so we must start with 0.
+        // C code zero-initializes pool; we do the same.
         let seg = vec![0i32; h2 * w2];
 
         Self {
+            seg,
             h,
             w,
             w2,
-            seg,
             r1: 0,
             c1: 0,
             r2: 0,
@@ -48,64 +47,70 @@ impl SegTree2D {
     }
 
     #[inline]
-    fn idx(w2: usize, r: usize, c: usize) -> usize {
+    fn idx_w2(w2: usize, r: usize, c: usize) -> usize {
         r * w2 + c
     }
 
     fn update(&mut self, r0: usize, c0: usize, x: i32) {
-        // Avoid borrow-checker conflicts by caching w2 locally and using the static idx().
+        // Avoid borrow-checker conflicts by not calling methods that borrow `self`
+        // while also mutating `self.seg`.
         let w2 = self.w2;
+        let seg = &mut self.seg;
 
-        let mut r = r0 + self.h - 1;
-        let c = c0 + self.w - 1;
+        let mut r = (r0 + self.h - 1) as i32;
+        let c = (c0 + self.w - 1) as i32;
 
-        let pos = Self::idx(w2, r, c);
-        self.seg[pos] = x;
+        let pos = Self::idx_w2(w2, r as usize, c as usize);
+        seg[pos] = x;
 
-        loop {
-            // Update along the column-segment tree for this row node.
+        while r >= 0 {
             let mut c2 = c;
             while c2 != 0 {
                 if (c2 & 1) == 0 {
                     c2 -= 1;
                 }
-                let t = c2;
+                let mut t = c2;
                 c2 >>= 1;
 
-                let a1 = self.seg[Self::idx(w2, r, t)];
-                let a2 = self.seg[Self::idx(w2, r, t + 1)];
-                let dst = Self::idx(w2, r, c2);
-                self.seg[dst] = if a1 > a2 { a2 } else { a1 };
+                let a1 = seg[Self::idx_w2(w2, r as usize, t as usize)];
+                t += 1;
+                let a2 = seg[Self::idx_w2(w2, r as usize, t as usize)];
+                let a = if a1 > a2 { a2 } else { a1 };
+                let dst = Self::idx_w2(w2, r as usize, c2 as usize);
+                seg[dst] = a;
             }
 
             if r == 0 {
                 break;
             }
 
-            // Move to parent in the row-segment tree, updating only the single column `c`.
             if (r & 1) == 0 {
                 r -= 1;
             }
-            let t = r;
+            let mut t = r;
             r >>= 1;
 
-            let a1 = self.seg[Self::idx(w2, t, c)];
-            let a2 = self.seg[Self::idx(w2, t + 1, c)];
-            let dst = Self::idx(w2, r, c);
-            self.seg[dst] = if a1 > a2 { a2 } else { a1 };
+            let a1 = seg[Self::idx_w2(w2, t as usize, c as usize)];
+            t += 1;
+            let a2 = seg[Self::idx_w2(w2, t as usize, c as usize)];
+            let a = if a1 > a2 { a2 } else { a1 };
+            let dst = Self::idx_w2(w2, r as usize, c as usize);
+            seg[dst] = a;
         }
     }
 
-    fn query2(&self, l: usize, r: usize, k: usize) -> i32 {
+    fn query2(&mut self, l: i32, r: i32, k: usize) -> i32 {
+        // Direct translation of C query2(), using self.c1/self.c2 and self.g.
         if self.c2 <= l || r <= self.c1 {
             return INF;
         }
         if self.c1 <= l && r <= self.c2 {
-            return self.seg[Self::idx(self.w2, self.g, k)];
+            let idx = Self::idx_w2(self.w2, self.g, k);
+            return self.seg[idx];
         }
 
-        let mut kk = k << 1;
         let m = (l + r) >> 1;
+        let mut kk = k << 1;
         kk += 1;
         let lmin = self.query2(l, m, kk);
         kk += 1;
@@ -113,17 +118,18 @@ impl SegTree2D {
         if lmin > rmin { rmin } else { lmin }
     }
 
-    fn query(&mut self, l: usize, r: usize, k: usize) -> i32 {
+    fn query(&mut self, l: i32, r: i32, k: usize) -> i32 {
+        // Direct translation of C query(), using self.r1/self.r2 and setting self.g.
         if self.r2 <= l || r <= self.r1 {
             return INF;
         }
         if self.r1 <= l && r <= self.r2 {
             self.g = k;
-            return self.query2(0, self.w, 0);
+            return self.query2(0, self.w as i32, 0);
         }
 
-        let mut kk = k << 1;
         let m = (l + r) >> 1;
+        let mut kk = k << 1;
         kk += 1;
         let lmin = self.query(l, m, kk);
         kk += 1;
@@ -133,9 +139,10 @@ impl SegTree2D {
 }
 
 fn main() {
-    let mut s = String::new();
-    io::stdin().read_to_string(&mut s).unwrap();
-    let mut it = s.split_whitespace();
+    // Read all input and parse as integers (scanf-like whitespace handling).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
     let mut out = String::new();
 
@@ -148,15 +155,12 @@ fn main() {
         let c: i32 = it.next().unwrap().parse().unwrap();
         let q: i32 = it.next().unwrap().parse().unwrap();
 
-        // C loop condition: while (scanf(...) && R > 0)
         if r <= 0 {
             break;
         }
 
         let r_us = r as usize;
         let c_us = c as usize;
-        let q_us = q as usize;
-
         let mut st = SegTree2D::new(r_us, c_us);
 
         for rr in 0..r_us {
@@ -166,19 +170,16 @@ fn main() {
             }
         }
 
-        for _ in 0..q_us {
-            let r1: i32 = it.next().unwrap().parse().unwrap();
-            let c1: i32 = it.next().unwrap().parse().unwrap();
-            let r2: i32 = it.next().unwrap().parse().unwrap();
-            let c2: i32 = it.next().unwrap().parse().unwrap();
+        for _ in 0..(q as usize) {
+            st.r1 = it.next().unwrap().parse().unwrap();
+            st.c1 = it.next().unwrap().parse().unwrap();
+            st.r2 = it.next().unwrap().parse().unwrap();
+            st.c2 = it.next().unwrap().parse().unwrap();
+            // C code does r2++, c2++ (inclusive -> half-open)
+            st.r2 += 1;
+            st.c2 += 1;
 
-            // C: r2++, c2++; and then query over [r1,r2) and [c1,c2)
-            st.r1 = r1 as usize;
-            st.c1 = c1 as usize;
-            st.r2 = (r2 + 1) as usize;
-            st.c2 = (c2 + 1) as usize;
-
-            let ans = st.query(0, st.h, 0);
+            let ans = st.query(0, st.h as i32, 0);
             out.push_str(&format!("{ans}\n"));
         }
     }

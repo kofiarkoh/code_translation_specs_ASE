@@ -1,17 +1,17 @@
-use std::f64;
+use std::io::{self, Read};
 
 const EPS: f64 = 1e-8;
 
 #[derive(Clone, Copy, Debug, Default)]
-struct PP {
+struct Point {
     x: f64,
     y: f64,
 }
 
 #[derive(Clone, Copy, Debug, Default)]
 struct Line {
-    s: PP,
-    e: PP,
+    s: Point,
+    e: Point,
 }
 
 fn dcmp(x: f64) -> i32 {
@@ -28,10 +28,9 @@ fn cross(ax: f64, ay: f64, bx: f64, by: f64) -> f64 {
     ax * by - ay * bx
 }
 
-// Intersection of segment (a.s -> a.e) with the infinite line through (vs -> ve),
-// computed using the same formula as the C code.
-// Note: per spec, degeneracies (parallel/collinear leading to division by ~0) are unspecified.
-fn line_intersection(a: &Line, vs: &PP, ve: &PP) -> PP {
+// Intersection of segment (vs->ve) with infinite line a (through a.s->a.e),
+// assuming they are not parallel in the cases we call it (per spec precondition).
+fn line_intersection(a: &Line, vs: Point, ve: Point) -> Point {
     let a1 = cross(
         ve.x - vs.x,
         ve.y - vs.y,
@@ -44,17 +43,23 @@ fn line_intersection(a: &Line, vs: &PP, ve: &PP) -> PP {
         a.e.x - vs.x,
         a.e.y - vs.y,
     );
+    // Per preconditions, a2 - a1 != 0 when used.
     let denom = a2 - a1;
-    PP {
+    Point {
         x: (a.s.x * a2 - a.e.x * a1) / denom,
         y: (a.s.y * a2 - a.e.y * a1) / denom,
     }
 }
 
-// Clips polygon p (with n vertices, and p[n] == p[0]) by the half-plane to the left of line u.
-// Returns new vertex count; writes output polygon into `po` and sets po[top] = po[0].
-fn convex_cut(u: &Line, n: usize, p: &[PP], po: &mut Vec<PP>) -> usize {
-    po.clear();
+// Clips convex polygon `p` (given as cyclic with p[n] == p[0]) by half-plane
+// to the left of directed line `u`. Returns new polygon in same cyclic form.
+fn convex_cut(u: &Line, p: &[Point]) -> Vec<Point> {
+    let n = p.len().saturating_sub(1);
+    if n == 0 {
+        return Vec::new();
+    }
+
+    let mut out: Vec<Point> = Vec::with_capacity(n + 2);
 
     for i in 0..n {
         let d1 = dcmp(cross(
@@ -71,39 +76,37 @@ fn convex_cut(u: &Line, n: usize, p: &[PP], po: &mut Vec<PP>) -> usize {
         ));
 
         if d1 >= 0 {
-            po.push(p[i]);
+            out.push(p[i]);
         }
         if d1 * d2 < 0 {
-            let ip = line_intersection(u, &p[i], &p[i + 1]);
-            po.push(ip);
+            out.push(line_intersection(u, p[i], p[i + 1]));
         }
     }
 
-    if !po.is_empty() {
-        let first = po[0];
-        po.push(first); // close polygon like C: po[top] = po[0]
-        po.len() - 1
-    } else {
-        0
+    if out.is_empty() {
+        return out;
     }
+    // Close polygon
+    out.push(out[0]);
+    out
 }
 
 fn main() {
-    // Read all input as whitespace-separated tokens.
-    let mut input = String::new();
-    std::io::stdin().read_to_string(&mut input).unwrap();
-    let mut it = input.split_whitespace();
+    // Read all input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
-    // Fixed square (closed), represented as a closed polygon with repeated first point.
-    let square: [PP; 5] = [
-        PP { x: 0.0, y: 0.0 },
-        PP { x: 10000.0, y: 0.0 },
-        PP { x: 10000.0, y: 10000.0 },
-        PP { x: 0.0, y: 10000.0 },
-        PP { x: 0.0, y: 0.0 },
+    // Fixed square [0,10000]x[0,10000], closed cyclic
+    let square: [Point; 5] = [
+        Point { x: 0.0, y: 0.0 },
+        Point { x: 10000.0, y: 0.0 },
+        Point { x: 10000.0, y: 10000.0 },
+        Point { x: 0.0, y: 10000.0 },
+        Point { x: 0.0, y: 0.0 },
     ];
 
-    let mut out = String::new();
+    let mut out_lines = String::new();
 
     loop {
         let n_opt = it.next();
@@ -114,46 +117,40 @@ fn main() {
         if n <= 0 {
             break;
         }
-        let n = n as usize;
+        let n_usize = n as usize;
 
-        // Read polygon vertices; close it by repeating first point.
-        let mut poly: Vec<PP> = Vec::with_capacity(n + 1);
-        for _ in 0..n {
+        let mut poly: Vec<Point> = Vec::with_capacity(n_usize + 1);
+        for _ in 0..n_usize {
             let x: i32 = it.next().unwrap().parse().unwrap();
             let y: i32 = it.next().unwrap().parse().unwrap();
-            poly.push(PP {
+            poly.push(Point {
                 x: x as f64,
                 y: y as f64,
             });
         }
+        // Close polygon
         poly.push(poly[0]);
 
-        // Start with the square, then clip by each polygon edge (as in the C code).
-        let mut pol0: Vec<PP> = square.to_vec();
-        let mut pol1: Vec<PP> = Vec::with_capacity(128);
+        // Start with square
+        let mut cur: Vec<Point> = square.to_vec();
 
-        let mut k: usize = 4; // number of vertices excluding the repeated closing point
-        for i in 0..n {
+        for i in 0..n_usize {
             let u = Line {
                 s: poly[i],
                 e: poly[i + 1],
             };
-            // Alternate buffers like the C code.
-            if i % 2 == 0 {
-                k = convex_cut(&u, k, &pol0, &mut pol1);
-            } else {
-                k = convex_cut(&u, k, &pol1, &mut pol0);
-            }
-            if k == 0 {
+            cur = convex_cut(&u, &cur);
+            if cur.is_empty() {
                 break;
             }
         }
 
-        out.push_str(if k > 0 { "1\n" } else { "0\n" });
+        if !cur.is_empty() {
+            out_lines.push_str("1\n");
+        } else {
+            out_lines.push_str("0\n");
+        }
     }
 
-    print!("{out}");
+    print!("{out_lines}");
 }
-
-// Needed for read_to_string
-use std::io::Read;

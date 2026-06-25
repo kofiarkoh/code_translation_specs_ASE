@@ -7,46 +7,57 @@ struct T {
     d: i32,
 }
 
-fn main() {
-    // Read entire stdin (AOJ style fast input).
-    let mut input = String::new();
-    io::stdin().read_to_string(&mut input).unwrap();
-    let bytes = input.as_bytes();
-    let mut idx: usize = 0;
-
-    // Emulate the C in(): reads a non-negative integer, assuming input is well-formed.
-    // It starts from the current byte and accumulates digits until a non-digit (< '0') is seen.
-    fn in_int(bytes: &[u8], idx: &mut usize) -> i32 {
-        // Skip any bytes < '0' (whitespace/newlines), matching typical judge input.
-        while *idx < bytes.len() && bytes[*idx] < b'0' {
-            *idx += 1;
-        }
+// Fast input similar to the C code's getchar_unlocked-based parser.
+// It assumes non-negative integers and stops when the next byte is < '0'.
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut input = String::new();
+        io::stdin().read_to_string(&mut input).unwrap();
+        Self { buf: input.into_bytes(), idx: 0 }
+    }
+    fn in_i32(&mut self) -> i32 {
         let mut n: i32 = 0;
-        while *idx < bytes.len() {
-            let c = bytes[*idx];
-            if c < b'0' || c > b'9' {
+        // The original C code does not skip whitespace; it expects digits immediately.
+        // We mimic that behavior: if input is malformed, behavior is unspecified anyway.
+        if self.idx >= self.buf.len() {
+            return 0;
+        }
+        let mut c = self.buf[self.idx];
+        self.idx += 1;
+        loop {
+            n = (n << 3) + (n << 1) + ((c & 0x0f) as i32);
+            if self.idx >= self.buf.len() {
                 break;
             }
-            // n = n*10 + (c & 0xf)
-            n = n.wrapping_mul(10).wrapping_add((c & 0x0f) as i32);
-            *idx += 1;
+            c = self.buf[self.idx];
+            self.idx += 1;
+            if c < b'0' {
+                break;
+            }
         }
         n
     }
+}
 
-    let n = in_int(bytes, &mut idx) as usize;
+fn main() {
+    let mut sc = Scanner::new();
 
-    // Arrays sized like the C code (need indices 0..=n).
+    let n = sc.in_i32() as usize;
+
     let mut h = vec![0i32; n + 1];
     let mut a = vec![0i32; n + 1];
     let mut d = vec![0i32; n + 1];
     let mut s = vec![0i32; n + 1];
 
     for i in 0..=n {
-        h[i] = in_int(bytes, &mut idx);
-        a[i] = in_int(bytes, &mut idx);
-        d[i] = in_int(bytes, &mut idx);
-        s[i] = in_int(bytes, &mut idx);
+        h[i] = sc.in_i32();
+        a[i] = sc.in_i32();
+        d[i] = sc.in_i32();
+        s[i] = sc.in_i32();
     }
 
     let mut tbl: Vec<T> = Vec::with_capacity(n);
@@ -69,28 +80,29 @@ fn main() {
         }
 
         let denom = (a[0] - d[i]) as i64; // > 0 due to check above
-        let numer = h[i] as i64 - d[i] as i64 + a[0] as i64 - 1;
+        let numer = (h[i] as i64) - (d[i] as i64) + (a[0] as i64) - 1;
         let aa = numer / denom; // C integer division truncates toward zero; denom>0 so same.
 
         tbl.push(T { a: aa, d: k });
     }
 
-    // C qsort comparator returns 0/1 (not a strict weak ordering), but intended order is by
-    // comparing a1*d2 > a2*d1 (i.e., sort by a/d descending). We implement that ordering.
+    // C's qsort comparator returns only 0/1, which is not a strict weak ordering.
+    // We emulate the intended ordering by sorting by the same cross-multiplication key.
+    // Use i128 to avoid overflow in the comparison (C would overflow UB, but intent is ratio compare).
     tbl.sort_by(|x, y| {
         let left = (x.a as i128) * (y.d as i128);
         let right = (y.a as i128) * (x.d as i128);
         if left > right {
-            Ordering::Less // x before y (descending)
-        } else if left < right {
             Ordering::Greater
+        } else if left < right {
+            Ordering::Less
         } else {
             Ordering::Equal
         }
     });
 
-    for t in &tbl {
-        ans += turn * t.a - t.d as i64;
+    for t in tbl.iter() {
+        ans += turn * t.a - (t.d as i64);
         if (h[0] as i64) <= ans {
             print!("-1\n");
             return;
@@ -98,5 +110,5 @@ fn main() {
         turn -= t.d as i64;
     }
 
-    print!("{ans}\n");
+    print!("{}\n", ans);
 }

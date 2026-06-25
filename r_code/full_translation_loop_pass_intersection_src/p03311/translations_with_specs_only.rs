@@ -8,30 +8,25 @@ fn main() {
     let mut it = input.split_whitespace();
 
     let n: usize = it.next().unwrap().parse().unwrap();
+    // Specification states behavior is undefined if n <= 0; we do not add checks.
 
-    // Specification states behavior is undefined for n <= 0; we do not add handling.
+    // Store transformed values b[i] = x[i] - i (1-based).
+    // Use i64 as a reasonable "integer type"; specification assumes no overflow.
     let mut b: Vec<i64> = Vec::with_capacity(n);
-
-    for i in 0..n {
+    for i in 1..=n {
         let x: i64 = it.next().unwrap().parse().unwrap();
-        // b[i] = x[i] - i (1-based)
-        let idx1: i64 = (i as i64) + 1;
-        b.push(x - idx1);
+        b.push(x - i as i64);
     }
 
-    // Sort derived values; multiset preserved, only reordered.
-    b.sort();
+    // Sort to find a median.
+    b.sort_unstable();
+    let median = b[n / 2];
 
-    // The minimizing integer m is any median of b.
-    // For odd n, unique median; for even n, any integer between the two middle values works.
-    // Choose lower median to stay within integer domain.
-    let m = b[(n - 1) / 2];
-
-    // Compute sum of absolute deviations; precondition says no overflow occurs.
-    let mut sum: i64 = 0;
+    // Sum absolute deviations from the median.
+    let mut ans: i64 = 0;
     for &v in &b {
-        sum += (v - m).abs();
+        ans += (v - median).abs();
     }
 
-    print!("{}", sum);
+    print!("{}", ans);
 }

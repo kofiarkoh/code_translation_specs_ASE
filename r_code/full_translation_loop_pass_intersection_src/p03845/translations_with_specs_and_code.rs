@@ -1,13 +1,12 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, split by whitespace, parse as i32 (matches C `int` semantics).
+    // Read entire stdin, parse as whitespace-separated integers.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
     let n: usize = it.next().unwrap().parse().unwrap();
-
     let mut t: Vec<i32> = Vec::with_capacity(n);
     for _ in 0..n {
         let v: i32 = it.next().unwrap().parse().unwrap();
@@ -15,22 +14,21 @@ fn main() {
     }
 
     let m: usize = it.next().unwrap().parse().unwrap();
-
     let mut p: Vec<usize> = Vec::with_capacity(m);
     let mut x: Vec<i32> = Vec::with_capacity(m);
     for _ in 0..m {
-        let pos: usize = it.next().unwrap().parse().unwrap();
-        let repl: i32 = it.next().unwrap().parse().unwrap();
-        p.push(pos);
-        x.push(repl);
+        let pi: usize = it.next().unwrap().parse().unwrap(); // 1-based
+        let xi: i32 = it.next().unwrap().parse().unwrap();
+        p.push(pi);
+        x.push(xi);
     }
 
+    // Initial sum S remains constant across queries.
     let sum: i32 = t.iter().copied().sum();
 
     let mut out = String::new();
     for i in 0..m {
-        // Positions are 1-based per spec.
-        let idx = p[i] - 1;
+        let idx = p[i] - 1; // convert to 0-based
         let ans = sum - t[idx] + x[i];
         out.push_str(&format!("{ans}\n"));
     }

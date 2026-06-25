@@ -1,17 +1,18 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin (scanf("%d%d") ignores leading whitespace).
+    // Read entire stdin, like scanf would consume from stdin.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
+
     let mut it = input.split_whitespace();
 
     // If input is missing, C's scanf would leave variables uninitialized (UB).
-    // We choose a deterministic fallback (0) rather than using unsafe uninitialized values.
+    // We choose to default to 0 to keep Rust defined; typical test cases provide both ints.
     let a: i32 = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
     let b: i32 = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
 
-    // In C, signed overflow is undefined; to emulate typical two's-complement wraparound,
+    // In C, signed overflow is undefined; to emulate common two's-complement behavior,
     // use wrapping arithmetic.
     let c = a.wrapping_add(b);
     let d = a.wrapping_sub(b);
@@ -28,6 +29,6 @@ fn main() {
         max = e;
     }
 
-    // Match C: no trailing newline.
+    // Match C printf("%d", max); (no trailing newline).
     print!("{}", max);
 }

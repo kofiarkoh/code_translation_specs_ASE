@@ -1,189 +1,266 @@
+use std::cmp::max;
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::{self, Read};
 
-fn is_perfect_square_u64(x: u64) -> bool {
-    let r = (x as f64).sqrt() as u64;
-    r * r == x || (r + 1) * (r + 1) == x
+const PRIME_LIMIT: i64 = 2221;
+const THRESH: i64 = 10_000_000_000; // 1e10
+const CLASSIFY_T_LIMIT: i64 = 100_000;
+
+fn gen_primes_upto(n: i64) -> Vec<i64> {
+    let n_usize = n as usize;
+    let mut is_prime = vec![true; n_usize + 1];
+    if n_usize >= 0 {
+        is_prime[0] = false;
+    }
+    if n_usize >= 1 {
+        is_prime[1] = false;
+    }
+    let mut p = 2usize;
+    while p * p <= n_usize {
+        if is_prime[p] {
+            let mut k = p * p;
+            while k <= n_usize {
+                is_prime[k] = false;
+                k += p;
+            }
+        }
+        p += 1;
+    }
+    let mut primes = Vec::new();
+    for i in 2..=n_usize {
+        if is_prime[i] {
+            primes.push(i as i64);
+        }
+    }
+    primes
+}
+
+fn is_perfect_square_i64(x: i64) -> bool {
+    if x < 0 {
+        return false;
+    }
+    let x_u = x as u64;
+    let mut lo: u64 = 0;
+    let mut hi: u64 = 1;
+    while hi.saturating_mul(hi) < x_u && hi < (1u64 << 32) {
+        hi <<= 1;
+    }
+    if hi > (1u64 << 32) {
+        hi = 1u64 << 32;
+    }
+    while lo <= hi {
+        let mid = (lo + hi) >> 1;
+        let sq = mid.saturating_mul(mid);
+        if sq == x_u {
+            return true;
+        } else if sq < x_u {
+            lo = mid + 1;
+        } else {
+            if mid == 0 {
+                break;
+            }
+            hi = mid - 1;
+        }
+    }
+    false
+}
+
+fn integer_sqrt_floor_u64(x: u64) -> u64 {
+    let mut lo: u64 = 0;
+    let mut hi: u64 = 1;
+    while hi.saturating_mul(hi) <= x && hi < (1u64 << 32) {
+        hi <<= 1;
+    }
+    if hi > (1u64 << 32) {
+        hi = 1u64 << 32;
+    }
+    if hi.saturating_mul(hi) > x {
+        // ok
+    }
+    while lo + 1 < hi {
+        let mid = (lo + hi) >> 1;
+        if mid.saturating_mul(mid) <= x {
+            lo = mid;
+        } else {
+            hi = mid;
+        }
+    }
+    lo
+}
+
+fn cube_reduce_and_classify(x: i64, primes: &[i64]) -> (Option<i64>, bool) {
+    // Returns (Some(f(x)), false) if classifiable and stored for grouping,
+    // (None, true) if unclassifiable and contributes directly +1 to R.
+    let mut w = x;
+    let mut t = x;
+
+    for &p in primes {
+        let p3 = p * p * p;
+        while w % p3 == 0 {
+            w /= p3;
+        }
+        while t % p == 0 {
+            t /= p;
+        }
+    }
+
+    if t > CLASSIFY_T_LIMIT && !is_perfect_square_i64(t) {
+        (None, true)
+    } else {
+        (Some(w), false)
+    }
+}
+
+fn build_complement(v: i64, primes: &[i64]) -> Option<i64> {
+    // Constructs g(v) using prime exponents mod 3, with the same remaining-factor
+    // handling and a magnitude threshold. Returns None on construction failure.
+    if v == 0 {
+        return None;
+    }
+    let mut t = v;
+    let mut g: i64 = 1;
+
+    for &p in primes {
+        if t % p != 0 {
+            continue;
+        }
+        let mut e = 0i32;
+        while t % p == 0 {
+            t /= p;
+            e += 1;
+        }
+        let r = (e % 3 + 3) % 3;
+        let need = (3 - r) % 3;
+        for _ in 0..need {
+            if g > THRESH / p {
+                return None;
+            }
+            g *= p;
+        }
+    }
+
+    if t == 1 {
+        return Some(g);
+    }
+
+    // Remaining factor handling mirrors the spec: after removing primes <= 2221,
+    // remaining t is assumed to be 1, prime, or square of a prime; otherwise
+    // behavior is unspecified, and we conservatively fail complement construction.
+    if t > CLASSIFY_T_LIMIT && !is_perfect_square_i64(t) {
+        // "unclassifiable" under the same logic => complement construction fails
+        return None;
+    }
+
+    if is_perfect_square_i64(t) {
+        let rt = integer_sqrt_floor_u64(t as u64) as i64;
+        if rt * rt != t {
+            return None;
+        }
+        // t = q^2 => exponent 2 => need 1 more q
+        if g > THRESH / rt {
+            return None;
+        }
+        g *= rt;
+        return Some(g);
+    } else {
+        // t is treated as prime => exponent 1 => need 2 more t
+        if g > THRESH / t {
+            return None;
+        }
+        g *= t;
+        if g > THRESH / t {
+            return None;
+        }
+        g *= t;
+        return Some(g);
+    }
 }
 
 fn main() {
-    // Read all input
-    let mut s = String::new();
-    io::stdin().read_to_string(&mut s).unwrap();
-    let mut it = s.split_whitespace();
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let n: usize = match it.next() {
-        Some(t) => t.parse().unwrap(),
-        None => return,
-    };
-
-    // Sieve primes up to 2221 (as implied by the specification)
-    const SIEVE_MAX: usize = 2221;
-    let mut is_comp = vec![false; SIEVE_MAX + 1];
-    let mut primes: Vec<u64> = Vec::new();
-    for i in 2..=SIEVE_MAX {
-        if !is_comp[i] {
-            primes.push(i as u64);
-            let mut j = i * i;
-            while j <= SIEVE_MAX {
-                is_comp[j] = true;
-                j += i;
-            }
-        }
+    let n_opt = it.next();
+    if n_opt.is_none() {
+        return;
     }
+    let n: usize = n_opt.unwrap().parse().unwrap();
 
-    // Group counts for reduced values (processable only, excluding v=1 special handling later)
-    let mut counts: BTreeMap<u64, u64> = BTreeMap::new();
-    let mut result: u64 = 0;
+    let primes = gen_primes_upto(PRIME_LIMIT);
+
+    let mut r: i64 = 0;
+    let mut values: Vec<i64> = Vec::new();
 
     for _ in 0..n {
-        let x0: i64 = it.next().unwrap().parse().unwrap();
-        // Preconditions say non-negative and meaningful values >= 1.
-        let mut x: u64 = x0 as u64;
-
-        // Factor by small primes; track exponents mod 3 and build cube-free reduction.
-        let mut reduced: u64 = 1;
-
-        for &p in &primes {
-            let pp = p * p;
-            if pp > x {
-                break;
+        if let Some(tok) = it.next() {
+            let x: i64 = tok.parse().unwrap();
+            let (w_opt, unclassifiable) = cube_reduce_and_classify(x, &primes);
+            if unclassifiable {
+                r += 1;
+            } else if let Some(w) = w_opt {
+                values.push(w);
             }
-            if x % p == 0 {
-                let mut e: u32 = 0;
-                while x % p == 0 {
-                    x /= p;
-                    e += 1;
-                }
-                let r = e % 3;
-                if r == 1 {
-                    reduced = reduced.saturating_mul(p);
-                } else if r == 2 {
-                    reduced = reduced.saturating_mul(p.saturating_mul(p));
-                }
-            }
+        } else {
+            // Malformed input: unspecified behavior; do nothing further.
+            break;
         }
-
-        // Residual handling rule:
-        // If remaining factor > 100000 and not a perfect square => unprocessable-large-residual.
-        if x > 100_000 && !is_perfect_square_u64(x) {
-            result += 1;
-            continue;
-        }
-
-        // Otherwise incorporate residual into reduced value.
-        // If x is a perfect square, treat it as having exponent 2 (mod 3) for its base.
-        if x > 1 {
-            if is_perfect_square_u64(x) {
-                let r = (x as f64).sqrt() as u64;
-                // r is the base; exponent is 2 => multiply by r^2 (i.e., x itself).
-                reduced = reduced.saturating_mul(r.saturating_mul(r));
-            } else {
-                // residual is treated as exponent 1
-                reduced = reduced.saturating_mul(x);
-            }
-        }
-
-        *counts.entry(reduced).or_insert(0) += 1;
     }
 
-    // Special case: v = 1 contributes exactly 1 (if present at all), regardless of multiplicity.
-    if counts.remove(&1).is_some() {
-        result += 1;
+    values.sort_unstable();
+
+    // Compress into counts.
+    let mut counts: BTreeMap<i64, i64> = BTreeMap::new();
+    for v in values {
+        *counts.entry(v).or_insert(0) += 1;
     }
 
-    // Pairing logic: for each remaining v, compute complement c(v) such that v*c(v) is a cube
-    // under the same factorization limits. If c(v) exceeds 1e10, treat as unpairable.
-    const COMP_LIMIT: u64 = 10_000_000_000;
+    let mut processed: BTreeSet<i64> = BTreeSet::new();
 
-    let mut processed: BTreeSet<u64> = BTreeSet::new();
-    let keys: Vec<u64> = counts.keys().copied().collect();
-
+    // Process in increasing order.
+    let keys: Vec<i64> = counts.keys().copied().collect();
     for v in keys {
         if processed.contains(&v) {
             continue;
         }
-        let cv_opt = {
-            let mut t = v;
-            let mut comp: u64 = 1;
-
-            for &p in &primes {
-                let pp = p * p;
-                if pp > t {
-                    break;
-                }
-                if t % p == 0 {
-                    let mut e: u32 = 0;
-                    while t % p == 0 {
-                        t /= p;
-                        e += 1;
-                    }
-                    let r = e % 3;
-                    if r == 1 {
-                        // need p^2
-                        // NOTE: spec says overflow makes behavior undefined; we avoid panics but
-                        // do not attempt to define overflow semantics beyond the spec.
-                        comp = comp.saturating_mul(p.saturating_mul(p));
-                    } else if r == 2 {
-                        // need p^1
-                        comp = comp.saturating_mul(p);
-                    }
-                    if comp > COMP_LIMIT {
-                        break;
-                    }
-                }
-            }
-
-            if comp > COMP_LIMIT {
-                None
-            } else {
-                // Handle remaining factor t similarly to residual rule used in reduction.
-                if t > 1 {
-                    if is_perfect_square_u64(t) {
-                        let r = (t as f64).sqrt() as u64;
-                        // t = r^2 => exponent 2, need exponent 1 => multiply by r
-                        comp = comp.saturating_mul(r);
-                    } else {
-                        // exponent 1, need exponent 2 => multiply by t^2
-                        comp = comp.saturating_mul(t.saturating_mul(t));
-                    }
-                }
-                if comp > COMP_LIMIT {
-                    None
-                } else {
-                    Some(comp)
-                }
-            }
-        };
-
-        let cnt_v = *counts.get(&v).unwrap_or(&0);
-        if cnt_v == 0 {
+        let cv = *counts.get(&v).unwrap_or(&0);
+        if cv == 0 {
             processed.insert(v);
             continue;
         }
 
-        match cv_opt {
-            None => {
-                result += cnt_v;
-                processed.insert(v);
-            }
-            Some(c) => {
-                if let Some(&cnt_c) = counts.get(&c) {
-                    if !processed.contains(&c) {
-                        result += cnt_v.max(cnt_c);
-                        processed.insert(v);
-                        processed.insert(c);
-                    } else {
-                        // Complement already accounted for; v must not contribute again.
-                        processed.insert(v);
-                    }
-                } else {
-                    result += cnt_v;
-                    processed.insert(v);
-                }
-            }
+        if v == 1 {
+            r += 1;
+            processed.insert(1);
+            continue;
+        }
+
+        let g_opt = build_complement(v, &primes);
+        let Some(g) = g_opt else {
+            r += cv;
+            processed.insert(v);
+            continue;
+        };
+
+        let cg_opt = counts.get(&g).copied();
+        if cg_opt.is_none() {
+            r += cv;
+            processed.insert(v);
+            continue;
+        }
+        let cg = cg_opt.unwrap();
+
+        if g != v {
+            r += max(cv, cg);
+            processed.insert(v);
+            processed.insert(g);
+        } else {
+            // No special rule beyond general logic; since g(v)=v and present,
+            // we treat it as "paired with itself" and add max(cv, cv)=cv once.
+            r += cv;
+            processed.insert(v);
         }
     }
 
-    print!("{result}");
+    println!("{}", r);
 }

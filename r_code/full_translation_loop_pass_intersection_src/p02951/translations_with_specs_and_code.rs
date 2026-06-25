@@ -2,31 +2,31 @@ use std::io::{self, Read};
 
 fn main() {
     // Read entire stdin, parse three integers.
-    // Per spec: behavior is only defined when parsing succeeds.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let a: i32 = it.next().unwrap().parse().unwrap();
-    let b: i32 = it.next().unwrap().parse().unwrap();
-    let c: i32 = it.next().unwrap().parse().unwrap();
+    let mut a: i64 = it.next().unwrap().parse().unwrap();
+    let b: i64 = it.next().unwrap().parse().unwrap();
+    let mut c: i64 = it.next().unwrap().parse().unwrap();
 
-    // Follow the specification (which matches the C loop's net effect):
-    // D = A - B
-    // If D <= 0: C' = C
-    // If D > 0 and C > 0: C' = max(0, C - D)
-    // If D > 0 and C <= 0: C' = C - D
+    // Spec: D = A0 - B0; if D <= 0 => Cout = C0.
+    // If D > 0:
+    //   - if C0 > 0 => reduce by min(D, C0) but not below 0
+    //   - if C0 <= 0 => Cout = C0 - D (can go more negative)
     let d = a - b;
-    let c_prime = if d <= 0 {
-        c
-    } else if c > 0 {
-        // Decrease by up to D steps, stopping early at zero.
-        let dec = std::cmp::min(d, c);
-        c - dec
-    } else {
-        // No early stop when C is non-positive.
-        c - d
-    };
+    if d > 0 {
+        if c > 0 {
+            c = (c - d).max(0);
+        } else {
+            c -= d;
+        }
+    }
 
-    print!("{c_prime}\n");
+    // Note: This follows the SPEC. The provided C code differs when C0 < 0:
+    // it would decrement c only until it reaches 0 (never reaching 0 from negative),
+    // effectively doing c -= d, which matches the SPEC's C0 <= 0 case.
+    // For C0 == 0, the C code decrements once (to -1) before noticing c==0 is false;
+    // the SPEC requires Cout = 0 - d, so we follow the SPEC.
+    println!("{c}");
 }

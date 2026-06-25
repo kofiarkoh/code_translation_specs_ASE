@@ -2,45 +2,48 @@ use std::io::{self, Read};
 
 fn main() {
     let mut input = String::new();
-    let _ = io::stdin().read_to_string(&mut input);
+    io::stdin().read_to_string(&mut input).ok();
+
     let mut it = input.split_whitespace();
+    let n: i64 = match it.next().and_then(|s| s.parse::<i64>().ok()) {
+        Some(v) => v,
+        None => return, // unspecified by spec; choose to produce no output
+    };
+    let k: i64 = match it.next().and_then(|s| s.parse::<i64>().ok()) {
+        Some(v) => v,
+        None => return, // unspecified by spec; choose to produce no output
+    };
 
-    let bit_width: i64 = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
-    let required: i64 = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
-
-    if bit_width < 0 || required < 0 {
+    // Spec assumes n is non-negative and small enough that (1 << n) is well-defined for int.
+    // We emulate "int" as i32 and do the shift in u32 to avoid UB; if n is out of range,
+    // behavior is unspecified by spec, so we choose to produce no output.
+    if n < 0 || n > 31 {
         return;
     }
+    let n_u32 = n as u32;
 
-    let bw = bit_width as u32;
-    if bw >= 128 {
-        return;
-    }
-
-    let limit: u128 = 1u128 << bw;
+    // Enumerate p in [0, 2^n - 1] in increasing numeric order.
+    let limit: u32 = 1u32 << n_u32;
 
     let mut out = String::new();
-
-    for x in 0u128..limit {
-        let mut count: i64 = 0;
-        for i in 0..bw {
-            if ((x >> i) & 1) != 0 {
-                count += 1;
-            }
+    for p in 0u32..limit {
+        // Popcount on an int: use 32-bit popcount.
+        let pop = p.count_ones() as i64;
+        if pop != k {
+            continue;
         }
 
-        if count == required {
-            // Match required output format: "<value>: <idx0> <idx1> ..."
-            out.push_str(&x.to_string());
-            out.push(':');
-            for i in 0..bw {
-                if ((x >> i) & 1) != 0 {
-                    out.push(' ');
-                    out.push_str(&i.to_string());
-                }
+        out.push_str(&(p as i32).to_string());
+        out.push(':');
+
+        // List set bit positions i in ascending order, restricted to 0 <= i < n.
+        for i in 0..n_u32 {
+            if ((p >> i) & 1) != 0 {
+                out.push(' ');
+                out.push_str(&i.to_string());
             }
-            out.push('\n');
         }
+        out.push('\n');
     }
 
     print!("{out}");

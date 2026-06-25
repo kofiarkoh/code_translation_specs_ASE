@@ -8,20 +8,20 @@ fn main() {
 
     let n: usize = it.next().unwrap().parse().unwrap();
 
-    // Fixed capacity up to 100 points as per spec/C code.
+    // Fixed capacity up to 100 as in the C code/spec.
     let mut p = vec![[0i64; 2]; n];
     for i in 0..n {
-        let x: i64 = it.next().unwrap().parse().unwrap();
-        let y: i64 = it.next().unwrap().parse().unwrap();
-        p[i] = [x, y];
+        p[i][0] = it.next().unwrap().parse().unwrap();
+        p[i][1] = it.next().unwrap().parse().unwrap();
     }
 
+    // Compute signed area using the same formula as the C code:
+    // sum_{i} (x_i - x_{i+1}) * (y_i + y_{i+1}), with wrap-around.
+    // Note: This is algebraically equivalent to the shoelace signed area.
     let mut menseki: f64 = 0.0;
     for i in 0..n {
         let j = (i + 1) % n;
-        // Accumulate: (x_i - x_{i+1}) * (y_i + y_{i+1})
-        // Use i64 for intermediate integer arithmetic; overflow behavior is unspecified by spec.
-        let term: i64 = (p[i][0] - p[j][0]) * (p[i][1] + p[j][1]);
+        let term = (p[i][0] - p[j][0]) * (p[i][1] + p[j][1]);
         menseki += term as f64;
     }
 

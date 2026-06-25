@@ -8,12 +8,10 @@ fn main() {
 
     let n: i32 = match it.next() {
         Some(x) => x.parse().unwrap(),
-        None => return,
+        None => return, // no input; unspecified by spec, but avoid panic
     };
-    let n_usize = n as usize;
 
-    // Fixed internal capacity per spec/C code (undefined behavior if exceeded in C).
-    // In Rust we still read into a Vec; we do not add explicit error handling.
+    let n_usize = if n < 0 { 0 } else { n as usize };
     let mut a: Vec<i64> = Vec::with_capacity(n_usize);
     for _ in 0..n_usize {
         let v: i64 = it.next().unwrap().parse().unwrap();
@@ -22,13 +20,12 @@ fn main() {
 
     let mut ans: i64 = 0;
 
-    // C loop: for (int d=1; d*2 < n-1; d++)
-    // This matches spec's "considered step sizes".
-    for d in 1.. {
+    // Consider step sizes d with 1 <= d and 2d < n-1
+    // Use i32 for indices to mirror C behavior and comparisons.
+    for d in 1i32.. {
         if d * 2 >= n - 1 {
             break;
         }
-
         let mut s: i32 = 0;
         let mut g: i32 = n - 1;
         let mut crr: i64 = 0;
@@ -37,10 +34,7 @@ fn main() {
             let ns = s + d;
             let ng = g - d;
 
-            // C break condition:
-            // if (ng <= d || ns == ng || ns == g) break;
-            // Note: This is slightly stricter than the spec's narrative wording in places;
-            // we follow the C code to resolve edge cases.
+            // Terminate before performing an addition if any condition holds.
             if ng <= d || ns == ng || ns == g {
                 break;
             }
@@ -48,6 +42,7 @@ fn main() {
             s = ns;
             g = ng;
 
+            // Indices are guaranteed in-bounds by the loop conditions and d constraint.
             crr += a[s as usize] + a[g as usize];
             if crr > ans {
                 ans = crr;

@@ -14,21 +14,23 @@ fn main() {
         return;
     }
 
-    // All odd: replace exactly one occurrence of the maximum with 1, then output the product.
-    // This is equivalent to multiplying the two values not chosen for replacement.
-    let max_val = a.max(b).max(c);
+    // All odd: replace one occurrence of the maximum with 1.
+    // If multiple values share the maximum, which one is replaced is not externally observable.
+    let max_v = a.max(b).max(c);
 
-    let result: i64;
-    if a == max_val {
-        // Replace a with 1
-        result = b * c;
-    } else if b == max_val {
-        // Replace b with 1
-        result = a * c;
-    } else {
-        // Replace c with 1
-        result = a * b;
+    let mut replaced = false;
+    let mut prod: i64 = 1;
+
+    for &v in &[a, b, c] {
+        if !replaced && v == max_v {
+            prod = prod.wrapping_mul(1);
+            replaced = true;
+        } else {
+            prod = prod.wrapping_mul(v);
+        }
     }
 
-    print!("{}", result);
+    // Overflow behavior is unspecified by the spec; wrapping_mul avoids panics in debug builds
+    // while still producing an integer result.
+    print!("{}", prod);
 }

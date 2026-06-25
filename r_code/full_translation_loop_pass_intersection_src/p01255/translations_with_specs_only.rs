@@ -1,257 +1,242 @@
 use std::cmp::Ordering;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::HashMap;
 use std::io::{self, Read};
 
-const EPS: f64 = 1e-9;
-
-// Fixed internal limits are mentioned but not specified; we do not enforce hard caps here.
-// The specification allows undefined behavior if limits are exceeded.
+const EPS: f64 = 1e-7;
 
 #[derive(Clone, Copy, Debug)]
-struct PtI {
-    x: i64,
-    y: i64,
-}
-
-#[derive(Clone, Copy, Debug)]
-struct PtF {
+struct Point {
     x: f64,
     y: f64,
 }
 
-#[derive(Clone, Copy, Debug)]
-struct Seg {
-    a: PtI,
-    b: PtI,
-    line_id: usize,
+impl Point {
+    fn from_i64(x: i64, y: i64) -> Self {
+        Self {
+            x: x as f64,
+            y: y as f64,
+        }
+    }
 }
 
-fn to_f(p: PtI) -> PtF {
-    PtF {
-        x: p.x as f64,
-        y: p.y as f64,
-    }
+#[derive(Clone, Copy, Debug)]
+struct Segment {
+    a: Point,
+    b: Point,
+    route: usize,
+}
+
+fn feq(a: f64, b: f64) -> bool {
+    (a - b).abs() <= EPS
+}
+
+fn point_eq(a: Point, b: Point) -> bool {
+    feq(a.x, b.x) && feq(a.y, b.y)
 }
 
 fn cross(ax: f64, ay: f64, bx: f64, by: f64) -> f64 {
     ax * by - ay * bx
 }
 
-fn sub(a: PtF, b: PtF) -> PtF {
-    PtF {
-        x: a.x - b.x,
-        y: a.y - b.y,
-    }
-}
-
-fn dot(a: PtF, b: PtF) -> f64 {
-    a.x * b.x + a.y * b.y
-}
-
-fn on_segment(p: PtF, a: PtF, b: PtF) -> bool {
-    // Collinearity is assumed checked by caller if needed; we just do bounding-box with EPS.
-    let minx = a.x.min(b.x) - EPS;
-    let maxx = a.x.max(b.x) + EPS;
-    let miny = a.y.min(b.y) - EPS;
-    let maxy = a.y.max(b.y) + EPS;
-    p.x >= minx && p.x <= maxx && p.y >= miny && p.y <= maxy
-}
-
-fn seg_intersection_unique(s1: &Seg, s2: &Seg) -> Option<PtF> {
-    // Returns a unique intersection point if segments intersect at a single point.
-    // Parallel/collinear overlaps do not yield a unique point and return None,
-    // per specification (their effect only via shared endpoints or other detected points).
-    let p = to_f(s1.a);
-    let r = sub(to_f(s1.b), to_f(s1.a));
-    let q = to_f(s2.a);
-    let s = sub(to_f(s2.b), to_f(s2.a));
+fn seg_intersection_point(s1: &Segment, s2: &Segment) -> Option<Point> {
+    // Computes a single intersection point for non-parallel segments.
+    // Parallel/collinear cases are treated as having no computable intersection point here,
+    // beyond shared endpoints which are handled separately by adding endpoints to the point set.
+    let p = s1.a;
+    let r = Point {
+        x: s1.b.x - s1.a.x,
+        y: s1.b.y - s1.a.y,
+    };
+    let q = s2.a;
+    let s = Point {
+        x: s2.b.x - s2.a.x,
+        y: s2.b.y - s2.a.y,
+    };
 
     let rxs = cross(r.x, r.y, s.x, s.y);
-    let q_p = sub(q, p);
-    let qpxr = cross(q_p.x, q_p.y, r.x, r.y);
-
     if rxs.abs() <= EPS {
-        // Parallel (including collinear): no unique intersection point added.
         return None;
     }
 
-    let t = cross(q_p.x, q_p.y, s.x, s.y) / rxs;
-    let u = qpxr / rxs;
+    let qmp = Point {
+        x: q.x - p.x,
+        y: q.y - p.y,
+    };
+    let t = cross(qmp.x, qmp.y, s.x, s.y) / rxs;
+    let u = cross(qmp.x, qmp.y, r.x, r.y) / rxs;
 
-    if t >= -EPS && t <= 1.0 + EPS && u >= -EPS && u <= 1.0 + EPS {
-        Some(PtF {
-            x: p.x + t * r.x,
-            y: p.y + t * r.y,
-        })
-    } else {
-        None
+    if t < -EPS || t > 1.0 + EPS || u < -EPS || u > 1.0 + EPS {
+        return None;
     }
+
+    Some(Point {
+        x: p.x + t * r.x,
+        y: p.y + t * r.y,
+    })
 }
 
-fn quantize_point(p: PtF) -> (i64, i64) {
-    // The original behavior is not fully inferable; we emulate a tolerance-based point identity
-    // by snapping to an EPS grid. This preserves the "floating-point comparisons with tolerance"
-    // constraint and avoids inventing exact rational arithmetic.
+fn quantize_point(p: Point) -> (i64, i64) {
+    // Fixed tolerance equality: points within EPS are treated as identical.
+    // We emulate this by snapping to an EPS-sized grid.
     let qx = (p.x / EPS).round() as i64;
     let qy = (p.y / EPS).round() as i64;
     (qx, qy)
 }
 
-fn greedy_coloring(adj: &Vec<Vec<bool>>, order: &[usize]) -> usize {
+fn greedy_welsh_powell_variant(adj: &Vec<Vec<bool>>, order: &[usize]) -> usize {
+    // Heuristic:
+    // - Process vertices in the given order.
+    // - For each uncolored vertex, start a new color and then scan forward in the same order,
+    //   coloring any still-uncolored vertex that does not conflict with any vertex already
+    //   assigned this color.
+    // - A route is considered conflicting with itself for internal bookkeeping.
     let n = adj.len();
-    let mut color = vec![0usize; n]; // 0 = uncolored, colors are 1..k
-    let mut used = vec![false; n + 1];
+    let mut color = vec![0usize; n];
+    let mut used_colors = 0usize;
 
-    let mut maxc = 0usize;
     for &v in order {
-        used.fill(false);
-        for u in 0..n {
-            if adj[v][u] && color[u] != 0 {
-                used[color[u]] = true;
+        if color[v] != 0 {
+            continue;
+        }
+        used_colors += 1;
+        color[v] = used_colors;
+
+        for &u in order {
+            if color[u] != 0 {
+                continue;
+            }
+            let mut ok = true;
+            for i in 0..n {
+                if color[i] == used_colors && adj[u][i] {
+                    ok = false;
+                    break;
+                }
+            }
+            if ok {
+                color[u] = used_colors;
             }
         }
-        let mut c = 1usize;
-        while c <= n && used[c] {
-            c += 1;
-        }
-        if c > n {
-            // Should not happen; but keep semantics narrow: assign n.
-            c = n;
-        }
-        color[v] = c;
-        maxc = maxc.max(c);
     }
-    maxc
+
+    used_colors
 }
 
 fn main() {
-    // Read all input as whitespace-separated integers.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let mut outputs: Vec<String> = Vec::new();
+    let mut out = String::new();
 
     loop {
         let n_opt = it.next();
         if n_opt.is_none() {
             break;
         }
-        let n_lines: usize = n_opt.unwrap().parse().unwrap();
-        if n_lines == 0 {
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        if n == 0 {
             break;
         }
 
-        let mut segments: Vec<Seg> = Vec::new();
+        let mut segments: Vec<Segment> = Vec::new();
 
-        for line_id in 0..n_lines {
+        for route in 0..n {
             let m: usize = it.next().unwrap().parse().unwrap();
             if m == 0 {
                 continue;
             }
-            let mut pts: Vec<PtI> = Vec::with_capacity(m);
+            let mut pts: Vec<Point> = Vec::with_capacity(m);
             for _ in 0..m {
                 let x: i64 = it.next().unwrap().parse().unwrap();
                 let y: i64 = it.next().unwrap().parse().unwrap();
-                pts.push(PtI { x, y });
+                pts.push(Point::from_i64(x, y));
             }
-            if pts.len() >= 2 {
-                for i in 0..(pts.len() - 1) {
-                    segments.push(Seg {
-                        a: pts[i],
-                        b: pts[i + 1],
-                        line_id,
-                    });
-                }
+            for i in 0..(m - 1) {
+                segments.push(Segment {
+                    a: pts[i],
+                    b: pts[i + 1],
+                    route,
+                });
             }
         }
 
-        // Build conflict relation between line identifiers.
-        // Invariant: symmetric and includes self-conflict.
-        let mut adj = vec![vec![false; n_lines]; n_lines];
-        for i in 0..n_lines {
-            adj[i][i] = true;
-        }
+        // Build set of all endpoints and all computable pairwise segment intersection points.
+        // For each such point, record which routes pass through it (via endpoints or intersections).
+        let mut point_routes: HashMap<(i64, i64), Vec<usize>> = HashMap::new();
 
-        // Map from quantized point to set of line_ids present at that point.
-        let mut point_lines: BTreeMap<(i64, i64), BTreeSet<usize>> = BTreeMap::new();
-
-        // Add all endpoints as points.
+        // Endpoints
         for s in &segments {
-            let a = quantize_point(to_f(s.a));
-            let b = quantize_point(to_f(s.b));
-            point_lines.entry(a).or_default().insert(s.line_id);
-            point_lines.entry(b).or_default().insert(s.line_id);
+            for &p in &[s.a, s.b] {
+                let key = quantize_point(p);
+                let entry = point_routes.entry(key).or_insert_with(Vec::new);
+                entry.push(s.route);
+            }
         }
 
-        // Add unique intersection points between non-parallel segment pairs.
+        // Pairwise intersections
         for i in 0..segments.len() {
             for j in (i + 1)..segments.len() {
                 let si = &segments[i];
                 let sj = &segments[j];
-                if let Some(p) = seg_intersection_unique(si, sj) {
-                    // Ensure the computed point lies on both segments (with EPS), guarding numeric drift.
-                    let pf = p;
-                    let a1 = to_f(si.a);
-                    let b1 = to_f(si.b);
-                    let a2 = to_f(sj.a);
-                    let b2 = to_f(sj.b);
-                    if on_segment(pf, a1, b1) && on_segment(pf, a2, b2) {
-                        let key = quantize_point(pf);
-                        let entry = point_lines.entry(key).or_default();
-                        entry.insert(si.line_id);
-                        entry.insert(sj.line_id);
-                    }
+                if let Some(p) = seg_intersection_point(si, sj) {
+                    let key = quantize_point(p);
+                    let entry = point_routes.entry(key).or_insert_with(Vec::new);
+                    entry.push(si.route);
+                    entry.push(sj.route);
                 }
             }
         }
 
-        // For each point, all lines present there conflict pairwise.
-        for (_pt, lines) in point_lines.iter() {
-            let ids: Vec<usize> = lines.iter().copied().collect();
-            for a in 0..ids.len() {
-                for b in a..ids.len() {
-                    let u = ids[a];
-                    let v = ids[b];
-                    adj[u][v] = true;
-                    adj[v][u] = true;
+        // Construct undirected conflict graph among routes based on co-occurrence at any point.
+        let mut adj = vec![vec![false; n]; n];
+        for i in 0..n {
+            adj[i][i] = true; // self-conflict invariant for heuristic bookkeeping
+        }
+
+        for (_k, routes) in point_routes.iter() {
+            // Deduplicate routes at this point (tolerance already applied by quantization).
+            let mut uniq: Vec<usize> = routes.clone();
+            uniq.sort_unstable();
+            uniq.dedup();
+
+            for a in 0..uniq.len() {
+                for b in a..uniq.len() {
+                    let ra = uniq[a];
+                    let rb = uniq[b];
+                    adj[ra][rb] = true;
+                    adj[rb][ra] = true;
                 }
             }
         }
 
-        // Two runs of the same greedy coloring strategy with two different vertex orders.
-        // The specification mentions a "special-case adjustment for one specific line-count value"
-        // but does not state which value or what adjustment; we cannot invent it.
-        // Therefore we implement the "smaller of two runs" without any special-case.
-        let mut order1: Vec<usize> = (0..n_lines).collect();
-        let mut order2: Vec<usize> = (0..n_lines).collect();
+        // Determine processing order: Welsh–Powell typically uses descending degree.
+        // The spec only states "Welsh–Powell variant" and "two traversal orders (forward, reverse)".
+        // Narrow interpretation: sort by non-increasing degree, then run heuristic in that order
+        // and in the reverse of that order, taking the minimum color count.
+        let mut verts: Vec<usize> = (0..n).collect();
+        let degrees: Vec<usize> = (0..n)
+            .map(|i| adj[i].iter().filter(|&&b| b).count())
+            .collect();
 
-        // Order1: descending degree, tie by id ascending.
-        order1.sort_by(|&a, &b| {
-            let da = adj[a].iter().filter(|&&x| x).count();
-            let db = adj[b].iter().filter(|&&x| x).count();
+        verts.sort_by(|&a, &b| {
+            let da = degrees[a];
+            let db = degrees[b];
             match db.cmp(&da) {
                 Ordering::Equal => a.cmp(&b),
                 other => other,
             }
         });
 
-        // Order2: ascending degree, tie by id ascending.
-        order2.sort_by(|&a, &b| {
-            let da = adj[a].iter().filter(|&&x| x).count();
-            let db = adj[b].iter().filter(|&&x| x).count();
-            match da.cmp(&db) {
-                Ordering::Equal => a.cmp(&b),
-                other => other,
-            }
-        });
+        let mut order_fwd = verts.clone();
+        let mut order_rev = verts.clone();
+        order_rev.reverse();
 
-        let c1 = greedy_coloring(&adj, &order1);
-        let c2 = greedy_coloring(&adj, &order2);
+        let c1 = greedy_welsh_powell_variant(&adj, &order_fwd);
+        let c2 = greedy_welsh_powell_variant(&adj, &order_rev);
         let ans = c1.min(c2);
 
-        outputs.push(format!("{ans}"));
+        out.push_str(&format!("{ans}\n"));
     }
 
-    print!("{}", outputs.join("\n"));
+    print!("{out}");
 }

@@ -3,105 +3,109 @@ use std::io::{self, Read};
 type Ll = i64;
 
 fn main() {
-    // Read all input; C uses fgets twice but overall it just parses integers.
+    // Read all input; C uses two fgets calls, but parsing from the full buffer is equivalent.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let bytes = input.as_bytes();
-    let mut idx: usize = 0;
+    let mut pos: usize = 0;
 
-    // Parse a (possibly signed) integer in a normal way for the first line (atoi).
-    fn parse_i32(bytes: &[u8], idx: &mut usize) -> i32 {
-        while *idx < bytes.len() && bytes[*idx].is_ascii_whitespace() {
-            *idx += 1;
+    // Parse first line like atoi() on the line read by fgets.
+    fn read_first_line_atoi(bytes: &[u8], pos: &mut usize) -> i32 {
+        // skip leading spaces/tabs/CR (atoi also skips other whitespace; this is enough for typical inputs)
+        while *pos < bytes.len() && (bytes[*pos] == b' ' || bytes[*pos] == b'\t' || bytes[*pos] == b'\r') {
+            *pos += 1;
         }
         let mut sign: i32 = 1;
-        if *idx < bytes.len() && bytes[*idx] == b'-' {
-            sign = -1;
-            *idx += 1;
+        if *pos < bytes.len() && (bytes[*pos] == b'+' || bytes[*pos] == b'-') {
+            if bytes[*pos] == b'-' {
+                sign = -1;
+            }
+            *pos += 1;
         }
-        let mut n: i32 = 0;
-        while *idx < bytes.len() && bytes[*idx].is_ascii_digit() {
-            n = n.saturating_mul(10).saturating_add((bytes[*idx] - b'0') as i32);
-            *idx += 1;
+        let mut v: i32 = 0;
+        while *pos < bytes.len() && bytes[*pos].is_ascii_digit() {
+            v = v.saturating_mul(10).saturating_add((bytes[*pos] - b'0') as i32);
+            *pos += 1;
         }
-        sign * n
+        // consume rest of the line (fgets stops at '\n' or EOF)
+        while *pos < bytes.len() && bytes[*pos] != b'\n' {
+            *pos += 1;
+        }
+        if *pos < bytes.len() && bytes[*pos] == b'\n' {
+            *pos += 1;
+        }
+        v * sign
     }
 
-    // Emulate the C getlong() behavior closely:
-    // while (*p >= '0') n = n*10 + (*p & 0xf); p++; then p++ once more.
-    // This assumes non-negative numbers and a single delimiter after each number.
-    fn getlong(bytes: &[u8], idx: &mut usize) -> Ll {
+    let n_i32 = read_first_line_atoi(bytes, &mut pos);
+    let n: usize = if n_i32 <= 0 { 0 } else { n_i32 as usize };
+
+    // Emulate C's getlong() exactly:
+    //   ll n=0; while (*p >= '0') n = n*10 + (*p & 0xf), p++; p++; return n;
+    // Note: it advances p by one extra byte after the digit run (assumes a separator).
+    fn getlong_like(bytes: &[u8], p: &mut usize) -> Ll {
         let mut n: Ll = 0;
-        while *idx < bytes.len() && bytes[*idx] >= b'0' {
-            n = (n << 3) + (n << 1) + ((bytes[*idx] & 0x0f) as Ll);
-            *idx += 1;
+        while *p < bytes.len() && bytes[*p] >= b'0' {
+            n = n.wrapping_mul(10).wrapping_add((bytes[*p] & 0x0f) as Ll);
+            *p += 1;
         }
-        if *idx < bytes.len() {
-            *idx += 1; // skip one delimiter
+        if *p < bytes.len() {
+            *p += 1;
         }
         n
     }
 
-    let n_i32 = parse_i32(bytes, &mut idx);
-    // Move to next line like fgets would (consume until '\n', then consume it).
-    while idx < bytes.len() && bytes[idx] != b'\n' {
-        idx += 1;
-    }
-    if idx < bytes.len() && bytes[idx] == b'\n' {
-        idx += 1;
+    // Prefix sums w[i] (C uses fixed arrays sized 4001; we size to n).
+    let mut w = vec![0 as Ll; n.max(1)];
+    let mut p = pos;
+    if n > 0 {
+        w[0] = getlong_like(bytes, &mut p);
+        for i in 1..n {
+            let v = getlong_like(bytes, &mut p);
+            w[i] = w[i - 1].wrapping_add(v);
+        }
     }
 
-    let n = if n_i32 < 0 { 0usize } else { n_i32 as usize };
+    // dp initialized with memset 0x33 => 0x3333333333333333 for 64-bit ll.
+    let inf: Ll = 0x3333_3333_3333_3333u64 as i64;
+
     if n == 0 {
-        // C would have UB; keep program from panicking.
+        // C would have UB; keep program total and deterministic.
         print!("0\n");
         return;
     }
 
-    let mut w = vec![0i64; n];
-    w[0] = getlong(bytes, &mut idx);
-    for i in 1..n {
-        w[i] = w[i - 1] + getlong(bytes, &mut idx);
-    }
-
-    // memset(dp, 0x33, sizeof(dp)) for ll => 0x3333333333333333
-    let inf: Ll = 0x3333_3333_3333_3333u64 as i64;
-
-    let mut dp = vec![vec![inf; n]; n];
-    let mut k = vec![vec![0usize; n]; n];
+    // Allocate dp and k as (n+1)x(n+1) to safely allow k[i+1][j] when i+1==n in the loop bounds.
+    // In the original C, arrays are 4001x4001 so these accesses are always in-bounds.
+    let m = n + 1;
+    let mut dp = vec![vec![inf; m]; m];
+    let mut k = vec![vec![0usize; m]; m];
 
     for i in 0..n {
         dp[i][i] = 0;
         k[i][i] = i;
     }
 
-    // The C loop is: for (a=1; a<=n; a++) for (i=0,j=a; j<n; i++,j++)
-    // When a==n, inner loop doesn't run. So in Rust: a in 1..n
-    for a in 1..n {
+    for a in 1..=n {
         let mut i = 0usize;
         let mut j = a;
         while j < n {
-            // In C, b ranges from k[i][j-1] to k[i+1][j].
-            // This requires i+1 <= j, which holds because j = i + a and a>=1.
+            // Knuth optimization bounds; in C this relies on k[][] being in-bounds for i+1.
             let b_start = k[i][j - 1];
             let b_end = k[i + 1][j];
-
             for b in b_start..=b_end {
-                // b is a split point; dp[i][b] and dp[b+1][j] require b < j.
-                // Knuth optimization guarantees this in valid instances; still, guard to avoid panic.
-                if b + 1 > j {
-                    continue;
-                }
-                let mut c = dp[i][b] + dp[b + 1][j] + w[j];
+                // dp[b+1][j] requires b+1 <= j; the optimization should ensure it.
+                let mut c = dp[i][b]
+                    .wrapping_add(dp[b + 1][j])
+                    .wrapping_add(w[j]);
                 if i > 0 {
-                    c -= w[i - 1];
+                    c = c.wrapping_sub(w[i - 1]);
                 }
                 if dp[i][j] > c {
                     dp[i][j] = c;
                     k[i][j] = b;
                 }
             }
-
             i += 1;
             j += 1;
         }

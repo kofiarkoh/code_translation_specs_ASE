@@ -1,18 +1,19 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, parse three integers.
+    // Read entire stdin (matches typical competitive-programming style; no extra prompts).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
+
     let mut it = input.split_whitespace();
+    let l: i32 = it.next().unwrap().parse().unwrap();
+    let r: i32 = it.next().unwrap().parse().unwrap();
+    let d: i32 = it.next().unwrap().parse().unwrap();
 
-    let l: i64 = it.next().unwrap().parse().unwrap();
-    let r: i64 = it.next().unwrap().parse().unwrap();
-    let d: i64 = it.next().unwrap().parse().unwrap();
+    // Per spec: no explicit error handling; divisor assumed non-zero and positive,
+    // bounds assumed non-negative and l <= r, and no overflow occurs.
+    let ans: i32 = r / d - (l - 1) / d;
 
-    // Spec preconditions: d != 0, l <= r, and l,r are non-negative.
-    // Semantics match the C formula: count = floor(r/d) - floor((l-1)/d).
-    let ans = r / d - (l - 1) / d;
-
-    println!("{ans}");
+    // Preserve output formatting: one integer followed by newline.
+    print!("{ans}\n");
 }

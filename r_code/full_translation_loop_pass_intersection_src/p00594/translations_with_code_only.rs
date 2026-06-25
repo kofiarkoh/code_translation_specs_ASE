@@ -6,9 +6,7 @@ fn main() {
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    // Global array in C: int a[1000001];
-    // We'll allocate once and reuse; only first n elements are meaningful.
-    let mut a: Vec<i32> = vec![0; 1_000_001];
+    let mut out = String::new();
 
     loop {
         let n_opt = it.next();
@@ -21,42 +19,41 @@ fn main() {
         }
         let n_usize = n as usize;
 
-        for i in 0..n_usize {
-            a[i] = it.next().unwrap().parse().unwrap();
+        let mut a: Vec<i32> = Vec::with_capacity(n_usize);
+        for _ in 0..n_usize {
+            let v: i32 = it.next().unwrap().parse().unwrap();
+            a.push(v);
         }
 
-        // C qsort with comparator: return (*(int*)b) - (*(int*)s);
+        // qsort with comparator: return (*(int*)b) - (*(int*)s)
         // That subtraction can overflow in C (UB), but typical intent is descending sort.
         // Use a safe descending sort by value.
-        a[..n_usize].sort_unstable_by(|x, y| y.cmp(x));
+        a.sort_unstable_by(|x, y| y.cmp(x));
 
         let mut m: i32 = 0;
-        let mut k: i32 = 0; // In C, k is only used if m > n/2; keep initialized.
+        let mut k: i32 = 0; // In C, k is only used if n/2 < m; keep a default.
 
-        // The C code reads a[j] for j == n (sentinel out-of-bounds), which is UB.
-        // To preserve the intended grouping behavior, we emulate a sentinel at index n
-        // that is guaranteed to differ from a[i], forcing the last run to close.
-        let sentinel: i32 = if n_usize > 0 {
-            // Choose a value different from the last element.
-            // If last is i32::MAX, use i32::MIN, else use last+1.
-            let last = a[n_usize - 1];
-            if last == i32::MAX { i32::MIN } else { last.wrapping_add(1) }
-        } else {
-            0
-        };
-
+        // Emulate the C loop structure, including the j < n+1 bound and a[n] access.
+        // In the C code, a[n] is read when the last run reaches the end; that's out-of-bounds (UB).
+        // The intended behavior is to treat it as a sentinel different from a[i] to flush the last run.
+        // We emulate that by using a virtual sentinel at index n that is guaranteed != a[i].
         let mut i: usize = 0;
         while i < n_usize {
             let mut j: usize = i + 1;
             while j < n_usize + 1 {
-                let aj = if j == n_usize { sentinel } else { a[j] };
-                if a[i] != aj {
+                let aj_differs = if j == n_usize {
+                    true // sentinel differs from any real value
+                } else {
+                    a[i] != a[j]
+                };
+
+                if aj_differs {
                     let run_len = (j - i) as i32;
                     if m < run_len {
                         m = run_len;
                         k = a[i];
                     }
-                    i = j - 1; // matches: i = j-1; then outer loop increments
+                    i = j - 1; // matches: i = j-1; then outer loop i++
                     break;
                 }
                 j += 1;
@@ -65,9 +62,11 @@ fn main() {
         }
 
         if (n / 2) < m {
-            print!("{k}\n");
+            out.push_str(&format!("{k}\n"));
         } else {
-            print!("NO COLOR\n");
+            out.push_str("NO COLOR\n");
         }
     }
+
+    print!("{out}");
 }

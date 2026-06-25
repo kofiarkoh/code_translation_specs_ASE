@@ -1,27 +1,30 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin
+    // Read entire stdin (no explicit error handling per spec).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
     let n: i64 = it.next().unwrap().parse().unwrap();
 
-    // SPEC baseline: B = sum_{t=1..N} t(t+1)/2
-    // (Matches the C code's equivalent computation via reversed indexing.)
+    // Baseline:
+    // Spec: B = sum_{k=1..N} k(k+1)/2
+    // C code computes the same value via a reversed-index equivalent.
     let mut ans: i64 = 0;
-    for t in 1..=n {
-        ans += t * (t + 1) / 2;
+    for k in 1..=n {
+        ans += k * (k + 1) / 2;
     }
 
-    // Read exactly (N-1) pairs and subtract contributions after normalizing order.
-    for _ in 0..(n - 1) {
-        let a: i64 = it.next().unwrap().parse().unwrap();
-        let b: i64 = it.next().unwrap().parse().unwrap();
-        let (u, w) = if a <= b { (a, b) } else { (b, a) };
-        ans -= u * (n - w + 1);
+    // Subtract reductions for N-1 pairs:
+    // R += min(u,w) * (N - max(u,w) + 1)
+    for _ in 1..=n.saturating_sub(1) {
+        let u: i64 = it.next().unwrap().parse().unwrap();
+        let w: i64 = it.next().unwrap().parse().unwrap();
+        let (x, y) = if u <= w { (u, w) } else { (w, u) };
+        ans -= x * (n - y + 1);
     }
 
+    // Exact output formatting: integer + newline.
     print!("{ans}\n");
 }

@@ -1,91 +1,78 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, parse as whitespace-separated integers.
+    // Read entire stdin, parse as whitespace-separated integers (like scanf("%d")).
     let mut input = String::new();
-    io::stdin().read_to_string(&mut input).ok();
+    io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    const MAX: usize = 13;
+    const MAX_N: usize = 13;
+    const VALUE_RANGE: usize = 101; // 0..=100
 
     loop {
         let n_opt = it.next();
         if n_opt.is_none() {
-            // Spec: if input ends before a new test case length is obtained, stop with no output.
             break;
         }
-        let n: usize = match n_opt.unwrap().parse() {
-            Ok(v) => v,
-            Err(_) => break,
-        };
-
+        let n: usize = n_opt.unwrap().parse().unwrap();
         if n == 0 {
-            break; // terminator, no output
+            break;
         }
 
-        // Spec says n <= 13; if not, behavior is undefined. We still avoid panics by reading.
-        let mut numline = vec![0i32; n.min(MAX)];
+        // Per spec, n is within 1..=13; behavior is undefined otherwise.
+        let mut numline = vec![0usize; n];
         for i in 0..n {
-            let v: i32 = match it.next().and_then(|s| s.parse().ok()) {
-                Some(x) => x,
-                None => return, // unreadable/ended early: stop with no further output
-            };
-            if i < numline.len() {
-                numline[i] = v;
-            }
+            numline[i] = it.next().unwrap().parse::<usize>().unwrap();
         }
 
-        let mut tmpline = vec![0i32; numline.len()];
+        // Iteratively apply the "frequency at position" transform until fixed point.
+        let mut tmpline = vec![0usize; n];
+        let mut counts = vec![0usize; VALUE_RANGE];
+
         let mut cnt: i32 = 0;
-
-        // Iterate until fixed point.
-        loop {
-            let mut freq = [0i32; 101];
-
-            // Count occurrences in current sequence.
-            for &x in &numline {
-                // Spec precondition: 0..=100; otherwise undefined.
-                if (0..=100).contains(&x) {
-                    freq[x as usize] += 1;
-                } else {
-                    // Undefined per spec; we just proceed without indexing out of bounds.
-                    // (This path should not occur under valid inputs.)
-                }
+        let mut flag = true;
+        while flag {
+            // Reset counts
+            for c in counts.iter_mut() {
+                *c = 0;
             }
 
-            // Build next sequence.
-            for (i, &x) in numline.iter().enumerate() {
-                tmpline[i] = if (0..=100).contains(&x) {
-                    freq[x as usize]
-                } else {
-                    0
-                };
+            // Count occurrences of each value in current sequence
+            for &v in &numline {
+                // Per spec, values are 0..=100; undefined otherwise.
+                counts[v] += 1;
+            }
+
+            // Build next sequence: each position becomes frequency of its current value
+            for i in 0..n {
+                tmpline[i] = counts[numline[i]];
             }
 
             cnt += 1;
 
-            // Check fixed point: all elements unchanged.
+            // Check fixed point: tmpline equals numline
             let mut same = 0usize;
-            for i in 0..numline.len() {
+            for i in 0..n {
                 if tmpline[i] == numline[i] {
                     same += 1;
                 }
             }
 
-            if same == numline.len() {
-                break;
+            if same == n {
+                flag = false;
             } else {
-                // Prepare for next iteration.
-                numline.copy_from_slice(&tmpline);
+                // Prepare for next iteration
+                numline.clone_from_slice(&tmpline);
+                flag = true;
             }
         }
 
-        // C code prints cnt-1 (because it increments before checking).
-        // This matches the spec's "number of transformations applied to first reach the fixed point".
+        // C code prints cnt-1 due to counting one extra iteration when detecting fixed point.
+        // This matches the provided C behavior and the spec's "number of transformations required".
         println!("{}", cnt - 1);
 
-        for i in 0..tmpline.len() {
-            if i + 1 == tmpline.len() {
+        for i in 0..n {
+            if i + 1 == n {
                 println!("{}", tmpline[i]);
             } else {
                 print!("{} ", tmpline[i]);

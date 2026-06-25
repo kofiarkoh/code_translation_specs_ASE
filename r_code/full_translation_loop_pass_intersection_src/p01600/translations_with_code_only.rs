@@ -1,74 +1,62 @@
 use std::io::{self, Read};
 
+fn abs_i32(a: i32) -> i32 {
+    if a >= 0 { a } else { -a }
+}
+
 fn main() {
-    // Read entire stdin (fast enough and preserves C-like token parsing behavior).
+    // Read entire stdin (matches C's getchar_unlocked-style fast input).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let bytes = input.as_bytes();
     let mut idx: usize = 0;
 
-    // Emulate the C in() function:
-    // - It assumes the first read char is a digit (no skipping whitespace).
-    // - It keeps consuming digits and stops when the next char is < '0' (not checking > '9').
-    // We'll implement the same behavior for typical AOJ inputs (digits separated by whitespace/newlines).
-    fn in_c_style(bytes: &[u8], idx: &mut usize) -> i32 {
-        // Skip nothing: match C's behavior as closely as possible, but avoid panics on EOF.
-        // If input is malformed/EOF, return 0 (best-effort).
-        if *idx >= bytes.len() {
-            return 0;
-        }
-        let mut c = bytes[*idx];
-        *idx += 1;
-
-        let mut n: i32 = 0;
-        loop {
-            n = n.wrapping_mul(10).wrapping_add((c & 0x0f) as i32);
-            if *idx >= bytes.len() {
-                break;
-            }
-            c = bytes[*idx];
+    // Emulate the C in(): reads a non-negative integer by consuming digits,
+    // assuming the first read is already a digit (as in the original code).
+    fn in_num(bytes: &[u8], idx: &mut usize) -> i32 {
+        // Skip any non-digit (the C code doesn't, but typical inputs are well-formed;
+        // this makes the parser robust without changing digit parsing semantics).
+        while *idx < bytes.len() && (bytes[*idx] < b'0' || bytes[*idx] > b'9') {
             *idx += 1;
-            if c < b'0' {
+        }
+        let mut n: i32 = 0;
+        while *idx < bytes.len() {
+            let c = bytes[*idx];
+            if c < b'0' || c > b'9' {
                 break;
             }
+            // (c & 0xf) is equivalent to (c - '0') for ASCII digits.
+            n = n.wrapping_mul(10).wrapping_add((c & 0x0f) as i32);
+            *idx += 1;
         }
         n
     }
 
-    let n = in_c_style(bytes, &mut idx) as usize;
+    let n = in_num(bytes, &mut idx) as usize;
 
-    let mut x = vec![0i32; 1001];
-    let mut y = vec![0i32; 1001];
+    let mut x = vec![0i32; n];
+    let mut y = vec![0i32; n];
     for i in 0..n {
-        x[i] = in_c_style(bytes, &mut idx);
-        y[i] = in_c_style(bytes, &mut idx);
+        x[i] = in_num(bytes, &mut idx);
+        y[i] = in_num(bytes, &mut idx);
     }
 
-    // dp initialized with memset(dp, 0x10, sizeof(dp)) in C.
-    // For int dp[1001][1001], each byte becomes 0x10, so each i32 becomes 0x10101010.
-    let init = 0x1010_1010i32;
-    let mut dp = vec![vec![init; 1001]; 1001];
-
+    // C: memset(dp, 0x10, sizeof(dp)) on int dp[1001][1001]
+    // This sets each byte to 0x10, so each i32 becomes 0x10101010.
+    let inf: i32 = 0x1010_1010u32 as i32;
+    let mut dp = vec![vec![inf; n]; n];
     for i in 0..n {
         dp[i][i] = 0;
     }
 
-    // ABS macro on int; use i32 and i64 intermediate to avoid overflow in abs,
-    // but keep final arithmetic in i32 with wrapping to mimic C int overflow behavior.
     for l in 0..n {
         for i in 0..(n - l) {
             for j in i..(i + l) {
-                let a = dp[i][j];
-                let b = dp[j + 1][i + l];
-
-                let dx = (x[i] as i64 - x[j + 1] as i64).abs() as i32;
-                let dy = (y[j] as i64 - y[i + l] as i64).abs() as i32;
-
-                let t = a
-                    .wrapping_add(b)
-                    .wrapping_add(dx)
-                    .wrapping_add(dy);
-
+                // Use wrapping arithmetic to emulate C int overflow behavior.
+                let t = dp[i][j]
+                    .wrapping_add(dp[j + 1][i + l])
+                    .wrapping_add(abs_i32(x[i].wrapping_sub(x[j + 1])))
+                    .wrapping_add(abs_i32(y[j].wrapping_sub(y[i + l])));
                 if t < dp[i][i + l] {
                     dp[i][i + l] = t;
                 }
@@ -76,5 +64,12 @@ fn main() {
         }
     }
 
-    print!("{}\n", dp[0][n - 1]);
+    // Matches C printf("%d\n", ...)
+    if n == 0 {
+        // The C code would access dp[0][n-1] (UB). Inputs are assumed valid (n>=1).
+        // We still print nothing meaningful here; but keep behavior defined in Rust.
+        println!("0");
+    } else {
+        println!("{}", dp[0][n - 1]);
+    }
 }

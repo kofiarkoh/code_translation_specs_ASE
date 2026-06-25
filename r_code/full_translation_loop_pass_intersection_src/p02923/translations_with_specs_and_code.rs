@@ -1,29 +1,25 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin (no explicit error handling per spec).
+    // Read all input (no explicit error handling per spec).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let n: i64 = it.next().unwrap().parse().unwrap();
-    // Spec precondition: n is non-negative. If violated, behavior is undefined in C;
-    // here we mimic that by allowing a panic/overflow if it happens.
-    let n_usize: usize = n as usize;
+    let n: usize = it.next().unwrap().parse().unwrap();
 
-    // The C code allocates n+10 and zero-fills; extra space is unused for semantics.
-    // Spec allows linear additional memory, so we store exactly n elements.
-    let mut h: Vec<i64> = Vec::with_capacity(n_usize);
-    for _ in 0..n_usize {
+    // Spec allows linear space; store the sequence.
+    let mut h: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
         let v: i64 = it.next().unwrap().parse().unwrap();
         h.push(v);
     }
 
+    // If n is 0 or 1, output must be 0 (also matches the C loop behavior).
     let mut best: i64 = 0;
     let mut count: i64 = 0;
 
-    // For n == 0 or 1, loop does not run and best remains 0 (matches spec).
-    for i in 0..n_usize.saturating_sub(1) {
+    for i in 0..n.saturating_sub(1) {
         if h[i + 1] <= h[i] {
             count += 1;
         } else {

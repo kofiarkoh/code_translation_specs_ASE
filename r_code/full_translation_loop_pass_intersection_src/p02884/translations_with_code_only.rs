@@ -6,100 +6,112 @@ fn main() {
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let n: usize = match it.next() {
-        Some(x) => x.parse().unwrap(),
+    let n: i32 = match it.next() {
+        Some(v) => v.parse().unwrap(),
         None => return,
     };
     let mut m: i32 = it.next().unwrap().parse().unwrap();
 
-    // C arrays:
-    // int e[610], c[610][610] = {};
-    // double d[1010] = {};
-    // We'll size a bit larger to match indexing up to n (inclusive).
+    // c[610][610] initialized to 0
+    let mut c = vec![vec![0i32; 610]; 610];
+    // e[610]
     let mut e = vec![-1i32; 610];
-    let mut c = vec![vec![0u8; 610]; 610];
+    // d[1010] initialized to 0.0 then set as in C
     let mut d = vec![0f64; 1010];
 
-    // for(i=0;i<=n;i++)d[i]=1e9; d[n]=0;
+    // scanf("%d %d",&n,&m);
+    // for(i=0;i<=n;i++)d[i]=1e9;
     for i in 0..=n {
-        d[i] = 1e9f64;
+        d[i as usize] = 1e9;
     }
-    d[n] = 0.0;
+    d[n as usize] = 0.0;
 
     // for(i=0;i<=n;i++)e[i]=-1;
-    for i in 0..=n.min(609) {
-        e[i] = -1;
+    for i in 0..=n {
+        e[i as usize] = -1;
     }
 
+    // while(m--){ scanf("%d %d",&i,&j); c[i][j]=1; }
     while m > 0 {
         m -= 1;
-        let i: usize = it.next().unwrap().parse().unwrap();
-        let j: usize = it.next().unwrap().parse().unwrap();
-        if i < 610 && j < 610 {
-            c[i][j] = 1;
-        }
+        let i: i32 = it.next().unwrap().parse().unwrap();
+        let j: i32 = it.next().unwrap().parse().unwrap();
+        c[i as usize][j as usize] = 1;
     }
 
-    // for(i=n-1;i;i--) { ... }
-    // Note: in C, loop runs for i = n-1 down to 1.
-    if n >= 2 {
-        for i in (1..=n - 1).rev() {
-            let mut s: f64 = 0.0;
-            let mut a: i32 = 0;
-            let mut b: usize = 0;
-
-            for j in i..=n {
-                if c[i][j] != 0 {
-                    s += d[j] + 1.0;
-                    if b == 0 || d[b] < d[j] {
-                        b = j;
-                    }
-                    a += 1;
+    // for(i=n-1;i;i--){
+    //   s=b=a=0;
+    //   for(j=i;j<=n;j++){
+    //     if(c[i][j]){
+    //       s+=d[j]+1;
+    //       if(b==0||d[b]<d[j])b=j;
+    //       a++;
+    //     }
+    //   }
+    //   d[i]=s/a;
+    //   if(a>1)e[i]=b;
+    // }
+    for i in (1..=n - 1).rev() {
+        let mut s: f64 = 0.0;
+        let mut b: i32 = 0;
+        let mut a: i32 = 0;
+        for j in i..=n {
+            if c[i as usize][j as usize] != 0 {
+                s += d[j as usize] + 1.0;
+                if b == 0 || d[b as usize] < d[j as usize] {
+                    b = j;
                 }
+                a += 1;
             }
-
-            // In the original C, if a==0 this is division by zero (UB / inf / NaN).
-            // We preserve the floating behavior by doing the same operation.
-            d[i] = s / (a as f64);
-
-            if a > 1 {
-                e[i] = b as i32;
-            }
+        }
+        // In the original C, if a==0 this is division by zero (undefined behavior).
+        // We preserve the observable behavior as closely as possible by using IEEE-754:
+        // 0.0/0.0 => NaN, x/0.0 => +/-inf.
+        d[i as usize] = s / (a as f64);
+        if a > 1 {
+            e[i as usize] = b;
         }
     }
 
     let mut minv: f64 = d[1];
 
+    // for(k=1;k<=n;k++){
+    //   if(e[k]==-1)continue;
+    //   for(j=0;j<n;j++)d[j]=1e9;
+    //   d[n]=0;
+    //   for(i=n-1;i;i--){
+    //     s=a=0;
+    //     for(j=i;j<=n;j++){
+    //       if(c[i][j]==0||(i==k&&j==e[k]))continue;
+    //       s+=d[j]+1;
+    //       a++;
+    //     }
+    //     d[i]=s/a;
+    //   }
+    //   if(min>d[1])min=d[1];
+    // }
     for k in 1..=n {
-        if k >= 610 {
-            break;
-        }
-        if e[k] == -1 {
+        if e[k as usize] == -1 {
             continue;
         }
-        let ek = e[k] as usize;
-
-        // for(j=0;j<n;j++)d[j]=1e9; d[n]=0;
         for j in 0..n {
-            d[j] = 1e9f64;
+            d[j as usize] = 1e9;
         }
-        d[n] = 0.0;
+        d[n as usize] = 0.0;
 
-        if n >= 2 {
-            for i in (1..=n - 1).rev() {
-                let mut s: f64 = 0.0;
-                let mut a: i32 = 0;
-
-                for j in i..=n {
-                    if c[i][j] == 0 || (i == k && j == ek) {
-                        continue;
-                    }
-                    s += d[j] + 1.0;
-                    a += 1;
+        for i in (1..=n - 1).rev() {
+            let mut s: f64 = 0.0;
+            let mut a: i32 = 0;
+            for j in i..=n {
+                if c[i as usize][j as usize] == 0
+                    || (i == k && j == e[k as usize])
+                {
+                    continue;
                 }
-
-                d[i] = s / (a as f64);
+                s += d[j as usize] + 1.0;
+                a += 1;
             }
+            d[i as usize] = s / (a as f64);
         }
 
         if minv > d[1] {

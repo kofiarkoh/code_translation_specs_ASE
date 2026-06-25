@@ -1,7 +1,7 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin (scanf-like whitespace-separated tokens)
+    // Read entire stdin
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -10,47 +10,51 @@ fn main() {
     let mut a = [0i32; 1000];
     let mut tmp = [0i32; 1000];
 
-    let n: i32 = match it.next() {
-        Some(t) => t.parse().unwrap(),
-        None => return, // no input
+    let n: usize = match it.next() {
+        Some(x) => x.parse::<i32>().unwrap() as usize,
+        None => return,
     };
 
-    for i in 0..(n as usize) {
+    for i in 0..n {
         a[i] = it.next().unwrap().parse::<i32>().unwrap();
     }
 
-    let mut q: i32 = it.next().unwrap().parse().unwrap();
+    let mut q: i32 = it.next().unwrap().parse::<i32>().unwrap();
     while q > 0 {
         q -= 1;
-        let mut b: i32 = it.next().unwrap().parse().unwrap();
-        let mut m: i32 = it.next().unwrap().parse().unwrap();
-        let mut e: i32 = it.next().unwrap().parse().unwrap();
 
-        // Copy a[b..e) into tmp at the same indices.
-        // Note: The original C code has undefined behavior if indices are out of bounds;
-        // we assume inputs keep indices within [0, 1000) and b <= e.
-        for i in b..e {
-            tmp[i as usize] = a[i as usize];
+        let b_i32 = it.next().unwrap().parse::<i32>().unwrap();
+        let m_i32 = it.next().unwrap().parse::<i32>().unwrap();
+        let e_i32 = it.next().unwrap().parse::<i32>().unwrap();
+
+        // The original C code assumes indices are in-range and e > b.
+        // We keep the same behavior for valid inputs; for invalid inputs C would be UB.
+        let b = b_i32 as usize;
+        let mut m = m_i32 as i32;
+        let mut e = e_i32 as i32;
+
+        // Copy a[b..e) into tmp[b..e)
+        for i in b..(e as usize) {
+            tmp[i] = a[i];
         }
 
-        e -= b;
-        m -= b;
+        e -= b_i32;
+        m -= b_i32;
 
-        // Rotate segment: a[b+i] = tmp[b + (i+m)%e]
-        // In C, (i+m)%e with negative values is well-defined (remainder keeps sign of numerator),
-        // but can yield negative indices -> UB. We preserve behavior for valid inputs (non-negative).
-        for i in 0..e {
-            let idx = (i + m) % e;
-            a[(b + i) as usize] = tmp[(b + idx) as usize];
+        let e_usize = e as usize;
+        for i in 0..e_usize {
+            // In C, (i + m) % e uses signed arithmetic; for valid inputs m is expected in [0, e).
+            // We mirror that with i32 and then cast to usize.
+            let idx = ((i as i32 + m) % e) as usize;
+            a[b + i] = tmp[b + idx];
         }
     }
 
-    // Print with spaces and final newline exactly like: printf("%d%c", a[i], " \n"[i+1==n]);
-    let n_usize = n as usize;
+    // Print exactly like: printf("%d%c", a[i], " \n"[i + 1 == n]);
     let mut out = String::new();
-    for i in 0..n_usize {
-        out.push_str(&a[i].to_string());
-        out.push(if i + 1 == n_usize { '\n' } else { ' ' });
+    for i in 0..n {
+        out.push_str(&format!("{}", a[i]));
+        out.push(if i + 1 == n { '\n' } else { ' ' });
     }
     print!("{out}");
 }

@@ -14,87 +14,99 @@ fn main() {
         None => return,
     };
 
-    // M == 0 special-case outputs.
+    // Special-case behavior when M = 0.
     if m == 0 {
+        // Specification defines outputs only for N in {1,2,3}.
         let out = match n {
             1 => 0,
             2 => 10,
             3 => 100,
             _ => {
-                // Behavior for other N is not inferable; keep narrow and do nothing.
+                // Behavior outside intended range is not well-defined; choose narrow behavior:
+                // do nothing further and print -1 to avoid inventing extra functionality.
+                println!("-1");
                 return;
             }
         };
-        print!("{out}");
+        println!("{}", out);
         return;
     }
 
-    // Track digits; None = unconstrained, Some(d) = constrained to digit d.
-    let mut digits: Vec<Option<i32>> = vec![None; n];
+    // Digits are stored as Option<u8> for positions 1..=N (most significant to least).
+    let mut digits: Vec<Option<u8>> = vec![None; n];
 
-    // Leading-zero rule depends ONLY on the first provided constraint pair.
-    let first_pos: usize = it.next().unwrap().parse().unwrap();
-    let first_digit: i32 = it.next().unwrap().parse().unwrap();
-    if n > 1 && first_pos == 1 && first_digit == 0 {
-        print!("-1");
+    // Track the first provided constraint for the special error rule.
+    let first_s: usize = it.next().unwrap().parse().unwrap();
+    let first_c: u8 = it.next().unwrap().parse().unwrap();
+
+    // Special rule: if (and only if) the first provided constraint explicitly sets
+    // the most significant digit to 0 while N > 1, output -1 regardless of other constraints.
+    if n > 1 && first_s == 1 && first_c == 0 {
+        println!("-1");
         return;
     }
 
-    // Apply first constraint.
-    {
-        let idx = first_pos - 1;
-        digits[idx] = Some(first_digit);
-    }
-
-    // Apply remaining constraints; contradictions invalidate.
-    let mut valid = true;
-    for _ in 1..m {
-        let pos: usize = it.next().unwrap().parse().unwrap();
-        let dig: i32 = it.next().unwrap().parse().unwrap();
-        let idx = pos - 1;
-        match digits[idx] {
-            None => digits[idx] = Some(dig),
-            Some(existing) => {
-                if existing != dig {
-                    valid = false;
-                }
+    // Apply the first constraint, checking for contradictions.
+    if first_s >= 1 && first_s <= n {
+        let idx = first_s - 1;
+        if let Some(prev) = digits[idx] {
+            if prev != first_c {
+                println!("-1");
+                return;
             }
-        }
-    }
-
-    if !valid {
-        print!("-1");
-        return;
-    }
-
-    // Fill defaults:
-    // - Leading digit: if unconstrained and N>1 => 1, else if N==1 => 0.
-    // - Other unconstrained digits => 0.
-    if n == 1 {
-        if digits[0].is_none() {
-            digits[0] = Some(0);
+        } else {
+            digits[idx] = Some(first_c);
         }
     } else {
-        if digits[0].is_none() {
-            digits[0] = Some(1);
+        // Out-of-range behavior is not well-defined; choose narrow behavior: print -1.
+        println!("-1");
+        return;
+    }
+
+    // Apply remaining constraints.
+    for _ in 1..m {
+        let s: usize = it.next().unwrap().parse().unwrap();
+        let c: u8 = it.next().unwrap().parse().unwrap();
+
+        if s < 1 || s > n {
+            // Not well-defined by spec; choose narrow behavior.
+            println!("-1");
+            return;
         }
-        for i in 1..n {
-            if digits[i].is_none() {
+        let idx = s - 1;
+        if let Some(prev) = digits[idx] {
+            if prev != c {
+                println!("-1");
+                return;
+            }
+        } else {
+            digits[idx] = Some(c);
+        }
+    }
+
+    // Fill unconstrained digits to make the number as small as possible,
+    // ensuring a nonzero most significant digit when N > 1.
+    for i in 0..n {
+        if digits[i].is_none() {
+            if i == 0 && n > 1 {
+                digits[i] = Some(1);
+            } else {
                 digits[i] = Some(0);
             }
         }
     }
 
-    // Construct number for N in {1,2,3} using place values.
-    let result: i32 = match n {
-        1 => digits[0].unwrap(),
-        2 => digits[0].unwrap() * 10 + digits[1].unwrap(),
-        3 => digits[0].unwrap() * 100 + digits[1].unwrap() * 10 + digits[2].unwrap(),
-        _ => {
-            // Behavior for other N is not inferable; keep narrow and do nothing.
-            return;
-        }
-    };
+    // Enforce invariant: when producing a valid result for N > 1, MS digit is nonzero.
+    if n > 1 && digits[0] == Some(0) {
+        println!("-1");
+        return;
+    }
 
-    print!("{result}");
+    // Construct the integer (N intended <= 3, so i32 is sufficient).
+    let mut value: i32 = 0;
+    for d in digits {
+        value = value * 10 + d.unwrap() as i32;
+    }
+
+    println!("{}", value);
 }

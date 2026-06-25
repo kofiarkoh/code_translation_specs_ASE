@@ -3,7 +3,7 @@ use std::io::{self, Read};
 const MOD: i64 = 998_244_353;
 
 fn main() {
-    // Read all input
+    // Read all input (no explicit error handling per spec).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -16,49 +16,44 @@ fn main() {
         a.push(it.next().unwrap().parse().unwrap());
     }
 
-    // dp0[j] corresponds to dp[i][j][0] for current i
-    // dp1[j] corresponds to dp[i][j][1] for current i
-    // We keep only previous row for dp0 and dp1 to match O(n*s) time and O(s) memory.
-    let mut dp0_prev = vec![0i64; s + 1];
-    let mut dp1_prev = vec![0i64; s + 1];
+    // dp0[i][j] and dp1[i][j] as per specification.
+    // Memory proportional to n*(s+1), matching the spec's allowance.
+    let mut dp0 = vec![vec![0i64; s + 1]; n];
+    let mut dp1 = vec![vec![0i64; s + 1]; n];
 
-    // Initialize for i = 0 (matches C code exactly)
-    dp0_prev[0] = 1;
-    dp1_prev[0] = 1;
+    // Initialization at i = 0
+    dp0[0][0] = 1;
+    dp1[0][0] = 1;
     if a[0] <= s {
-        dp0_prev[a[0]] = (dp0_prev[a[0]] + 1) % MOD;
-        dp1_prev[a[0]] = (dp1_prev[a[0]] + 1) % MOD;
+        dp0[0][a[0]] = 1;
+        dp1[0][a[0]] = 1;
     }
 
+    // Transitions for i = 1..n-1
     for i in 1..n {
-        let mut dp0_cur = vec![0i64; s + 1];
-
-        // Transition for dp[i][*][0] from dp[i-1][*][0]
+        // Carry forward and optionally append a[i]
         for j in 0..=s {
-            let v = dp0_prev[j];
-            dp0_cur[j] = (dp0_cur[j] + v) % MOD;
+            let prev = dp0[i - 1][j];
+            dp0[i][j] = (dp0[i][j] + prev) % MOD;
+
             let nj = j + a[i];
             if nj <= s {
-                dp0_cur[nj] = (dp0_cur[nj] + v) % MOD;
+                dp0[i][nj] = (dp0[i][nj] + prev) % MOD;
             }
         }
 
-        // Start new segment at i: dp[i][0][0]++ and dp[i][a[i]][0]++
-        dp0_cur[0] = (dp0_cur[0] + 1) % MOD;
+        // Base injections at every index
+        dp0[i][0] = (dp0[i][0] + 1) % MOD;
         if a[i] <= s {
-            dp0_cur[a[i]] = (dp0_cur[a[i]] + 1) % MOD;
+            dp0[i][a[i]] = (dp0[i][a[i]] + 1) % MOD;
         }
 
-        // dp[i][j][1] = dp[i-1][j][1] + dp[i][j][0]
-        let mut dp1_cur = vec![0i64; s + 1];
+        // Accumulate across indices: dp1(i,j) = dp1(i-1,j) + dp0(i,j)
         for j in 0..=s {
-            dp1_cur[j] = (dp1_prev[j] + dp0_cur[j]) % MOD;
+            dp1[i][j] = (dp1[i - 1][j] + dp0[i][j]) % MOD;
         }
-
-        dp0_prev = dp0_cur;
-        dp1_prev = dp1_cur;
     }
 
-    // Output dp[n-1][s][1]
-    println!("{}", dp1_prev[s] % MOD);
+    // Output dp1(n-1, s)
+    println!("{}", dp1[n - 1][s]);
 }

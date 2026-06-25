@@ -1,127 +1,114 @@
 use std::io::{self, Read};
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 struct Edge {
-    a: usize,
-    b: usize,
+    a: i32,
+    b: i32,
     d: i32,
+    used: bool,
+}
+
+fn combi(
+    k: usize,
+    a: i32,
+    w: i32,
+    n: i32,
+    m: usize,
+    tbl: &mut [Edge],
+    tmp: &mut [i32; 12],
+    ans: &mut [i32; 12],
+    len: &mut i32,
+    num: &mut usize,
+) {
+    // Explore all possible next vertices b != a, and all unused edges connecting a-b.
+    for b in 1..=n {
+        if b == a {
+            continue;
+        }
+        for i in 0..m {
+            let e = tbl[i];
+            if !e.used
+                && ((e.a == a && e.b == b) || (e.a == b && e.b == a))
+            {
+                tbl[i].used = true;
+                tmp[k] = b;
+                combi(k + 1, b, w + e.d, n, m, tbl, tmp, ans, len, num);
+                tbl[i].used = false;
+            }
+        }
+    }
+
+    // Update best only on strictly larger total length (tie-breaking per spec/C).
+    if w > *len {
+        *num = k;
+        *len = w;
+        ans[..*num].copy_from_slice(&tmp[..*num]);
+    }
 }
 
 fn main() {
-    let mut s = String::new();
-    io::stdin().read_to_string(&mut s).unwrap();
-    let mut it = s.split_whitespace();
+    // Read entire stdin, parse as integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
     let mut out = String::new();
 
     loop {
-        let n = match it.next() {
-            None => break,
-            Some(x) => x.parse::<usize>().unwrap(),
-        };
-        let m = it.next().unwrap().parse::<usize>().unwrap();
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: i32 = n_opt.unwrap().parse().unwrap();
+        let m: usize = it.next().unwrap().parse().unwrap();
+
         if n == 0 {
+            // Terminating dataset: m is read but unused (already parsed).
             break;
         }
 
-        let mut edges: Vec<Edge> = Vec::with_capacity(m);
-        let mut adj: Vec<Vec<usize>> = vec![Vec::new(); n + 1];
-
-        for idx in 0..m {
-            let a = it.next().unwrap().parse::<usize>().unwrap();
-            let b = it.next().unwrap().parse::<usize>().unwrap();
-            let d = it.next().unwrap().parse::<i32>().unwrap();
-            edges.push(Edge { a, b, d });
-            if a <= n && b <= n {
-                adj[a].push(idx);
-                adj[b].push(idx);
-            }
+        // Fixed capacities per spec/C: up to 25 edges, up to 12 vertices in stored route.
+        let mut tbl: Vec<Edge> = Vec::with_capacity(m);
+        for _ in 0..m {
+            let a: i32 = it.next().unwrap().parse().unwrap();
+            let b: i32 = it.next().unwrap().parse().unwrap();
+            let d: i32 = it.next().unwrap().parse().unwrap();
+            tbl.push(Edge { a, b, d, used: false });
         }
 
-        // DP over (current_vertex, used_edge_mask) with path reconstruction.
-        // This avoids exponential blowup from naive DFS and fixes the timeout.
-        // m <= 25, but spec guarantees optimal trail uses <= 11 edges (<= 12 vertices),
-        // so we only consider masks with popcount <= 11.
-        let max_edges_in_trail: u32 = 11;
+        let mut ans = [0i32; 12];
+        let mut tmp = [0i32; 12];
+        let mut len: i32 = 0;
+        let mut num: usize = 0;
 
-        let mut best_len: i32 = 0;
-        let mut best_end_v: usize = 1;
-        let mut best_mask: u32 = 0;
-
-        // dp[v][mask] = best length ending at v using exactly edges in mask, or i32::MIN if unreachable.
-        // parent[v][mask] = (prev_v, prev_mask, edge_index_used_to_reach_v)
-        let states = 1usize << m;
-        let mut dp: Vec<Vec<i32>> = vec![vec![i32::MIN; states]; n + 1];
-        let mut parent: Vec<Vec<Option<(usize, u32, usize)>>> = vec![vec![None; states]; n + 1];
-
-        // Initialize: start at any vertex with empty mask and length 0.
-        for v in 1..=n {
-            dp[v][0] = 0;
-        }
-
-        // Iterate masks in increasing order; only expand those within edge limit.
-        for mask_usize in 0..states {
-            let mask = mask_usize as u32;
-            if mask.count_ones() > max_edges_in_trail {
-                continue;
-            }
-            for v in 1..=n {
-                let cur_len = dp[v][mask_usize];
-                if cur_len == i32::MIN {
+        // Start exploration from each available edge in both directions,
+        // matching the C code's nested loops over (a,b) and edges.
+        for a in 1..=n {
+            for b in 1..=n {
+                if b == a {
                     continue;
                 }
-                // Track global best (ties arbitrary, as allowed).
-                if cur_len > best_len {
-                    best_len = cur_len;
-                    best_end_v = v;
-                    best_mask = mask;
-                }
-
-                // Try to extend by one unused incident edge.
-                if mask.count_ones() == max_edges_in_trail {
-                    continue;
-                }
-                for &ei in &adj[v] {
-                    let bit = 1u32 << ei;
-                    if (mask & bit) != 0 {
-                        continue;
-                    }
-                    let e = &edges[ei];
-                    let to = if e.a == v { e.b } else { e.a };
-                    let nmask = mask | bit;
-                    let nmask_usize = nmask as usize;
-                    let cand = cur_len + e.d;
-                    if cand > dp[to][nmask_usize] {
-                        dp[to][nmask_usize] = cand;
-                        parent[to][nmask_usize] = Some((v, mask, ei));
+                for i in 0..m {
+                    let e = tbl[i];
+                    if !e.used
+                        && ((e.a == a && e.b == b) || (e.a == b && e.b == a))
+                    {
+                        tbl[i].used = true;
+                        tmp[0] = a;
+                        tmp[1] = b;
+                        combi(2, b, e.d, n, m, &mut tbl, &mut tmp, &mut ans, &mut len, &mut num);
+                        tbl[i].used = false;
                     }
                 }
             }
         }
 
-        // Reconstruct one best trail as a vertex sequence.
-        // If best_mask == 0, output a single vertex (choose 1, matching typical expectations).
-        let mut seq: Vec<usize> = Vec::new();
-        if best_mask == 0 {
-            seq.push(1);
-        } else {
-            let mut v = best_end_v;
-            let mut mask = best_mask;
-            seq.push(v);
-            while mask != 0 {
-                let p = parent[v][mask as usize].expect("reachable state must have parent unless mask=0");
-                let (pv, pmask, _ei) = p;
-                v = pv;
-                mask = pmask;
-                seq.push(v);
-            }
-            seq.reverse();
-        }
+        out.push_str(&format!("{len}\n"));
 
-        out.push_str(&format!("{best_len}\n"));
-        out.push_str(&format!("{}", seq[0]));
-        for &v in seq.iter().skip(1) {
-            out.push_str(&format!(" {}", v));
+        // Per spec edge case: if no route found, len=0 and num=0; C still prints ans[0] (0).
+        out.push_str(&format!("{}", ans[0]));
+        for i in 1..num {
+            out.push_str(&format!(" {}", ans[i]));
         }
         out.push('\n');
     }

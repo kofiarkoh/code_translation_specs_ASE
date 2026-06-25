@@ -4,9 +4,9 @@ type Ll = i64;
 type KeyType = i8;
 
 fn gcd(a: i32, b: i32) -> i32 {
-    // Mirrors the C recursion: return (a % b) ? gcd(b, a % b) : b;
-    // Note: In C, calling with b == 0 would be UB (a % 0). We keep the same
-    // precondition; the provided program never triggers it.
+    // Mirrors C recursion: return (a % b) ? gcd(b, a % b) : b;
+    // Note: In C, calling gcd with b == 0 would be UB (a % 0).
+    // We keep the same behavior by not special-casing b == 0.
     if a % b != 0 {
         gcd(b, a % b)
     } else {
@@ -18,18 +18,17 @@ fn lcm(a: i32, b: i32) -> i32 {
     (a / gcd(a, b)) * b
 }
 
-/* a[0], ..., a[n-1] の数の最大公約数 */
-fn ngcd(n: i32, a: &[i32]) -> i32 {
+fn ngcd(n: usize, a: &[i32]) -> i32 {
     let mut d = a[0];
-    let mut i = 1;
+    let mut i = 1usize;
     while i < n && d != 1 {
-        d = gcd(a[i as usize], d);
+        d = gcd(a[i], d);
         i += 1;
     }
     d
 }
 
-fn quicksort(a: &mut [KeyType], first: i32, last: i32) {
+fn quicksort(a: &mut [KeyType], first: isize, last: isize) {
     let x = a[((first + last) / 2) as usize];
     let mut i = first;
     let mut j = last;
@@ -59,7 +58,7 @@ fn is_prime(x: i32) -> i32 {
     if x <= 1 {
         return 0;
     }
-    let mut i = 2;
+    let mut i = 2i32;
     while i * i <= x {
         if x % i == 0 {
             return 0;
@@ -69,20 +68,22 @@ fn is_prime(x: i32) -> i32 {
     1
 }
 
-fn c_strlen(s: &[u8]) -> usize {
+fn c_strlen_until_nul(s: &[u8]) -> usize {
     s.iter().position(|&c| c == 0).unwrap_or(s.len())
 }
 
 fn is_substr(s: &[u8], t: &[u8], mut i: usize) -> i32 {
-    let mut flag = 1;
+    let mut flag = 1i32;
+
     if i >= s.len() || s[i] == 0 {
         flag = 0;
     }
 
-    // C code calls strlen(t) each iteration; we compute it once (same result).
-    let tlen = c_strlen(t);
+    let tlen = c_strlen_until_nul(t);
     for j in 0..tlen {
-        if i >= s.len() || s[i] != t[j] {
+        // In C, out-of-bounds would be UB; we avoid panics by treating missing as mismatch.
+        let sj = s.get(i).copied().unwrap_or(0);
+        if sj != t[j] {
             flag = 0;
             break;
         }
@@ -93,8 +94,9 @@ fn is_substr(s: &[u8], t: &[u8], mut i: usize) -> i32 {
 
 // factor list, number of factors, natural number
 fn factorize(ftr: &mut [i32], num: &mut i32, mut n: i32) {
-    let mut a = 2;
-    let mut cnt = 0;
+    let mut a = 2i32;
+    let mut cnt = 0i32;
+
     while n >= a {
         if n % a == 0 {
             n /= a;
@@ -107,29 +109,29 @@ fn factorize(ftr: &mut [i32], num: &mut i32, mut n: i32) {
     *num = cnt;
 }
 
-// int nextperm(int p[], int N)  /* 辞書式順序で次の順列 */
-fn nextperm(p: &mut [i32], n: i32) -> i32 {
-    let mut i = n - 1;
-    p[0] = 0; // 番人
+// next permutation in lexicographic order
+fn nextperm(p: &mut [i32], n: usize) -> i32 {
+    let mut i: isize = (n as isize) - 1;
+    p[0] = 0; // sentinel
     while p[i as usize] >= p[(i + 1) as usize] {
         i -= 1;
     }
     if i == 0 {
-        return 0; // 完了
+        return 0; // done
     }
-    let mut j = n;
+    let mut j: isize = n as isize;
     while p[i as usize] >= p[j as usize] {
         j -= 1;
     }
     p.swap(i as usize, j as usize);
     i += 1;
-    j = n;
+    j = n as isize;
     while i < j {
         p.swap(i as usize, j as usize);
         i += 1;
         j -= 1;
     }
-    1 // 未了
+    1 // not done
 }
 
 fn comb(size1: usize, size2: usize, v: &mut Vec<Vec<i32>>) {
@@ -160,18 +162,16 @@ fn abs_val(a: i32, b: i32) -> i32 {
 const INF: i32 = 1012345678;
 
 fn main() {
+    // Read entire stdin, parse first integer like scanf("%d", &n)
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
-
     let n: usize = match it.next() {
-        Some(x) => x.parse().unwrap(),
+        Some(tok) => tok.parse::<i32>().unwrap() as usize,
         None => return,
     };
 
     let mut l = [0i64; 100];
-
-    // #if 1 block
     l[0] = 2;
     l[1] = 1;
     for i in 2..=n {

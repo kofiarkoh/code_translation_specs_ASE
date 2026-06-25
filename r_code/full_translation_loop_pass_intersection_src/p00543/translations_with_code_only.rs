@@ -8,38 +8,46 @@ fn main() {
 
     let n: i32 = match it.next() {
         Some(s) => s.parse().unwrap(),
-        None => return, // If no input, C would likely do nothing meaningful; exit.
+        None => return, // no input -> do nothing (closest to C's behavior on failed scanf)
     };
-    let m: i32 = it.next().unwrap().parse().unwrap();
+    let m: i32 = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
 
-    // C uses a[1000] and indexes from 1..=n. Keep same indexing.
-    // Use i32 to match C int behavior (including overflow wrap in Rust via wrapping ops where needed).
-    let mut a = vec![0i32; 1001];
+    // C uses a[1000] and indexes from 1..=n. Keep that layout.
+    let mut a = vec![0i32; 1000];
+
     for i in 1..=n {
-        a[i as usize] = it.next().unwrap().parse().unwrap();
+        if let Some(s) = it.next() {
+            a[i as usize] = s.parse().unwrap();
+        } else {
+            // If input is missing, C would leave elements uninitialized (UB on use).
+            // We keep default 0; this is the best we can do safely.
+            a[i as usize] = 0;
+        }
     }
 
     let mut k: i32 = 1;
     loop {
         // C: for(i=1,j=2;i<n,j<=n;i++,j++)
-        // The comma operator makes the loop condition effectively (j <= n).
-        // So i is not bounded by i < n; it just increments alongside j.
+        // Note: the comma operator makes the condition effectively (j <= n).
+        // So the loop runs while j<=n, regardless of i<n.
         let mut i: i32 = 1;
         let mut j: i32 = 2;
         while j <= n {
-            // C's % with negative values follows truncation toward zero; Rust matches that.
-            // k starts at 1 and increments; if m < 1, loop still runs once (do-while).
-            let ai = a[i as usize];
-            let aj = a[j as usize];
-            if ai % k > aj % k {
-                a[i as usize] = aj;
-                a[j as usize] = ai;
+            // C's % with positive k matches Rust's % for i32.
+            // If k were 0 it would be UB in C; here k starts at 1 and only increments.
+            if a[i as usize] % k > a[j as usize] % k {
+                let temp = a[i as usize];
+                a[i as usize] = a[j as usize];
+                a[j as usize] = temp;
             }
-            i = i.wrapping_add(1);
-            j = j.wrapping_add(1);
+            i += 1;
+            j += 1;
         }
 
-        k = k.wrapping_add(1);
+        k += 1;
         if k > m {
             break;
         }

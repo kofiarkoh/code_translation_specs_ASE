@@ -1,37 +1,27 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, parse as whitespace-separated integers.
+    // Read entire stdin; behavior on invalid input is unspecified per spec.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
 
     let mut out = String::new();
 
     for tok in input.split_whitespace() {
-        // Spec precondition: each read provides an integer.
-        let mut a: i64 = tok.parse().unwrap();
-
+        let mut a: i32 = tok.parse().unwrap();
         if a == 0 {
-            break; // terminating 0 produces no output
-        }
-
-        // Spec precondition: nonzero inputs are non-negative.
-        // We do not define behavior for negative values beyond mirroring the contract.
-        if a < 0 {
-            // Not specified; avoid inventing behavior. We'll just stop processing.
-            // (C code's behavior for negatives is not reliably defined.)
             break;
         }
 
-        // Collect base-8 digits least-significant to most-significant.
-        // Spec constraint: at most 199 base-8 digits; we do not enforce beyond Vec growth.
-        let mut digits: Vec<u8> = Vec::new();
+        // Spec precondition: nonzero inputs are non-negative.
+        // Convert to base-8 digits (least significant first).
+        let mut digits: Vec<i32> = Vec::new();
         while a != 0 {
-            digits.push((a % 8) as u8);
+            digits.push(a % 8);
             a /= 8;
         }
 
-        // Transform each base-8 digit by skipping decimal digits 4 and 6:
+        // Transform each base-8 digit to a decimal digit skipping 4 and 6:
         // 0..3 -> same, 4..5 -> +1, 6..7 -> +2
         for d in &mut digits {
             if *d > 3 {
@@ -42,9 +32,9 @@ fn main() {
             }
         }
 
-        // Output in most-significant to least-significant order.
+        // Output most significant digit first.
         for &d in digits.iter().rev() {
-            out.push(char::from(b'0' + d));
+            out.push_str(&d.to_string());
         }
         out.push('\n');
     }

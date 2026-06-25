@@ -1,7 +1,7 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, parse as i32 like scanf("%d")
+    // Read entire stdin and parse as whitespace-separated integers (like scanf("%d")).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -15,7 +15,7 @@ fn main() {
         }
         let n: i32 = n_opt.unwrap().parse().unwrap();
         let p: i32 = match it.next() {
-            Some(x) => x.parse().unwrap(),
+            Some(v) => v.parse().unwrap(),
             None => break,
         };
 
@@ -25,7 +25,8 @@ fn main() {
 
         let mut i: i32 = 0;
         let mut w: i32 = p;
-        let mut c = [0i32; 50]; // matches C's int c[50]; MEMSET(c)
+        let mut c = [0i32; 50]; // matches C's int c[50]
+        // MEMSET(c) is already satisfied by initialization to 0.
 
         loop {
             let idx = (i % n) as usize;
@@ -35,7 +36,7 @@ fn main() {
                 c[idx] += 1;
 
                 if w == 0 {
-                    // rep(j,n) with early break
+                    // rep(j,n){ if(j==i%n)continue; if(c[j])break; } if(j==n) ...
                     let mut j: i32 = 0;
                     while j < n {
                         if j == (i % n) {

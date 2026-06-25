@@ -11,18 +11,28 @@ fn search(
     r: &[i32],
     memo: &mut [[i32; 101]; 101],
 ) -> i32 {
+    let mut ret: i32 = INF;
+
     if tkrk <= 0 {
         return 0;
     }
-    // C code indexes memo[tkrk][kkt] assuming tkrk in 0..=100.
-    // We preserve that assumption; inputs outside that range would be UB in C.
-    let t_idx = tkrk as usize;
+
+    // C code uses memo[tkrk][kkt] > 0 as "computed", storing (answer + 1).
+    // Note: tkrk is assumed to be within 0..=100 by the original program's intent.
+    // If input violates that, C would have UB; we clamp to avoid panic while
+    // keeping behavior as close as possible.
+    let t_idx = if tkrk < 0 {
+        0usize
+    } else if tkrk > 100 {
+        100usize
+    } else {
+        tkrk as usize
+    };
 
     if memo[t_idx][kkt] > 0 {
         return memo[t_idx][kkt] - 1;
     }
 
-    let mut ret = INF;
     memo[t_idx][kkt] = INF + 1;
 
     for i in 0..n {
@@ -31,11 +41,10 @@ fn search(
             if next_kkt > 100 {
                 next_kkt = 100;
             }
-            // C would have UB if next_kkt < 0; we assume inputs avoid that,
-            // matching the C program's implicit precondition.
-            let next_kkt_usize = next_kkt as usize;
-
-            let candidate = search(tkrk - a[i], next_kkt_usize, n, a, e, r, memo) + 1;
+            if next_kkt < 0 {
+                next_kkt = 0;
+            }
+            let candidate = search(tkrk - a[i], next_kkt as usize, n, a, e, r, memo) + 1;
             if candidate < ret {
                 ret = candidate;
             }
@@ -69,17 +78,19 @@ fn main() {
         let mut r = vec![0i32; n];
 
         for i in 0..n {
+            // In C, failure to read 3 ints returns 1 immediately.
+            // Here, we mimic by exiting early if missing.
             let aa = match it.next() {
                 Some(v) => v.parse::<i32>().unwrap(),
-                None => std::process::exit(1),
+                None => return,
             };
             let ee = match it.next() {
                 Some(v) => v.parse::<i32>().unwrap(),
-                None => std::process::exit(1),
+                None => return,
             };
             let rr = match it.next() {
                 Some(v) => v.parse::<i32>().unwrap(),
-                None => std::process::exit(1),
+                None => return,
             };
             a[i] = aa;
             e[i] = ee;

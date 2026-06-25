@@ -1,32 +1,39 @@
-use std::io::{self, Read};
+use std::io::{self, Read, Write};
 
 fn main() {
-    // Read entire stdin, like scanf would consume tokens separated by whitespace.
+    // Read entire stdin (scanf-style whitespace-separated integers)
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    // In the C code, failing scanf would leave variables uninitialized (UB),
-    // but we assume valid input as typical for such tasks.
+    // In the C code, failing scanf would leave variables uninitialized (UB).
+    // Here we assume valid input as typical for such problems.
     let n: i32 = it.next().unwrap().parse().unwrap();
 
-    // a[101] with 1-based indexing; a[0] unused.
-    let mut a = [0i32; 101];
+    // C uses 1-based indexing with a[101]; a[0] is unused.
+    // We'll mirror that with a Vec of length 101.
+    let mut a = vec![0i32; 101];
+
+    // for (i = 1; i <= N; i++) scanf("%d", &(a[i]));
+    // If N > 100, the C code writes out of bounds (UB). We do not emulate UB;
+    // we assume N is within bounds as intended by the original code.
     for i in 1..=n {
-        a[i as usize] = it.next().unwrap().parse().unwrap();
+        let val: i32 = it.next().unwrap().parse().unwrap();
+        a[i as usize] = val;
     }
 
     let mut count: i32 = 0;
+
+    // for (i = 2; i <= N; i++) { if (a[i] == a[i-1]) { count++; i++; } }
     let mut i: i32 = 2;
     while i <= n {
         if a[i as usize] == a[(i - 1) as usize] {
             count += 1;
-            i += 1; // matches the extra i++ inside the C if-block
+            i += 1; // extra increment inside the loop body
         }
-        i += 1; // matches the for-loop increment
+        i += 1; // loop increment
     }
 
     print!("{}\n", count);
-    // stdout is line-buffered on terminals; explicit flush to mirror fflush(stdout).
-    io::Write::flush(&mut io::stdout()).unwrap();
+    io::stdout().flush().unwrap();
 }

@@ -2,26 +2,31 @@ use std::io::{self, Read};
 
 fn main() {
     // Read entire stdin, then parse two whitespace-delimited strings.
+    // If missing/malformed input, behavior is unspecified by the spec; we simply return.
     let mut input = String::new();
-    io::stdin().read_to_string(&mut input).unwrap();
+    if io::stdin().read_to_string(&mut input).is_err() {
+        return;
+    }
     let mut it = input.split_whitespace();
-    let a = it.next().unwrap();
-    let b = it.next().unwrap();
+    let a = match it.next() {
+        Some(s) => s.as_bytes().to_vec(),
+        None => return,
+    };
+    let b = match it.next() {
+        Some(s) => s.as_bytes().to_vec(),
+        None => return,
+    };
 
-    // Treat strings as sequences of bytes (characters as in the original spec's "sequence of characters").
-    // This matches typical C-style LCS over bytes and avoids assuming Unicode scalar semantics.
-    let a_bytes = a.as_bytes();
-    let b_bytes = b.as_bytes();
-    let n = a_bytes.len();
-    let m = b_bytes.len();
+    let n = a.len();
+    let m = b.len();
 
-    // DP table: (n+1) x (m+1), storing LCS lengths for prefixes.
-    // Memory proportional to product of lengths, as specified.
+    // DP table: (n+1) x (m+1) lengths of LCS for prefixes.
+    // Memory proportional to product of lengths, as required.
     let mut dp = vec![vec![0usize; m + 1]; n + 1];
 
     for i in 0..n {
         for j in 0..m {
-            if a_bytes[i] == b_bytes[j] {
+            if a[i] == b[j] {
                 dp[i + 1][j + 1] = dp[i][j] + 1;
             } else {
                 let up = dp[i][j + 1];
@@ -32,15 +37,18 @@ fn main() {
     }
 
     // Reconstruct one LCS deterministically.
-    // Tie-breaking is deterministic but otherwise unspecified by the spec.
-    // Here: when dp[i-1][j] >= dp[i][j-1], move up; else move left.
+    // Tie-breaking rule (fixed internal choice):
+    // - If characters match, take the match and move diagonally.
+    // - Otherwise, move to the neighbor with the larger dp value.
+    // - If equal, prefer moving "up" (decrement i) over "left" (decrement j).
+    // This yields deterministic output for a given input pair.
     let mut i = n;
     let mut j = m;
     let mut out_rev: Vec<u8> = Vec::with_capacity(dp[n][m]);
 
     while i > 0 && j > 0 {
-        if a_bytes[i - 1] == b_bytes[j - 1] {
-            out_rev.push(a_bytes[i - 1]);
+        if a[i - 1] == b[j - 1] {
+            out_rev.push(a[i - 1]);
             i -= 1;
             j -= 1;
         } else {
@@ -56,8 +64,9 @@ fn main() {
 
     out_rev.reverse();
 
-    // Output with no separators and no trailing newline; if empty, write nothing.
-    let mut stdout = io::stdout().lock();
-    use std::io::Write;
-    stdout.write_all(&out_rev).unwrap();
+    // Output exactly the LCS characters, with no required terminator/separator.
+    // If LCS length is zero, output nothing.
+    let _ = io::stdout().write_all(&out_rev);
 }
+
+use std::io::Write;

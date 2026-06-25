@@ -10,20 +10,20 @@ fn main() {
         let n: usize = 50;
         let rem: i64 = k / 50;
         let x: i64 = 49 + rem;
-        let t: i64 = k % 50;
+        let t: usize = (k % 50) as usize;
 
         let mut a = vec![x; n];
 
-        for i in 0..(t as usize) {
-            a[i] += 50;
+        for i in 0..t {
+            a[i] = a[i].wrapping_add(50);
             for j in 0..n {
                 if j != i {
-                    a[j] -= 1;
+                    a[j] = a[j].wrapping_sub(1);
                 }
             }
         }
 
-        // Match C output formatting: "50\n" then numbers each followed by a space, no final newline.
+        // Match C output formatting exactly: "50\n" then numbers each followed by a space, no final newline.
         print!("50\n");
         for i in 0..n {
             print!("{} ", a[i]);

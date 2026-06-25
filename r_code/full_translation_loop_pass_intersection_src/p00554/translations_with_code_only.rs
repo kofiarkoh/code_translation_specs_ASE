@@ -8,15 +8,15 @@ fn main() {
 
     let n: i32 = match it.next() {
         Some(v) => v.parse().unwrap(),
-        None => return,
+        None => return, // no input; C would have undefined behavior, but we just exit
     };
     let m: i32 = match it.next() {
         Some(v) => v.parse().unwrap(),
         None => return,
     };
 
-    // C arrays are size 1000, indexed from 1..=m in this program.
-    // We'll allocate 1001 to allow index 1000 safely (and ignore index 0).
+    // C arrays are size 1000, indexed from 1..=m (index 0 unused).
+    // We allocate 1001 to allow index 1000 safely.
     let mut a = vec![0i32; 1001];
     let mut b = vec![0i32; 1001];
 
@@ -47,7 +47,8 @@ fn main() {
             b[idx] = n.wrapping_sub(a[idx]);
         }
 
-        // Sort b[1..=m] ascending using the same O(m^2) swap logic.
+        // Selection-sort-like nested loops:
+        // for(i=1;i<m;i++) for(j=i+1;j<=m;j++) if(b[i]>b[j]) swap
         for i in 1..m {
             for j in (i + 1)..=m {
                 let ii = i as usize;
@@ -64,7 +65,7 @@ fn main() {
         let limit = m - count1 - 1;
         for i in 1..=limit {
             let idx = i as usize;
-            count2 = count2.wrapping_add(b[idx]); // emulate C signed overflow
+            count2 = count2.wrapping_add(b[idx]); // wrapping to mimic C overflow
         }
     }
 

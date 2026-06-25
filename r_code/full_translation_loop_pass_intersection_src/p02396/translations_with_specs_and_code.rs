@@ -1,22 +1,25 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin; behavior on invalid/insufficient input is unspecified by the spec.
+    // Read entire stdin; this matches typical competitive-programming style.
+    // Per spec, behavior on malformed/EOF input is unspecified; we simply stop if parsing fails.
     let mut input = String::new();
-    io::stdin().read_to_string(&mut input).unwrap();
+    io::stdin().read_to_string(&mut input).ok();
 
-    let mut iter = input.split_whitespace();
-    let mut i: i32 = 0;
+    let mut case_no: i32 = 0;
 
-    loop {
-        // No explicit handling for end-of-input/read failures per spec.
-        let x_str = iter.next().unwrap();
-        let x: i32 = x_str.parse().unwrap();
+    for tok in input.split_whitespace() {
+        let x: i32 = match tok.parse() {
+            Ok(v) => v,
+            Err(_) => break, // unspecified behavior; choose to stop
+        };
 
-        i += 1;
+        case_no += 1;
+
         if x == 0 {
-            break;
+            break; // no output for terminating zero
         }
-        print!("Case {}: {}\n", i, x);
+
+        print!("Case {}: {}\n", case_no, x);
     }
 }

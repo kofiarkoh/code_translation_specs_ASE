@@ -3,20 +3,20 @@ use std::collections::BinaryHeap;
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin
+    // Read all input as whitespace-delimited tokens (matches C's ins/in behavior).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
     let h: usize = it.next().unwrap().parse().unwrap();
     let w: usize = it.next().unwrap().parse().unwrap();
-    let mut a: i64 = it.next().unwrap().parse().unwrap();
+    let a_in: i64 = it.next().unwrap().parse().unwrap();
     let b: i64 = it.next().unwrap().parse().unwrap();
 
-    // 1-based indexing with a 1-cell padding border to safely mark bomb neighbors.
-    // SPEC precondition: hazard sources are not on the outermost border; otherwise C had UB.
-    // We still allocate padding to avoid out-of-bounds in Rust.
-    let mut grid = vec![vec![b'\0'; w + 2]; h + 2];
+    // We allocate with a 1-cell margin around the grid so that hazard expansion to 8 neighbors
+    // can be done without bounds checks, matching the C program's behavior.
+    // SPEC precondition: inputs must be such that this does not go out of internal storage.
+    let mut map = vec![vec![b'\0'; w + 2]; h + 2];
     let mut bomb = vec![vec![false; w + 2]; h + 2];
     let mut vis = vec![vec![false; w + 2]; h + 2];
 
@@ -37,17 +37,17 @@ fn main() {
     let mut gc = 0usize;
 
     for r in 1..=h {
-        let row = it.next().unwrap().as_bytes().to_vec();
-        // Spec says each row has exactly width characters.
+        let row = it.next().unwrap().as_bytes();
+        // Use first W characters as per spec.
         for c in 1..=w {
             let ch = row[c - 1];
-            grid[r][c] = ch;
+            map[r][c] = ch;
             if ch == b'*' {
                 bomb[r][c] = true;
+                // Mark 8 neighbors without explicit boundary checks (as in C).
                 for &(dr, dc) in &mv {
                     let rr = (r as isize + dr) as usize;
                     let cc = (c as isize + dc) as usize;
-                    // With padding, this is safe even if on border; spec says it won't be.
                     bomb[rr][cc] = true;
                 }
             } else if ch == b's' {
@@ -60,19 +60,20 @@ fn main() {
         }
     }
 
-    // tt[i][g] where i in 0..8, g in {0,1} (destination is wall '#')
+    // Precompute step costs tt[i][g] where i is direction index, g is 0/1 for wall destination.
+    // Orthogonal: A_in (+B if wall). Diagonal: 2*A_in (+B if wall).
     let mut tt = [[0i64; 2]; 8];
     for i in 0..4 {
-        tt[i][0] = a;
-        tt[i][1] = a + b;
+        tt[i][0] = a_in;
+        tt[i][1] = a_in + b;
     }
-    a <<= 1;
+    let a2 = a_in * 2;
     for i in 4..8 {
-        tt[i][0] = a;
-        tt[i][1] = a + b;
+        tt[i][0] = a2;
+        tt[i][1] = a2 + b;
     }
 
-    // Dijkstra with "visited once" semantics (matches C: once vis[r][c]=1, never expanded again).
+    // Dijkstra: state is (cost, r, c). Finalize on first pop (vis).
     let mut pq: BinaryHeap<(Reverse<i64>, usize, usize)> = BinaryHeap::new();
     pq.push((Reverse(0), sr, sc));
 
@@ -88,9 +89,8 @@ fn main() {
         }
         vis[r][c] = true;
 
-        let f = bomb[r][c]; // hazardous current cell?
-        let k = ((2 - if f { 1 } else { 0 }) << 2) as usize; // 8 if not bomb, 4 if bomb
-
+        let f = bomb[r][c]; // dangerous?
+        let k = if f { 4 } else { 8 }; // dangerous => only orthogonal
         for i in 0..k {
             let (dr, dc) = mv[i];
             let rr_i = r as isize + dr;
@@ -101,18 +101,16 @@ fn main() {
             let rr = rr_i as usize;
             let cc = cc_i as usize;
 
-            let g_wall = grid[rr][cc] == b'#';
+            let g_wall = map[rr][cc] == b'#';
             if f && g_wall {
-                // Invalid: move from hazardous cell into a wall cell.
-                continue;
+                continue; // dangerous -> wall forbidden
             }
 
-            // In C: if ((i < 4 || g) && !vis[rr][cc]) enq(...)
-            // Meaning: diagonal moves allowed only if destination is a wall.
+            // Diagonal moves only allowed when destination is a wall.
+            // Orthogonal moves allowed regardless of wall (subject to above rule).
             if (i < 4 || g_wall) && !vis[rr][cc] {
                 let g_idx = if g_wall { 1 } else { 0 };
-                let nt = t + tt[i][g_idx];
-                pq.push((Reverse(nt), rr, cc));
+                pq.push((Reverse(t + tt[i][g_idx]), rr, cc));
             }
         }
     }

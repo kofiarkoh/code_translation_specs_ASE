@@ -1,22 +1,24 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, then parse as whitespace-separated integers (like scanf("%d")).
+    // Read entire stdin, then parse as whitespace-separated integers like scanf("%d").
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
+    let mut out = String::new();
+
     loop {
         let h = match it.next() {
-            Some(v) => v.parse::<i32>().unwrap(),
+            Some(x) => x.parse::<i32>().unwrap(),
             None => break,
         };
         let m = match it.next() {
-            Some(v) => v.parse::<i32>().unwrap(),
+            Some(x) => x.parse::<i32>().unwrap(),
             None => break,
         };
         let s = match it.next() {
-            Some(v) => v.parse::<i32>().unwrap(),
+            Some(x) => x.parse::<i32>().unwrap(),
             None => break,
         };
 
@@ -24,29 +26,30 @@ fn main() {
             break;
         }
 
-        // In C, signed overflow is undefined; to emulate typical two's-complement wraparound
-        // behavior, use wrapping arithmetic on i32.
+        // In C, signed overflow is UB; we emulate typical 32-bit two's-complement wraparound
+        // using wrapping arithmetic to preserve behavior for extreme inputs.
         let cur_sec = h
             .wrapping_mul(3600)
             .wrapping_add(m.wrapping_mul(60))
             .wrapping_add(s);
-
         let mut remaining = (2i32).wrapping_mul(3600).wrapping_sub(cur_sec);
 
-        println!(
-            "{:02}:{:02}:{:02}",
+        out.push_str(&format!(
+            "{:02}:{:02}:{:02}\n",
             remaining / 3600,
             (remaining % 3600) / 60,
             remaining % 60
-        );
+        ));
 
         remaining = remaining.wrapping_mul(3);
 
-        println!(
-            "{:02}:{:02}:{:02}",
+        out.push_str(&format!(
+            "{:02}:{:02}:{:02}\n",
             remaining / 3600,
             (remaining % 3600) / 60,
             remaining % 60
-        );
+        ));
     }
+
+    print!("{out}");
 }

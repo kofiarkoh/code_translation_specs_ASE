@@ -16,8 +16,8 @@ fn main() {
     let mut it = input.split_whitespace();
 
     let n: usize = match it.next() {
-        Some(x) => x.parse().unwrap(),
-        None => return, // no input
+        Some(v) => v.parse().unwrap(),
+        None => return, // No input: mimic doing nothing.
     };
     let m: usize = it.next().unwrap().parse().unwrap();
 
@@ -33,7 +33,7 @@ fn main() {
         });
     }
 
-    // min[1001] in C, 1-based indexing; keep size n+1 (assumes input respects bounds).
+    // min[1001] in C, 1-based indexing. We'll allocate n+1 (assumes input respects bounds).
     let mut dist = vec![SUP; n + 1];
     if n >= 1 {
         dist[1] = 0;
@@ -53,7 +53,7 @@ fn main() {
 
     let ans = dist[n];
 
-    // Extra N iterations to detect further improvement (negative cycle reachability effect).
+    // Additional N relaxations to detect further improvement (negative cycle reachability effect).
     for _k in 1..=n {
         for e in &edges {
             let u = e.t;
@@ -66,8 +66,8 @@ fn main() {
     }
 
     if dist[n] == ans {
-        // C prints -ans as %lld
-        println!("{}", -ans);
+        // C prints -ans as long long.
+        print!("{}\n", -ans);
     } else {
         print!("inf\n");
     }

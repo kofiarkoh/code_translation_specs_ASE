@@ -1,100 +1,145 @@
 use std::cmp::Ordering;
 use std::io::{self, Read};
 
-const EPS: f64 = 1e-10;
-
 #[derive(Clone, Copy, Debug)]
-struct PtI {
+struct Pt {
     x: i64,
     y: i64,
 }
 
 #[derive(Clone, Copy, Debug)]
-struct PtF {
-    x: f64,
-    y: f64,
+struct Seg {
+    a: Pt,
+    b: Pt,
 }
 
-#[derive(Clone, Copy, Debug)]
-struct SegI {
-    a: PtI,
-    b: PtI,
+fn cross(ax: i64, ay: i64, bx: i64, by: i64) -> i128 {
+    (ax as i128) * (by as i128) - (ay as i128) * (bx as i128)
+}
+
+fn orient(a: Pt, b: Pt, c: Pt) -> i128 {
+    cross(b.x - a.x, b.y - a.y, c.x - a.x, c.y - a.y)
+}
+
+fn is_parallel_or_collinear(s1: Seg, s2: Seg) -> bool {
+    let dx1 = s1.b.x - s1.a.x;
+    let dy1 = s1.b.y - s1.a.y;
+    let dx2 = s2.b.x - s2.a.x;
+    let dy2 = s2.b.y - s2.a.y;
+    cross(dx1, dy1, dx2, dy2) == 0
+}
+
+fn proper_intersection(s1: Seg, s2: Seg) -> bool {
+    // Proper interior intersection: each segment's endpoints must lie strictly on opposite sides
+    // of the other segment's supporting line. This excludes endpoint touches and collinear overlap.
+    if is_parallel_or_collinear(s1, s2) {
+        return false;
+    }
+    let o1 = orient(s1.a, s1.b, s2.a);
+    let o2 = orient(s1.a, s1.b, s2.b);
+    let o3 = orient(s2.a, s2.b, s1.a);
+    let o4 = orient(s2.a, s2.b, s1.b);
+
+    // Strict opposite signs (no zeros) for both pairs.
+    (o1 > 0 && o2 < 0 || o1 < 0 && o2 > 0) && (o3 > 0 && o4 < 0 || o3 < 0 && o4 > 0)
 }
 
 #[derive(Clone, Copy, Debug)]
 struct Event {
-    // position along reference segment (0..1) used for ordering
-    t: f64,
-    // two-state values (assumed 0/1 by spec)
-    cat: i64,
-    lab: i64,
+    // Parameter t along reference segment, represented as a rational num/den with den>0.
+    // We only need ordering, so we store (num, den) and compare by cross-multiplication.
+    num: i128,
+    den: i128,
+    // Constraint data:
+    typ: i64,
+    label: i64, // intended 0/1, but we keep as i64 and only use parity.
 }
 
-fn cross_i64(ax: i64, ay: i64, bx: i64, by: i64) -> i128 {
-    (ax as i128) * (by as i128) - (ay as i128) * (bx as i128)
-}
+fn event_t_on_ref(refs: Seg, other: Seg) -> Option<(i128, i128)> {
+    // Compute intersection parameter t for refs.a + t*(refs.b-refs.a), with 0<t<1 guaranteed
+    // by proper_intersection check. We still compute robustly using i128.
+    let p = refs.a;
+    let r = Pt {
+        x: refs.b.x - refs.a.x,
+        y: refs.b.y - refs.a.y,
+    };
+    let q = other.a;
+    let s = Pt {
+        x: other.b.x - other.a.x,
+        y: other.b.y - other.a.y,
+    };
 
-fn sub_i64(a: PtI, b: PtI) -> (i64, i64) {
-    (a.x - b.x, a.y - b.y)
-}
-
-fn to_f(p: PtI) -> PtF {
-    PtF {
-        x: p.x as f64,
-        y: p.y as f64,
-    }
-}
-
-// Computes proper intersection between segments p->p2 and q->q2.
-// Returns parameter t along p->p2 (0..1) if they intersect strictly in the interior of both segments.
-// Uses floating-point with EPS threshold as per spec.
-fn proper_intersection_t(p: PtI, p2: PtI, q: PtI, q2: PtI) -> Option<f64> {
-    // Use robust-ish integer cross products for parallel/collinear detection,
-    // but compute intersection parameters in f64 to match spec's floating-point behavior.
-    let (rx, ry) = sub_i64(p2, p);
-    let (sx, sy) = sub_i64(q2, q);
-
-    let rxs = cross_i64(rx, ry, sx, sy);
+    let rxs = cross(r.x, r.y, s.x, s.y);
     if rxs == 0 {
-        // Parallel or collinear: spec does not define; treat as no proper intersection.
-        return None;
+        return None; // parallel/collinear treated as non-contributing
     }
-
-    let (qpx, qpy) = sub_i64(q, p);
-    let qpxr = cross_i64(qpx, qpy, rx, ry);
-    let qpxs = cross_i64(qpx, qpy, sx, sy);
-
-    // t = (q - p) x s / (r x s)
-    // u = (q - p) x r / (r x s)
-    let denom = rxs as f64;
-    let t = (qpxs as f64) / denom;
-    let u = (qpxr as f64) / denom;
-
-    // Strictly interior of both segments: EPS away from endpoints.
-    if t > EPS && t < 1.0 - EPS && u > EPS && u < 1.0 - EPS {
-        Some(t)
-    } else {
-        None
+    let qmp = Pt {
+        x: q.x - p.x,
+        y: q.y - p.y,
+    };
+    let t_num = cross(qmp.x, qmp.y, s.x, s.y);
+    let mut den = rxs;
+    let mut num = t_num;
+    // Normalize to den > 0 for consistent ordering.
+    if den < 0 {
+        den = -den;
+        num = -num;
     }
+    Some((num, den))
 }
 
-// Program rule for whether an event matches the current state.
-// The spec does not provide the exact rule; the narrowest reasonable two-state rule
-// implied by "category/label combination" is to compare their XOR to the current state.
-fn matches_state(cat: i64, lab: i64, state: i64) -> bool {
-    ((cat ^ lab) & 1) == (state & 1)
+fn constraint_satisfied(cur_state: i64, typ: i64, label: i64) -> bool {
+    // Specification: "one distinguished value is treated specially" but does not name it.
+    // Narrowest reasonable interpretation: typ==0 is the distinguished value.
+    // Constraint: if typ==0, required state equals label; otherwise required state equals 1-label.
+    let lbl = label & 1;
+    let required = if typ == 0 { lbl } else { 1 ^ lbl };
+    (cur_state & 1) == required
 }
 
-fn eval(events: &[Event], init_state: i64) -> i64 {
-    let mut state = init_state & 1;
-    let mut changes: i64 = 0;
-    for e in events {
-        if !matches_state(e.cat, e.lab, state) {
-            changes += 1;
-            state ^= 1;
+fn solve_case(refs: Seg, candidates: &[(Seg, i64, i64)]) -> i64 {
+    let mut events: Vec<Event> = Vec::new();
+
+    for &(seg, typ, label) in candidates {
+        if !proper_intersection(refs, seg) {
+            continue;
+        }
+        if let Some((num, den)) = event_t_on_ref(refs, seg) {
+            events.push(Event { num, den, typ, label });
         }
     }
-    changes
+
+    events.sort_by(|a, b| {
+        // Compare a.num/a.den vs b.num/b.den by cross-multiplication.
+        let left = a.num * b.den;
+        let right = b.num * a.den;
+        match left.cmp(&right) {
+            Ordering::Equal => {
+                // Ties: arbitrary but consistent order. Use typ/label as deterministic tiebreakers.
+                match a.typ.cmp(&b.typ) {
+                    Ordering::Equal => a.label.cmp(&b.label),
+                    o => o,
+                }
+            }
+            o => o,
+        }
+    });
+
+    let mut best = i64::MAX;
+    for init in [0i64, 1i64] {
+        let mut state = init;
+        let mut toggles = 0i64;
+        for e in &events {
+            if !constraint_satisfied(state, e.typ, e.label) {
+                state ^= 1;
+                toggles += 1;
+            }
+        }
+        if toggles < best {
+            best = toggles;
+        }
+    }
+    if best == i64::MAX { 0 } else { best }
 }
 
 fn main() {
@@ -109,59 +154,41 @@ fn main() {
 
     let mut out = String::new();
 
-    for _case in 0..t {
-        let ax: i64 = it.next().unwrap().parse().unwrap();
-        let ay: i64 = it.next().unwrap().parse().unwrap();
-        let bx: i64 = it.next().unwrap().parse().unwrap();
-        let by: i64 = it.next().unwrap().parse().unwrap();
-        let ref_seg = SegI {
-            a: PtI { x: ax, y: ay },
-            b: PtI { x: bx, y: by },
+    for case_idx in 0..t {
+        let x1: i64 = it.next().unwrap().parse().unwrap();
+        let y1: i64 = it.next().unwrap().parse().unwrap();
+        let x2: i64 = it.next().unwrap().parse().unwrap();
+        let y2: i64 = it.next().unwrap().parse().unwrap();
+        let refs = Seg {
+            a: Pt { x: x1, y: y1 },
+            b: Pt { x: x2, y: y2 },
         };
 
         let n: usize = it.next().unwrap().parse().unwrap();
-        let mut events: Vec<Event> = Vec::new();
-        events.reserve(n.min(100_000));
+        let mut candidates: Vec<(Seg, i64, i64)> = Vec::with_capacity(n);
 
         for _ in 0..n {
-            let x1: i64 = it.next().unwrap().parse().unwrap();
-            let y1: i64 = it.next().unwrap().parse().unwrap();
-            let x2: i64 = it.next().unwrap().parse().unwrap();
-            let y2: i64 = it.next().unwrap().parse().unwrap();
-            let cat: i64 = it.next().unwrap().parse().unwrap();
-            let lab: i64 = it.next().unwrap().parse().unwrap();
-
-            let s = SegI {
-                a: PtI { x: x1, y: y1 },
-                b: PtI { x: x2, y: y2 },
-            };
-
-            if let Some(tpos) = proper_intersection_t(ref_seg.a, ref_seg.b, s.a, s.b) {
-                events.push(Event {
-                    t: tpos,
-                    cat,
-                    lab,
-                });
-            }
+            let ax: i64 = it.next().unwrap().parse().unwrap();
+            let ay: i64 = it.next().unwrap().parse().unwrap();
+            let bx: i64 = it.next().unwrap().parse().unwrap();
+            let by: i64 = it.next().unwrap().parse().unwrap();
+            let typ: i64 = it.next().unwrap().parse().unwrap();
+            let label: i64 = it.next().unwrap().parse().unwrap();
+            candidates.push((
+                Seg {
+                    a: Pt { x: ax, y: ay },
+                    b: Pt { x: bx, y: by },
+                },
+                typ,
+                label,
+            ));
         }
 
-        // Sort by intersection position along reference segment.
-        // If ties/near-ties occur, ordering may be inconsistent as per spec.
-        events.sort_by(|a, b| {
-            if a.t < b.t {
-                Ordering::Less
-            } else if a.t > b.t {
-                Ordering::Greater
-            } else {
-                Ordering::Equal
-            }
-        });
-
-        let ans0 = eval(&events, 0);
-        let ans1 = eval(&events, 1);
-        let ans = ans0.min(ans1);
-
-        out.push_str(&format!("{ans}\n"));
+        let ans = solve_case(refs, &candidates);
+        out.push_str(&ans.to_string());
+        if case_idx + 1 < t {
+            out.push('\n');
+        }
     }
 
     print!("{out}");

@@ -7,22 +7,16 @@ fn main() {
     let mut it = input.split_whitespace();
 
     let n: usize = it.next().unwrap().parse().unwrap();
-    let a = it.next().unwrap();
-    let b = it.next().unwrap();
+    let s = it.next().unwrap().as_bytes();
+    let t = it.next().unwrap().as_bytes();
 
-    // SPEC: compute maximal k (0..=N) such that suffix of A of length k == prefix of B of length k,
-    // then output L = 2N - k.
-    //
-    // Note: The provided C code's matching logic is flawed (e.g., it redeclares `i` inside the loop
-    // and never updates the outer `i`, risking non-termination). We follow the SPEC as source of truth.
-    let a_bytes = a.as_bytes();
-    let b_bytes = b.as_bytes();
-
+    // Per spec: find maximum k in [0, N] such that suffix of S of length k
+    // equals prefix of T of length k. Output = 2*N - k.
     let mut best_k = 0usize;
-    for k in 0..=n {
-        // Compare A[N-k..N] with B[0..k]
-        if a_bytes[n - k..n] == b_bytes[0..k] {
+    for k in (0..=n).rev() {
+        if s[n - k..n] == t[0..k] {
             best_k = k;
+            break;
         }
     }
 

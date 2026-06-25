@@ -1,89 +1,89 @@
 use std::cmp::Ordering;
 use std::io::{self, Read};
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 struct Item {
-    w: f64, // effective nonnegative weight for fractional selection
-    v: f64, // effective value
+    w: f64,
+    v: f64,
+    r: f64,
 }
 
 fn main() {
+    // Read entire stdin, parse as i64 integers (as per spec: well-formed integers).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
     let n: usize = match it.next() {
-        Some(t) => t.parse().unwrap(),
+        Some(s) => s.parse::<i64>().unwrap() as usize,
         None => return,
     };
+    let mut w_cap: f64 = it.next().unwrap().parse::<i64>().unwrap() as f64;
 
-    // Capacity is treated as real-valued.
-    let mut cap: f64 = it.next().unwrap().parse::<f64>().unwrap();
-
-    let mut base_value: f64 = 0.0;
-    let mut eligible: Vec<Item> = Vec::new();
-    eligible.reserve(n);
+    let mut ans: f64 = 0.0;
+    let mut cand: Vec<Item> = Vec::new();
+    // Spec: internal storage limit 100002 candidates; if violated, behavior undefined.
+    // We do not enforce it beyond reserving a reasonable amount.
+    cand.reserve(n.min(100_002));
 
     for _ in 0..n {
         let w_i: i64 = it.next().unwrap().parse().unwrap();
         let v_i: i64 = it.next().unwrap().parse().unwrap();
 
-        // Items with nonnegative weight and nonpositive value are ignored.
         if w_i >= 0 && v_i <= 0 {
+            // ignored
             continue;
         }
 
-        // Items with negative weight and positive value are always taken in full.
         if w_i < 0 && v_i > 0 {
-            base_value += v_i as f64;
-            cap += (-w_i) as f64;
+            // always taken fully; W -= w (w is negative) => capacity increases by -w
+            ans += v_i as f64;
+            w_cap -= w_i as f64;
             continue;
         }
 
-        // All other items are transformed, if needed, into an equivalent representation with nonnegative weight.
-        // Narrow interpretation: if weight is negative, flip both signs.
-        let (ew, ev) = if w_i < 0 {
-            (-(w_i as f64), -(v_i as f64))
-        } else {
-            (w_i as f64, v_i as f64)
-        };
+        // Candidate branch with possible normalization.
+        if w_i < 0 {
+            // Here implies v_i <= 0. Normalize to (|w|, |v|), adjust ans and W.
+            let ww = (-w_i) as f64;
+            let vv = (-v_i) as f64; // |v|
+            ans -= vv;
+            // Spec: "W += w where w is negative" => decreases by |w|
+            w_cap += w_i as f64;
 
-        eligible.push(Item { w: ew, v: ev });
+            // Spec precondition: stored weight non-zero; otherwise undefined.
+            let r = vv / ww;
+            cand.push(Item { w: ww, v: vv, r });
+        } else {
+            // Here implies w_i > 0 and v_i > 0; store as-is.
+            let ww = w_i as f64;
+            let vv = v_i as f64;
+            // Spec precondition: stored weight non-zero; otherwise undefined.
+            let r = vv / ww;
+            cand.push(Item { w: ww, v: vv, r });
+        }
     }
 
-    // Sort by value density descending.
-    eligible.sort_by(|a, b| {
-        let ra = a.v / a.w;
-        let rb = b.v / b.w;
-        match rb.partial_cmp(&ra) {
-            Some(ord) => ord,
-            None => Ordering::Equal, // precondition violation (NaN) => unspecified; keep deterministic
-        }
+    // Sort by non-increasing ratio; ties have no defined further ordering.
+    cand.sort_by(|a, b| {
+        // Preserve floating behavior as closely as possible; if NaN appears, ordering is unspecified.
+        b.r.partial_cmp(&a.r).unwrap_or(Ordering::Equal)
     });
 
-    let tol: f64 = 1e-9;
-    let mut total: f64 = base_value;
-
-    for item in eligible {
-        if cap <= tol {
+    for item in cand {
+        if w_cap.abs() < 1e-7 {
             break;
         }
-        if item.w <= 0.0 {
-            // Precondition violation (zero effective weight for eligible item) => unspecified; skip.
-            continue;
+        // x = min(1, W / w)
+        let mut x = w_cap / item.w;
+        if x > 1.0 {
+            x = 1.0;
         }
-
-        if item.w <= cap + tol {
-            cap -= item.w;
-            total += item.v;
-        } else {
-            let frac = (cap / item.w).clamp(0.0, 1.0);
-            total += item.v * frac;
-            cap = 0.0;
-            break;
-        }
+        // No clamping for negative x; spec allows negative capacity and defines behavior by arithmetic.
+        w_cap -= x * item.w;
+        ans += x * item.v;
     }
 
-    // Observed required formatting: fixed with 6 digits after decimal.
-    println!("{:.6}", total);
+    // Match C printf("%lf\n") default: 6 digits after decimal.
+    println!("{:.6}", ans);
 }

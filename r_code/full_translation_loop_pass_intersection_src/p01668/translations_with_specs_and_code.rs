@@ -14,42 +14,44 @@ struct Solver {
     n: usize,
     m: usize,
     exist_pos: usize,
-    a: Vec<u8>, // digits 0..9, length n (lower bound padded to n)
+    a: Vec<u8>, // digits 0..9, length n (lower bound padded)
     b: Vec<u8>, // digits 0..9, length n (upper bound)
-    c: Vec<u8>, // pattern digits 0..9, length m
+    c: Vec<u8>, // digits 0..9, length m (pattern)
 
-    // memoization with "+1" sentinel like the C code (0 = uncomputed, else value+1)
+    // memoization with "ret+1" sentinel (0 means uncomputed)
     memo: Vec<i32>,      // [n+1][m+1][2][2]
     num_memo: Vec<i32>,  // [n+1][2][2]
 }
 
 impl Solver {
     fn idx_memo(&self, pos: usize, seq_pos: usize, ue: usize, sita: usize) -> usize {
-        // layout: (((pos*(m+1) + seq_pos)*2 + ue)*2 + sita)
-        ((((pos * (self.m + 1) + seq_pos) * 2 + ue) * 2) + sita)
+        // dims: (n+1) * (m+1) * 2 * 2
+        (((pos * (self.m + 1) + seq_pos) * 2 + ue) * 2 + sita)
     }
-
     fn idx_num(&self, pos: usize, ue: usize, sita: usize) -> usize {
+        // dims: (n+1) * 2 * 2
         ((pos * 2 + ue) * 2 + sita)
     }
 
-    fn get_number_of_number(&mut self, pos: usize, ue_flag: usize, sita_flag: usize) -> i32 {
+    fn get_number_of_number(&mut self, pos: usize, ue_flag: bool, sita_flag: bool) -> i32 {
         if pos >= self.n {
             return 1;
         }
-        let idx = self.idx_num(pos, ue_flag, sita_flag);
+        let ue = ue_flag as usize;
+        let sita = sita_flag as usize;
+        let idx = self.idx_num(pos, ue, sita);
         let cached = self.num_memo[idx];
         if cached > 0 {
             return cached - 1;
         }
 
-        let imin = if sita_flag == 1 { self.a[pos] } else { 0 };
-        let imax = if ue_flag == 1 { self.b[pos] } else { 9 };
+        let imin = if sita_flag { self.a[pos] } else { 0 };
+        let imax = if ue_flag { self.b[pos] } else { 9 };
 
         let mut ret: i32 = 0;
         for d in imin..=imax {
-            let next_ue = if ue_flag == 1 && d == imax { 1 } else { 0 };
-            let next_sita = if sita_flag == 1 && d == imin { 1 } else { 0 };
+            let next_ue = ue_flag && d == imax;
+            let next_sita = sita_flag && d == imin;
             ret = add_mod(ret, self.get_number_of_number(pos + 1, next_ue, next_sita));
         }
 
@@ -57,7 +59,7 @@ impl Solver {
         ret
     }
 
-    fn search(&mut self, pos: usize, seq_pos: usize, ue_flag: usize, sita_flag: usize) -> i32 {
+    fn search(&mut self, pos: usize, seq_pos: usize, ue_flag: bool, sita_flag: bool) -> i32 {
         if seq_pos >= self.m {
             return self.get_number_of_number(pos, ue_flag, sita_flag);
         }
@@ -65,30 +67,32 @@ impl Solver {
             return 0;
         }
 
-        let idx = self.idx_memo(pos, seq_pos, ue_flag, sita_flag);
+        let ue = ue_flag as usize;
+        let sita = sita_flag as usize;
+        let idx = self.idx_memo(pos, seq_pos, ue, sita);
         let cached = self.memo[idx];
         if cached > 0 {
             return cached - 1;
         }
 
-        let imin = if sita_flag == 1 { self.a[pos] } else { 0 };
-        let imax = if ue_flag == 1 { self.b[pos] } else { 9 };
+        let imin = if sita_flag { self.a[pos] } else { 0 };
+        let imax = if ue_flag { self.b[pos] } else { 9 };
 
         let mut ret: i32 = 0;
         for d in imin..=imax {
-            let next_ue = if ue_flag == 1 && d == imax { 1 } else { 0 };
-            let next_sita = if sita_flag == 1 && d == imin { 1 } else { 0 };
+            let next_ue = ue_flag && d == imax;
+            let next_sita = sita_flag && d == imin;
 
-            // Option to not start/continue matching (only allowed when seq_pos == 0)
+            // Option to not start/continue the pattern (only when seq_pos==0)
             if seq_pos == 0 {
                 ret = add_mod(ret, self.search(pos + 1, 0, next_ue, next_sita));
             }
 
-            // Option to match next pattern digit, with the "existPos" constraint:
-            // Disallow starting the match within the leading-zero padding region.
-            // This is encoded exactly as in C:
-            // (!sitaFlag || d!=imin || existPos<=pos) && C[seqPos]==d
-            if (sita_flag == 0 || d != imin || self.exist_pos <= pos) && self.c[seq_pos] == d {
+            // Option to match next pattern digit, with the "existPos" restriction.
+            // Mirrors C condition:
+            // (!sitaFlag || i!=imin || existPos<=pos) && C[seqPos]==i
+            let allowed_start_here = (!sita_flag) || (d != imin) || (self.exist_pos <= pos);
+            if allowed_start_here && self.c[seq_pos] == d {
                 ret = add_mod(ret, self.search(pos + 1, seq_pos + 1, next_ue, next_sita));
             }
         }
@@ -99,9 +103,9 @@ impl Solver {
 }
 
 fn main() {
-    // Read all input tokens
+    // Read all input; if not exactly 3 tokens, exit non-zero with no defined output.
     let mut input = String::new();
-    io::stdin().read_to_string(&mut input).unwrap();
+    io::stdin().read_to_string(&mut input).ok();
     let mut it = input.split_whitespace();
     let a_str = match it.next() {
         Some(s) => s.to_string(),
@@ -119,9 +123,8 @@ fn main() {
     let alen = a_str.len();
     let blen = b_str.len();
 
-    // Pad A on the left with zeros to length of B if needed (as in C).
-    // Precondition says alen <= blen; otherwise behavior is unspecified.
-    let padded_a = if alen < blen {
+    // Pad lower bound with leading zeros to match upper bound length.
+    let mut a_padded = if alen < blen {
         let mut s = String::with_capacity(blen);
         for _ in 0..(blen - alen) {
             s.push('0');
@@ -132,29 +135,41 @@ fn main() {
         a_str
     };
 
+    // Note: Spec precondition says alen <= blen; if violated, behavior is undefined.
+    // We follow the C code behavior (no truncation), but still proceed.
+
     let n = blen;
     let m = c_str.len();
     let exist_pos = blen.saturating_sub(alen);
 
-    // Convert to digit arrays (0..9). Preconditions guarantee digits only.
-    let a: Vec<u8> = padded_a.bytes().map(|ch| ch - b'0').collect();
-    let b: Vec<u8> = b_str.bytes().map(|ch| ch - b'0').collect();
-    let c: Vec<u8> = c_str.bytes().map(|ch| ch - b'0').collect();
+    // Convert to digit arrays (assumes only '0'..'9' per preconditions).
+    let mut a_digits = Vec::with_capacity(n);
+    for ch in a_padded.drain(..).take(n) {
+        a_digits.push((ch as u8).wrapping_sub(b'0'));
+    }
+    let mut b_digits = Vec::with_capacity(n);
+    for ch in b_str.bytes().take(n) {
+        b_digits.push(ch - b'0');
+    }
+    let mut c_digits = Vec::with_capacity(m);
+    for ch in c_str.bytes() {
+        c_digits.push(ch - b'0');
+    }
 
-    let memo_size = (n + 1) * (m + 1) * 2 * 2;
-    let num_size = (n + 1) * 2 * 2;
+    let memo = vec![0i32; (n + 1) * (m + 1) * 2 * 2];
+    let num_memo = vec![0i32; (n + 1) * 2 * 2];
 
     let mut solver = Solver {
         n,
         m,
         exist_pos,
-        a,
-        b,
-        c,
-        memo: vec![0; memo_size],
-        num_memo: vec![0; num_size],
+        a: a_digits,
+        b: b_digits,
+        c: c_digits,
+        memo,
+        num_memo,
     };
 
-    let ans = solver.search(0, 0, 1, 1);
+    let ans = solver.search(0, 0, true, true);
     print!("{ans}\n");
 }

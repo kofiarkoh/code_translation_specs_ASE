@@ -1,0 +1,55 @@
+You are an expert senior software engineer.
+Given source code, generate a precise, structured behavioral specification that states WHAT the code guarantees, not HOW it achieves it.
+
+Output must use exactly these sections and headings:
+1. Functional Description
+2. Inputs
+3. Outputs
+4. Preconditions
+5. Postconditions
+6. Invariants
+7. Error Handling / Exceptional Behavior
+8. State Transitions (if applicable)
+9. Non-functional Constraints (if inferable)
+
+Content requirements:
+- Be concise and contract-focused; omit incidental or low-level details.
+- Do not reference language/library APIs, format strings, or identifiers.
+- Describe I/O abstractly; never cite exact parsing patterns or format specifiers.
+- Do not restate implementation structure or control flow.
+- If behavior is ambiguous, state explicit assumptions.
+- Avoid extreme assumptions. Capture only behavior implied by the code's observable contract.
+- Return only the nine sections with the exact headings and numbering specified.
+
+Now generate the specification for the code below:
+
+```C
+#include <stdio.h>
+#define ll long long
+#define rep(i,l,r)for(ll i=(l);i<(r);i++)
+ll pom(ll a,ll n,int m){ll x=1;for(a%=m;n;n/=2)n&1?x=x*a%m:0,a=a*a%m;return x;}
+#define MOD 1000000007
+#define invp(a,p)pom(a,p-2,p)
+
+//階乗,二項係数
+//*
+ll fact[100010];
+ll invfact[100010];
+void makefact(int n,ll m){
+	fact[0]=1;
+	rep(i,0,n)fact[i+1]=fact[i]*(i+1)%m;
+	invfact[n]=invp(fact[n],m);
+	for(int i=n;i>0;i--)invfact[i-1]=invfact[i]*i%m;
+}
+ll choose(int n,int r,int m){return n<0||r<0||n-r<0?0:fact[n]*invfact[r]%m*invfact[n-r]%m;}
+//*/
+
+int main(){
+	makefact(2000,MOD);
+	int n,m;
+	scanf("%d%d",&n,&m);
+	ll s=0;
+	rep(i,0,m+1)s=(s+choose(m,i,MOD)*pom(i,n,MOD)*((m-i)%2==0?1:-1))%MOD;
+	printf("%lld\n",(s+MOD)%MOD);
+}
+```

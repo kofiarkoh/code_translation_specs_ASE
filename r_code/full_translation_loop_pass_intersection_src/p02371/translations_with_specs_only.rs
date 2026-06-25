@@ -1,76 +1,85 @@
-use std::cmp::max;
-use std::collections::VecDeque;
 use std::io::{self, Read};
 
-fn bfs_farthest(start: usize, adj: &Vec<Vec<(usize, i32)>>) -> (usize, i32) {
-    let n = adj.len();
-    let mut dist: Vec<i32> = vec![-1; n];
-    let mut q = VecDeque::new();
-
-    dist[start] = 0;
-    q.push_back(start);
-
-    while let Some(u) = q.pop_front() {
-        let du = dist[u];
-        for &(v, w) in &adj[u] {
-            if dist[v] == -1 {
-                // Under the tree + non-negative weights preconditions, this is the unique path.
-                // The spec states diameter fits in i32; we keep i32 arithmetic.
-                dist[v] = du + w;
-                q.push_back(v);
-            }
-        }
-    }
-
-    let mut best_v = start;
-    let mut best_d = 0i32;
-    for (i, &d) in dist.iter().enumerate() {
-        if d > best_d {
-            best_d = d;
-            best_v = i;
-        }
-    }
-    (best_v, best_d)
-}
-
 fn main() {
+    // Read entire stdin
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
     let n: usize = match it.next() {
-        Some(s) => s.parse().unwrap(),
-        None => return, // unspecified behavior; choose to do nothing if no input
+        Some(x) => x.parse().unwrap(),
+        None => return, // unspecified; no input
     };
 
+    // Build adjacency list; store each undirected edge in both directions.
+    // We use i32 to mirror C `int` semantics as closely as possible.
     let mut adj: Vec<Vec<(usize, i32)>> = vec![Vec::new(); n];
 
-    // Reads exactly (n - 1) triples: u v w
+    // Exactly n-1 edges are expected; if fewer/more, behavior is unspecified by spec.
     for _ in 0..n.saturating_sub(1) {
-        let u: usize = it.next().unwrap().parse().unwrap();
-        let v: usize = it.next().unwrap().parse().unwrap();
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
         let w: i32 = it.next().unwrap().parse().unwrap();
-        adj[u].push((v, w));
-        adj[v].push((u, w));
+        adj[a].push((b, w));
+        adj[b].push((a, w));
     }
 
-    // Tree diameter via two traversals:
-    // 1) from an arbitrary node (0) find farthest A
-    // 2) from A find farthest distance = diameter length
-    let start = if n == 0 { 0 } else { 0 };
-    let (a, _) = if n == 0 {
-        (0usize, 0i32)
-    } else {
-        bfs_farthest(start, &adj)
-    };
-    let (_, diameter) = if n == 0 {
-        (0usize, 0i32)
-    } else {
-        bfs_farthest(a, &adj)
-    };
+    // DFS traversal computing distances from `start`.
+    // Returns (distances, farthest_vertex_selected_by_rule).
+    //
+    // Tie-breaking rule: if multiple vertices attain the same maximum distance,
+    // select the one with the greatest vertex index. This is implemented by
+    // scanning vertices in increasing order and updating on >=.
+    fn dfs_dist_and_farthest(adj: &[Vec<(usize, i32)>], start: usize) -> (Vec<i32>, usize) {
+        let n = adj.len();
+        let mut visited = vec![false; n];
+        let mut dist = vec![0i32; n];
 
-    // Output a single integer and nothing else.
-    // For n==0 (not a valid tree per spec), we print 0 as a narrow, deterministic choice.
-    let out = if n == 0 { 0 } else { max(0, diameter) };
-    print!("{}", out);
+        // Iterative DFS to avoid recursion depth issues; tree property + visited ensures
+        // each vertex visited at most once.
+        let mut stack: Vec<usize> = Vec::with_capacity(n);
+        stack.push(start);
+        visited[start] = true;
+        dist[start] = 0;
+
+        while let Some(u) = stack.pop() {
+            let du = dist[u];
+            for &(v, w) in &adj[u] {
+                if !visited[v] {
+                    visited[v] = true;
+                    // C `int` overflow is unspecified per spec; we use i32 and normal
+                    // addition (which may panic in debug on overflow). This matches the
+                    // "unspecified if overflow" constraint.
+                    dist[v] = du + w;
+                    stack.push(v);
+                }
+            }
+        }
+
+        // Find farthest with tie-breaking toward greatest index.
+        let mut best_v: usize = 0;
+        let mut best_d: i32 = dist[0];
+        for i in 0..n {
+            if dist[i] >= best_d {
+                best_d = dist[i];
+                best_v = i;
+            }
+        }
+
+        (dist, best_v)
+    }
+
+    // First traversal from vertex 0.
+    let (_d0, endpoint) = dfs_dist_and_farthest(&adj, 0);
+
+    // Second traversal from selected endpoint; diameter is maximum distance found.
+    let (d1, _ignored) = dfs_dist_and_farthest(&adj, endpoint);
+    let mut diameter: i32 = d1[0];
+    for &x in &d1 {
+        if x > diameter {
+            diameter = x;
+        }
+    }
+
+    print!("{}", diameter);
 }

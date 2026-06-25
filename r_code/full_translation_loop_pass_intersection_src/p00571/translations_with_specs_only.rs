@@ -1,86 +1,79 @@
 use std::cmp::Ordering;
 use std::io::{self, Read};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 struct Item {
-    a: i64,
-    b: i64,
+    x: i64,
+    w: i64,
 }
 
 fn main() {
-    // Read entire stdin
+    // Read entire stdin; no explicit error handling per spec.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    // Preconditions say inputs are non-negative decimal integers (no leading sign).
-    // We parse into u64 first, then cast to i64 (assumed to fit by preconditions).
     let n: usize = match it.next() {
-        Some(s) => s.parse::<u64>().unwrap() as usize,
-        None => return, // unspecified; keep minimal behavior
+        Some(s) => s.parse().unwrap(),
+        None => return, // Unspecified if missing; exit quietly.
     };
 
+    // Capacity precondition: at most 500,001 items. If violated, behavior unspecified.
     let mut items: Vec<Item> = Vec::with_capacity(n);
     for _ in 0..n {
-        let a_u = it.next().unwrap().parse::<u64>().unwrap();
-        let b_u = it.next().unwrap().parse::<u64>().unwrap();
-        items.push(Item {
-            a: a_u as i64,
-            b: b_u as i64,
-        });
+        let x: i64 = it.next().unwrap().parse().unwrap();
+        let w: i64 = it.next().unwrap().parse().unwrap();
+        items.push(Item { x, w });
     }
 
-    // Sort by first value ascending, then second value ascending.
-    items.sort_by(|x, y| match x.a.cmp(&y.a) {
-        Ordering::Equal => x.b.cmp(&y.b),
+    // Sort by non-decreasing x, then non-decreasing w.
+    items.sort_unstable_by(|a, b| match a.x.cmp(&b.x) {
+        Ordering::Equal => a.w.cmp(&b.w),
         other => other,
     });
 
     // We need:
-    // max_{l<=r} (sum_{i=l..r} B_i - (A_r - A_l))
-    // = max_{r} ( (prefixB[r] - A_r) - min_{l<=r}(prefixB[l-1] - A_l) )
-    // where prefixB[k] = sum_{i=1..k} B_i, prefixB[0]=0.
+    // max_{l<=r} (sum_{k=l..r} w_k - (x_r - x_l))
+    // Let prefix S[i] = sum_{k=1..i} w_k, with S[0]=0.
+    // Expression for fixed r:
+    // (S[r] - S[l-1]) - (x_r - x_l) = (S[r] - x_r) - (S[l-1] - x_l)
+    // So for each r, maximize by minimizing (S[l-1] - x_l) over l in [1..r].
     //
-    // For fixed r:
-    // value(l,r) = (prefixB[r] - A_r) - (prefixB[l-1] - A_l)
-    // So maintain min of (prefixB[l-1] - A_l) over l up to r.
-    //
-    // All arithmetic is i64; preconditions state result fits i64.
-    let mut prefix: i64 = 0;
-    let mut best: i64 = i64::MIN;
+    // Note: l uses x_l (not x_{l-1}), so we track min over l of (S[l-1] - x_l).
+    // This can be updated as we advance r.
 
-    // Initialize min_term using l=1: prefixB[0] - A_1 = -A_1
-    // If n==0, behavior is unspecified; we output 0 as a narrow, harmless choice.
+    let mut prefix: i64 = 0;
+
+    // Initialize with l = 1 candidate before processing r=1:
+    // min_val = S[0] - x_1 = -x_1
+    // If n==0, spec doesn't define; we do nothing.
     if n == 0 {
-        println!("0");
         return;
     }
 
-    let mut min_term: i64 = -items[0].a;
+    let mut min_val: i64 = 0 - items[0].x;
+
+    // Maximum over non-empty subsequences; at least 0 since w >= 0.
+    let mut best: i64 = 0;
 
     for (idx, item) in items.iter().enumerate() {
-        // r = idx+1
-        prefix = prefix + item.b;
+        // Update prefix to S[r]
+        prefix += item.w;
 
-        // candidate using current min_term (which corresponds to some l<=r)
-        let candidate = (prefix - item.a) - min_term;
-        if candidate > best {
-            best = candidate;
+        // Candidate best ending at r = idx+1:
+        // (S[r] - x_r) - min_{l<=r}(S[l-1] - x_l)
+        let cand = (prefix - item.x) - min_val;
+        if cand > best {
+            best = cand;
         }
 
-        // Update min_term for future r using l = (r+1) possibility:
-        // term for l = (idx+2) would be prefixB[r] - A_{r+1}, but we don't know A_{r+1} yet.
-        // Instead, for next iteration (r' = r+1), we need to consider l = r'+1? no.
-        // We need min over l<=r' of (prefixB[l-1] - A_l).
-        // When moving from r to r+1, we can add the new l = r+1 term:
-        // prefixB[r] - A_{r+1}. We'll compute it at the start of next iteration by using
-        // current prefix and next item's A. To keep it simple, update min_term here
-        // for l = r+1 using current prefix and next A if exists.
+        // Prepare min_val for future r: consider l = (idx+2) using S[r] - x_{r+1}
+        // That requires x_{r+1}, so update only if there is a next item.
         if idx + 1 < n {
-            let next_a = items[idx + 1].a;
-            let new_term = prefix - next_a;
-            if new_term < min_term {
-                min_term = new_term;
+            let next_x = items[idx + 1].x;
+            let v = prefix - next_x; // S[r] - x_{r+1}
+            if v < min_val {
+                min_val = v;
             }
         }
     }

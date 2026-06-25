@@ -1,14 +1,16 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin (scanf-like behavior for whitespace-separated ints).
+    // Read entire stdin, like scanf would consume formatted input.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
 
     let mut it = input.split_whitespace();
-    let a: i32 = it.next().unwrap_or("0").parse().unwrap_or(0);
-    let b: i32 = it.next().unwrap_or("0").parse().unwrap_or(0);
-    let c: i32 = it.next().unwrap_or("0").parse().unwrap_or(0);
+    // If input is missing/invalid, C's scanf would leave variables uninitialized (UB).
+    // Here we default to 0 to keep behavior deterministic.
+    let a: i32 = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+    let b: i32 = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+    let c: i32 = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
 
     if a == 1 && b == 0 && c == 0 {
         print!("Close\n");

@@ -1,51 +1,35 @@
 use std::io::{self, Read};
 
-const SEG_SIZE: usize = 262145; // matches C: long long seg[262145]
-
-struct Parser {
+struct Scanner {
     buf: Vec<u8>,
     idx: usize,
 }
 
-impl Parser {
-    fn new(buf: Vec<u8>) -> Self {
-        Self { buf, idx: 0 }
+impl Scanner {
+    fn new() -> Self {
+        let mut input = String::new();
+        io::stdin().read_to_string(&mut input).unwrap();
+        Self { buf: input.into_bytes(), idx: 0 }
     }
 
-    // Emulates the C in():
-    // int n = 0;
-    // while (*p >= '0') n = 10*n + (*p++ & 0xf);
-    // p++;
-    // return n;
-    //
-    // Notes:
-    // - It stops when current byte < '0' (not checking <= '9'), exactly like C.
-    // - It then advances one extra byte (p++) unconditionally (if possible).
-    // - It assumes there is at least one delimiter after the number; we guard bounds.
-    fn in_i32(&mut self) -> i32 {
+    // Mimic the C in(): parse consecutive digits starting at current position,
+    // then advance one extra byte (assumes a delimiter exists).
+    fn in_int(&mut self) -> i32 {
         let mut n: i32 = 0;
         while self.idx < self.buf.len() && self.buf[self.idx] >= b'0' {
-            // (*p & 0xf) extracts low nibble; for ASCII digits this equals digit value.
-            n = n.wrapping_mul(10).wrapping_add((self.buf[self.idx] & 0x0f) as i32);
+            n = n * 10 + ((self.buf[self.idx] & 0x0f) as i32);
             self.idx += 1;
         }
+        // C does p++; unconditionally. We do the same if possible.
         if self.idx < self.buf.len() {
-            self.idx += 1; // p++
+            self.idx += 1;
         }
         n
     }
 }
 
 fn update(seg: &mut [i64], sz: usize, mut k: usize, mut v: i64) {
-    // C:
-    // k += sz-1;
-    // seg[k] = v;
-    // while (k > 0) {
-    //   if (!(k & 1)) k--;
-    //   t = k, k >>= 1;
-    //   v = seg[t++]; if (v < seg[t]) v = seg[t];
-    //   seg[k] = v;
-    // }
+    // k is 0-based index into leaves in this implementation, matching the C code usage.
     k += sz - 1;
     seg[k] = v;
     while k > 0 {
@@ -55,9 +39,8 @@ fn update(seg: &mut [i64], sz: usize, mut k: usize, mut v: i64) {
         let t = k;
         k >>= 1;
         let mut mx = seg[t];
-        let other = seg[t + 1];
-        if mx < other {
-            mx = other;
+        if mx < seg[t + 1] {
+            mx = seg[t + 1];
         }
         v = mx;
         seg[k] = v;
@@ -65,46 +48,35 @@ fn update(seg: &mut [i64], sz: usize, mut k: usize, mut v: i64) {
 }
 
 fn query(seg: &[i64], a: usize, b: usize, k: usize, l: usize, r: usize) -> i64 {
-    // C:
-    // if (r <= a || b <= l) return 0;
-    // if (a <= l && r <= b) return seg[k];
-    // k <<= 1, m = (l + r) >> 1;
-    // lmax = query(a, b, ++k, l, m);
-    // rmax = query(a, b, ++k, m, r);
-    // if (lmax < rmax) lmax = rmax;
-    // return lmax;
     if r <= a || b <= l {
         return 0;
     }
     if a <= l && r <= b {
         return seg[k];
     }
-    let mut kk = k << 1;
     let m = (l + r) >> 1;
-    kk += 1;
-    let lmax = query(seg, a, b, kk, l, m);
-    kk += 1;
-    let rmax = query(seg, a, b, kk, m, r);
-    if lmax < rmax { rmax } else { lmax }
+    // In C: k <<= 1; lmax = query(..., ++k, ...); rmax = query(..., ++k, ...);
+    // That means children indices are 1 and 2 when parent is 0, and generally 2k+1, 2k+2.
+    let left = query(seg, a, b, 2 * k + 1, l, m);
+    let right = query(seg, a, b, 2 * k + 2, m, r);
+    if left < right { right } else { left }
 }
 
 fn main() {
-    // Read entire stdin; C uses fgets into a big buffer and parses from it.
-    let mut input = Vec::new();
-    io::stdin().read_to_end(&mut input).unwrap();
-    let mut ps = Parser::new(input);
+    let mut sc = Scanner::new();
 
-    let n = ps.in_i32() as usize;
+    let n = sc.in_int() as usize;
 
     let mut sz: usize = 1;
     while sz < n {
         sz <<= 1;
     }
 
-    let mut seg = vec![0i64; SEG_SIZE];
+    // C has seg[262145]; enough for sz up to 2^18. We'll allocate 2*sz safely.
+    let mut seg = vec![0i64; 2 * sz];
 
     for _ in 0..n {
-        let x = ps.in_i32() as usize;
+        let x = sc.in_int() as usize;
         let best = query(&seg, 1, x, 0, 0, sz);
         update(&mut seg, sz, x, x as i64 + best);
     }

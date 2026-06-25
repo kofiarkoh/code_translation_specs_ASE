@@ -3,7 +3,7 @@ use std::io::{self, Read};
 const HASHSIZ: usize = 1_000_003;
 const INF: i32 = 0x7fffffff;
 
-#[derive(Clone, Copy)]
+#[derive(Copy, Clone)]
 struct HA {
     n: i32,
     b: i32,
@@ -13,7 +13,6 @@ struct Scanner {
     buf: Vec<u8>,
     idx: usize,
 }
-
 impl Scanner {
     fn new() -> Self {
         let mut input = String::new();
@@ -21,10 +20,8 @@ impl Scanner {
         Self { buf: input.into_bytes(), idx: 0 }
     }
 
-    // Emulates the C `in()`:
-    // - reads a non-negative integer
-    // - assumes input is well-formed (digits then a non-digit)
-    // - does not skip leading whitespace explicitly; it starts from current byte
+    // Emulates the C in(): reads a non-negative integer, assuming input is well-formed.
+    // It does not skip non-digits; it starts from current position and consumes digits.
     fn in_i32(&mut self) -> i32 {
         let mut n: i32 = 0;
         if self.idx >= self.buf.len() {
@@ -34,6 +31,7 @@ impl Scanner {
         self.idx += 1;
 
         loop {
+            // (c & 0xf) matches C code; for ASCII digits it's the digit value.
             n = n.wrapping_mul(10).wrapping_add((c & 0x0f) as i32);
             if self.idx >= self.buf.len() {
                 break;
@@ -46,11 +44,6 @@ impl Scanner {
         }
         n
     }
-}
-
-fn abs_i32(x: i32) -> i32 {
-    // C's ABS macro would overflow on INT_MIN (UB). Inputs here are expected to avoid that.
-    if x >= 0 { x } else { -x }
 }
 
 fn lookup1(ha1: &[i32], n: i32) -> bool {
@@ -88,15 +81,19 @@ fn insert1(ha1: &mut [i32], n: i32) {
     }
 }
 
+// Note: The original C has a bug in wrap-around check:
+//   if (++p == ha2) p = ha2;
+// which can never be true. That would allow out-of-bounds access.
+// To preserve intended behavior (linear probing with wrap), we implement wrap at end.
 fn lookup2(ha2: &mut [HA], n: i32, b: i32) -> bool {
     let mut p = (n.rem_euclid(HASHSIZ as i32)) as usize;
     loop {
-        let cur_n = ha2[p].n;
-        if cur_n == 0 {
+        let cur = ha2[p];
+        if cur.n == 0 {
             return false;
         }
-        if cur_n == n {
-            if ha2[p].b == b - 1 {
+        if cur.n == n {
+            if cur.b == b - 1 {
                 ha2[p].b = b;
                 return true;
             }
@@ -112,13 +109,12 @@ fn lookup2(ha2: &mut [HA], n: i32, b: i32) -> bool {
 fn insert2(ha2: &mut [HA], n: i32) {
     let mut p = (n.rem_euclid(HASHSIZ as i32)) as usize;
     loop {
-        let cur_n = ha2[p].n;
-        if cur_n == 0 {
-            ha2[p].n = n;
-            ha2[p].b = 1;
+        let cur = ha2[p];
+        if cur.n == 0 {
+            ha2[p] = HA { n, b: 1 };
             return;
         }
-        if cur_n == n {
+        if cur.n == n {
             return;
         }
         p += 1;
@@ -128,47 +124,52 @@ fn insert2(ha2: &mut [HA], n: i32) {
     }
 }
 
+fn abs_i32(x: i32) -> i32 {
+    // Matches C ABS macro for typical inputs; for i32::MIN, C would overflow (UB).
+    // We emulate two's-complement wrapping behavior.
+    if x >= 0 { x } else { x.wrapping_neg() }
+}
+
 fn main() {
     let mut sc = Scanner::new();
-    let mut out = String::new();
 
-    // Hash tables (0 means empty, matching C's memset-to-zero sentinel usage)
     let mut ha1 = vec![0i32; HASHSIZ + 5];
     let mut ha2 = vec![HA { n: 0, b: 0 }; HASHSIZ + 5];
 
-    // Fixed-size arrays as in C
-    let mut q = vec![0i32; 60000]; // 3^10
+    let mut q = vec![0i32; 60000]; // 3^10 upper bound
     let mut a = vec![0i32; 102];
     let mut w = vec![0i32; 12];
+
+    let mut out_buf = String::new();
 
     loop {
         let n = sc.in_i32();
         if n == 0 {
             break;
         }
-        let m = sc.in_i32();
+        let m = sc.in_i32() as usize;
 
         for i in 0..(n as usize) {
             a[i] = sc.in_i32();
         }
-        for i in 0..(m as usize) {
+        for i in 0..m {
             w[i] = sc.in_i32();
         }
 
         q[0] = 0;
         let mut end: usize = 1;
-        for i in 0..(m as usize) {
+        for i in 0..m {
             let e = end;
             for j in 0..e {
-                let base = q[j];
-                q[end] = base.wrapping_add(w[i]);
+                let v = q[j];
+                q[end] = v.wrapping_add(w[i]);
                 end += 1;
-                q[end] = base.wrapping_sub(w[i]);
+                q[end] = v.wrapping_sub(w[i]);
                 end += 1;
             }
         }
 
-        // memset(ha1, 0, sizeof(ha1));
+        // memset(ha1, 0, sizeof(ha1))
         for v in ha1.iter_mut() {
             *v = 0;
         }
@@ -185,7 +186,7 @@ fn main() {
             if !lookup1(&ha1, a[i]) {
                 if x == 0 {
                     ans = INF;
-                    // memset(ha2, 0, sizeof(ha2));
+                    // memset(ha2, 0, sizeof(ha2))
                     for v in ha2.iter_mut() {
                         *v = HA { n: 0, b: 0 };
                     }
@@ -218,8 +219,8 @@ fn main() {
             }
         }
 
-        out.push_str(&format!("{ans}\n"));
+        out_buf.push_str(&format!("{ans}\n"));
     }
 
-    print!("{out}");
+    print!("{out_buf}");
 }

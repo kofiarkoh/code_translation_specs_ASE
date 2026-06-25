@@ -3,10 +3,12 @@ use std::io::{self, Read};
 
 const QMAX: usize = 80000;
 const INF: i32 = 0x7ffffff;
+const MAXV: usize = 400005; // matches C arrays: to/dt/hi/used
+const MAXSW: usize = 200005;
 
 #[derive(Clone, Copy)]
 struct Que {
-    s: usize,
+    s: i32,
     t: i64,
 }
 
@@ -14,7 +16,7 @@ struct Que {
 struct T {
     x: i32,
     y: i32,
-    id: usize,
+    id: i32,
 }
 
 struct MinHeap {
@@ -30,10 +32,10 @@ impl MinHeap {
     fn is_empty(&self) -> bool {
         self.a.is_empty()
     }
-    fn push(&mut self, s: usize, t: i64) {
-        // Binary heap (min-heap) with the same ordering as the C code: compare by t only.
-        let mut i = self.a.len();
+    fn push(&mut self, s: i32, t: i64) {
+        // C code assumes capacity is enough; we mirror behavior by allowing Vec growth.
         self.a.push(Que { s, t });
+        let mut i = self.a.len() - 1;
         while i > 0 {
             let p = (i - 1) >> 1;
             if self.a[p].t <= self.a[i].t {
@@ -47,13 +49,13 @@ impl MinHeap {
         if self.a.is_empty() {
             return None;
         }
-        let res = self.a[0];
+        let min = self.a[0];
         let last = self.a.pop().unwrap();
         if !self.a.is_empty() {
             self.a[0] = last;
             self.min_heapify(0);
         }
-        Some(res)
+        Some(min)
     }
     fn min_heapify(&mut self, mut i: usize) {
         loop {
@@ -75,6 +77,30 @@ impl MinHeap {
     }
 }
 
+fn abs_i32(a: i32) -> i32 {
+    if a >= 0 { a } else { -a }
+}
+
+// Emulate the C comparator semantics: it returns (a->x - b->x) if nonzero else (a->y - b->y).
+// In C, subtraction can overflow (UB). Here, inputs are from parsing ints; we assume typical AOJ ranges.
+// We still implement using i64 to avoid overflow while preserving ordering intent.
+fn xcmp(a: &T, b: &T) -> Ordering {
+    let dx = (a.x as i64) - (b.x as i64);
+    if dx != 0 {
+        return if dx < 0 { Ordering::Less } else { Ordering::Greater };
+    }
+    let dy = (a.y as i64) - (b.y as i64);
+    if dy < 0 { Ordering::Less } else if dy > 0 { Ordering::Greater } else { Ordering::Equal }
+}
+fn ycmp(a: &T, b: &T) -> Ordering {
+    let dy = (a.y as i64) - (b.y as i64);
+    if dy != 0 {
+        return if dy < 0 { Ordering::Less } else { Ordering::Greater };
+    }
+    let dx = (a.x as i64) - (b.x as i64);
+    if dx < 0 { Ordering::Less } else if dx > 0 { Ordering::Greater } else { Ordering::Equal }
+}
+
 struct Scanner {
     buf: Vec<u8>,
     idx: usize,
@@ -85,56 +111,42 @@ impl Scanner {
         io::stdin().read_to_string(&mut input).unwrap();
         Self { buf: input.into_bytes(), idx: 0 }
     }
+    // Mirrors C in(): reads a non-negative integer, assuming next char is a digit.
     fn in_u32(&mut self) -> i32 {
-        // Mirrors the C in(): assumes next token is a non-negative integer.
-        // It does not skip non-digits robustly; AOJ input is well-formed.
         let mut n: i32 = 0;
-        if self.idx >= self.buf.len() {
-            return 0;
-        }
-        let mut c = self.buf[self.idx];
-        self.idx += 1;
-        loop {
-            n = (n << 3) + (n << 1) + ((c & 0x0f) as i32);
-            if self.idx >= self.buf.len() {
-                break;
-            }
-            c = self.buf[self.idx];
+        // skip nothing; C doesn't skip, but input format provides digits.
+        while self.idx < self.buf.len() && self.buf[self.idx] < b'0' {
             self.idx += 1;
-            if c < b'0' {
+        }
+        while self.idx < self.buf.len() {
+            let c = self.buf[self.idx];
+            if c < b'0' || c > b'9' {
                 break;
             }
+            n = (n << 3) + (n << 1) + ((c & 0x0f) as i32);
+            self.idx += 1;
         }
         n
     }
-}
-
-fn abs_i32(a: i32) -> i32 {
-    if a >= 0 { a } else { -a }
 }
 
 fn dijkstra(
     start: usize,
     flag: i32,
     goal: usize,
-    to: &mut Vec<[usize; 5]>,
+    to: &Vec<[i32; 5]>,
     dt: &mut Vec<[i32; 5]>,
-    hi: &mut Vec<usize>,
+    hi: &mut Vec<i32>,
     used: &mut Vec<u8>,
 ) -> i64 {
     let mut heap = MinHeap::new();
     heap.clear();
-    heap.push(start, 0);
+    heap.push(start as i32, 0);
 
     if flag < 0 {
-        // C code:
-        // for (i = 0; i < hi[start]; i++) if (to[start][i] == start+1) {
-        //     dt[start][i] = INF, hi[start+1] = 0;
-        // }
-        // Note: this is a very specific mutation; preserve it exactly.
-        let hs = hi[start];
+        let hs = hi[start] as usize;
         for i in 0..hs {
-            if to[start][i] == start + 1 {
+            if to[start][i] as usize == start + 1 {
                 dt[start][i] = INF;
                 hi[start + 1] = 0;
             }
@@ -142,7 +154,9 @@ fn dijkstra(
     }
 
     while !heap.is_empty() {
-        let Que { s, t: d } = heap.pop_min().unwrap();
+        let q = heap.pop_min().unwrap();
+        let s = q.s as usize;
+        let d = q.t;
         if s == goal || s == goal + 1 {
             return d;
         }
@@ -150,13 +164,13 @@ fn dijkstra(
             continue;
         }
         used[s] = 1;
-        let hs = hi[s];
+        let hs = hi[s] as usize;
         for i in 0..hs {
-            let e = to[s][i];
+            let e = to[s][i] as usize;
             if used[e] != 0 {
                 continue;
             }
-            heap.push(e, d + dt[s][i] as i64);
+            heap.push(e as i32, d + (dt[s][i] as i64));
         }
     }
     -1
@@ -168,127 +182,111 @@ fn main() {
     let n = sc.in_u32();
     let mut k = sc.in_u32() as usize;
 
-    let mut sw: Vec<T> = vec![T { x: 0, y: 0, id: 0 }; 200005];
-    let mut sz: usize = 0;
+    let mut sw: Vec<T> = Vec::with_capacity(MAXSW);
+    let mut sz: i32 = 0;
     let mut s: i32 = -1;
     let mut g: i32 = -1;
 
-    for i in 0..k {
+    for _ in 0..k {
         let x = sc.in_u32();
         let y = sc.in_u32();
-        sw[i] = T { x, y, id: sz };
+        sw.push(T { x, y, id: sz });
         if x == 1 && y == 1 {
-            s = sz as i32;
+            s = sz;
         } else if x == m && y == n {
-            g = sz as i32;
+            g = sz;
         }
         sz += 2;
     }
 
     let ss = s;
     if s < 0 {
-        sw[k] = T { x: 1, y: 1, id: sz };
-        s = sz as i32;
+        sw.push(T { x: 1, y: 1, id: sz });
+        s = sz;
         k += 1;
         sz += 2;
     }
     if g < 0 {
-        sw[k] = T { x: m, y: n, id: sz };
-        g = sz as i32;
+        sw.push(T { x: m, y: n, id: sz });
+        g = sz;
         k += 1;
         sz += 2;
     }
 
-    // Graph storage: fixed max degree 5 per node, as in the C arrays.
-    let mut to: Vec<[usize; 5]> = vec![[0; 5]; 400005];
-    let mut dt: Vec<[i32; 5]> = vec![[0; 5]; 400005];
-    let mut hi: Vec<usize> = vec![0; 400005];
-    let mut used: Vec<u8> = vec![0; 400005];
+    // Graph storage: fixed 5 edges per node as in C.
+    let mut to: Vec<[i32; 5]> = vec![[0; 5]; MAXV];
+    let mut dt: Vec<[i32; 5]> = vec![[0; 5]; MAXV];
+    let mut hi: Vec<i32> = vec![0; MAXV];
+    let mut used: Vec<u8> = vec![0; MAXV];
 
-    // Sort by x then y (C comparator uses subtraction; here use total ordering).
-    sw[..k].sort_by(|a, b| match a.x.cmp(&b.x) {
-        Ordering::Equal => a.y.cmp(&b.y),
-        other => other,
-    });
+    // sort by x then y
+    sw.sort_by(xcmp);
 
-    // Initialize first switch's internal edge (id <-> id+1) with cost 1.
+    // initialize first switch's internal edge
     {
-        let a = sw[0].id;
+        let a = sw[0].id as usize;
         let b = a + 1;
-        to[a][0] = b;
+        to[a][0] = b as i32;
         dt[a][0] = 1;
         hi[a] = 1;
-        to[b][0] = a;
+        to[b][0] = a as i32;
         dt[b][0] = 1;
         hi[b] = 1;
     }
 
     for i in 1..k {
-        let a0 = sw[i].id;
+        let a0 = sw[i].id as usize;
         let b0 = a0 + 1;
 
-        // Internal edge for each switch.
-        let j = hi[a0];
+        // internal edge a<->b with cost 1
+        let j = hi[a0] as usize;
         hi[a0] += 1;
-        to[a0][j] = b0;
+        to[a0][j] = b0 as i32;
         dt[a0][j] = 1;
 
-        let j = hi[b0];
+        let j = hi[b0] as usize;
         hi[b0] += 1;
-        to[b0][j] = a0;
+        to[b0][j] = a0 as i32;
         dt[b0][j] = 1;
 
-        // If same x, connect ids (not +1) with |dy|.
+        // connect consecutive with same x using ids (not +1)
         if sw[i - 1].x == sw[i].x {
-            let a = sw[i - 1].id;
-            let b = sw[i].id;
+            let a = sw[i - 1].id as usize;
+            let b = sw[i].id as usize;
             let d = abs_i32(sw[i - 1].y - sw[i].y);
 
-            let j = hi[a];
+            let j = hi[a] as usize;
             hi[a] += 1;
-            to[a][j] = b;
+            to[a][j] = b as i32;
             dt[a][j] = d;
 
-            let j = hi[b];
+            let j = hi[b] as usize;
             hi[b] += 1;
-            to[b][j] = a;
+            to[b][j] = a as i32;
             dt[b][j] = d;
         }
     }
 
-    // Sort by y then x.
-    sw[..k].sort_by(|a, b| match a.y.cmp(&b.y) {
-        Ordering::Equal => a.x.cmp(&b.x),
-        other => other,
-    });
-
+    // sort by y then x
+    sw.sort_by(ycmp);
     for i in 1..k {
         if sw[i - 1].y == sw[i].y {
-            // Connect (id+1) nodes with |dx|.
-            let a = sw[i - 1].id + 1;
-            let b = sw[i].id + 1;
+            let a = (sw[i - 1].id + 1) as usize;
+            let b = (sw[i].id + 1) as usize;
             let d = abs_i32(sw[i - 1].x - sw[i].x);
 
-            let j = hi[a];
+            let j = hi[a] as usize;
             hi[a] += 1;
-            to[a][j] = b;
+            to[a][j] = b as i32;
             dt[a][j] = d;
 
-            let j = hi[b];
+            let j = hi[b] as usize;
             hi[b] += 1;
-            to[b][j] = a;
+            to[b][j] = a as i32;
             dt[b][j] = d;
         }
     }
 
-    let ans = dijkstra(
-        s as usize,
-        ss,
-        g as usize,
-        &mut to,
-        &mut dt,
-        &mut hi,
-        &mut used,
-    );
+    let ans = dijkstra(s as usize, ss, g as usize, &to, &mut dt, &mut hi, &mut used);
     print!("{ans}\n");
 }

@@ -1,7 +1,8 @@
+use std::collections::VecDeque;
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin (behavior undefined on malformed input per spec).
+    // Read entire stdin
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -9,8 +10,8 @@ fn main() {
     let v: usize = it.next().unwrap().parse().unwrap();
     let e: usize = it.next().unwrap().parse().unwrap();
 
-    // Build adjacency list and indegree counts.
-    // The C code uses a two-pass allocation strategy; in Rust we can build directly.
+    // Build adjacency lists while preserving, for each source vertex,
+    // the relative order of outgoing edges as they appear in input.
     let mut adj: Vec<Vec<usize>> = vec![Vec::new(); v];
     let mut indeg: Vec<i32> = vec![0; v];
 
@@ -21,27 +22,22 @@ fn main() {
         indeg[t] += 1;
     }
 
-    // Kahn's algorithm: output vertices with no remaining incoming edges.
-    let mut q: Vec<usize> = Vec::with_capacity(v);
+    // Kahn-style topological traversal with FIFO queue.
+    // Initial enqueue is in increasing vertex index order.
+    let mut q: VecDeque<usize> = VecDeque::new();
     for i in 0..v {
         if indeg[i] == 0 {
-            q.push(i);
+            q.push_back(i);
         }
     }
 
     let mut out = String::new();
-    let mut head = 0usize;
-    while head < q.len() {
-        let i = q[head];
-        head += 1;
-
-        out.push_str(&i.to_string());
-        out.push('\n');
-
-        for &k in &adj[i] {
-            indeg[k] -= 1;
-            if indeg[k] == 0 {
-                q.push(k);
+    while let Some(u) = q.pop_front() {
+        out.push_str(&format!("{u}\n"));
+        for &w in &adj[u] {
+            indeg[w] -= 1;
+            if indeg[w] == 0 {
+                q.push_back(w);
             }
         }
     }

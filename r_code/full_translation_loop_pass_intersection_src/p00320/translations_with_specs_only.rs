@@ -1,68 +1,103 @@
 use std::io::{self, Read};
 use std::process;
 
-#[derive(Clone, Copy, Debug)]
-struct Rect {
-    a: i32,
-    b: i32,
+fn next_permutation(a: &mut [usize]) -> bool {
+    // Lexicographic next_permutation; returns false if already last permutation.
+    if a.len() < 2 {
+        return false;
+    }
+    let mut i = a.len() - 2;
+    loop {
+        if a[i] < a[i + 1] {
+            break;
+        }
+        if i == 0 {
+            return false;
+        }
+        i -= 1;
+    }
+    let mut j = a.len() - 1;
+    while a[j] <= a[i] {
+        j -= 1;
+    }
+    a.swap(i, j);
+    a[i + 1..].reverse();
+    true
 }
 
 fn main() {
-    // Read 6 pairs; if not enough, exit non-zero with no guaranteed output.
-    let mut s = String::new();
-    if io::stdin().read_to_string(&mut s).is_err() {
+    // Read entire stdin; if not exactly 12 integers are present, exit non-zero with no output.
+    let mut input = String::new();
+    if io::stdin().read_to_string(&mut input).is_err() {
         process::exit(1);
     }
-    let mut it = s.split_whitespace();
+    let mut it = input.split_whitespace();
 
-    let mut rects = [Rect { a: 0, b: 0 }; 6];
-    for i in 0..6 {
-        let a = match it.next().and_then(|t| t.parse::<i32>().ok()) {
+    let mut rects = [(0i64, 0i64); 6];
+    for k in 0..6 {
+        let a = match it.next().and_then(|s| s.parse::<i64>().ok()) {
             Some(v) => v,
             None => process::exit(1),
         };
-        let b = match it.next().and_then(|t| t.parse::<i32>().ok()) {
+        let b = match it.next().and_then(|s| s.parse::<i64>().ok()) {
             Some(v) => v,
             None => process::exit(1),
         };
-        rects[i] = Rect { a, b };
+        rects[k] = (a, b);
+    }
+    // Require no extra integers beyond the 12.
+    if it.next().is_some() {
+        process::exit(1);
     }
 
-    // Canonicalize each rectangle so rotation is represented by ordering (min,max).
-    // This matches the "optional 90° rotation" semantics while allowing multiset comparisons.
-    let mut v: Vec<(i32, i32)> = rects
-        .iter()
-        .map(|r| if r.a <= r.b { (r.a, r.b) } else { (r.b, r.a) })
-        .collect();
+    // Face positions are fixed indices 0..6. We enumerate all bijections via permutations.
+    let mut perm: [usize; 6] = [0, 1, 2, 3, 4, 5];
 
-    // Sort to group equal rectangles.
-    v.sort_unstable();
+    loop {
+        // Enumerate all 2^6 rotation choices; bit=1 means swapped.
+        for mask in 0u32..64u32 {
+            let mut face = [(0i64, 0i64); 6];
+            for f in 0..6 {
+                let (x, y) = rects[perm[f]];
+                if ((mask >> f) & 1) != 0 {
+                    face[f] = (y, x);
+                } else {
+                    face[f] = (x, y);
+                }
+            }
 
-    // For a rectangular box, faces come in 3 opposite pairs, and each pair must be identical rectangles.
-    // Additionally, if the three distinct face types are (x,y), (x,z), (y,z), then the multiset of
-    // all side lengths across these three rectangles must contain each of x,y,z exactly twice.
-    let ok = if v[0] != v[1] || v[2] != v[3] || v[4] != v[5] {
-        false
-    } else {
-        let (a1, b1) = v[0];
-        let (a2, b2) = v[2];
-        let (a3, b3) = v[4];
+            // Adjacency constraints for a cuboid with faces:
+            // 0: XY, 1: XY (opposite), 2: XZ, 3: XZ (opposite), 4: YZ, 5: YZ (opposite)
+            // Each face stores its two edge lengths in order (first, second).
+            // Required equalities:
+            // - Opposite faces must match as rectangles (with chosen orientation).
+            // - Around each dimension, the corresponding edges must match.
+            let ok = face[0].0 == face[1].0
+                && face[0].1 == face[1].1
+                && face[2].0 == face[3].0
+                && face[2].1 == face[3].1
+                && face[4].0 == face[5].0
+                && face[4].1 == face[5].1
+                // XY with XZ share X
+                && face[0].0 == face[2].0
+                && face[1].0 == face[3].0
+                // XY with YZ share Y
+                && face[0].1 == face[4].0
+                && face[1].1 == face[5].0
+                // XZ with YZ share Z
+                && face[2].1 == face[4].1
+                && face[3].1 == face[5].1;
 
-        // Collect the 6 side lengths from the 3 paired rectangles.
-        let mut sides = [a1, b1, a2, b2, a3, b3];
-        sides.sort_unstable();
+            if ok {
+                print!("yes\n");
+                return;
+            }
+        }
 
-        // Must be exactly three values, each appearing twice.
-        sides[0] == sides[1]
-            && sides[2] == sides[3]
-            && sides[4] == sides[5]
-            && sides[1] != sides[2]
-            && sides[3] != sides[4]
-    };
-
-    if ok {
-        println!("yes");
-    } else {
-        println!("no");
+        if !next_permutation(&mut perm) {
+            break;
+        }
     }
+
+    print!("no\n");
 }

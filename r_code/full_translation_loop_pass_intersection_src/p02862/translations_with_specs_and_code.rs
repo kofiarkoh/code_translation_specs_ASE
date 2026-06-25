@@ -18,8 +18,8 @@ fn com_init() -> (Vec<i64>, Vec<i64>, Vec<i64>) {
         let ii = i as i64;
         fac[i] = fac[i - 1] * ii % MOD;
         // inv[i] = MOD - inv[MOD%i] * (MOD / i) % MOD;
-        let m_mod_i = (MOD % ii) as usize;
-        inv[i] = MOD - (inv[m_mod_i] * (MOD / ii) % MOD);
+        let mi = (MOD % ii) as usize;
+        inv[i] = MOD - (inv[mi] * (MOD / ii) % MOD);
         finv[i] = finv[i - 1] * inv[i] % MOD;
     }
 
@@ -36,32 +36,38 @@ fn com(n: i32, k: i32, fac: &[i64], finv: &[i64]) -> i64 {
 }
 
 fn main() {
-    // Input format: two integers x y
-    let mut s = String::new();
-    io::stdin().read_to_string(&mut s).unwrap();
-    let mut it = s.split_whitespace();
-    let x: i64 = it.next().unwrap().parse().unwrap();
-    let y: i64 = it.next().unwrap().parse().unwrap();
+    // Read entire stdin; behavior for malformed input is unspecified by the spec.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    // Reachability checks per spec/C code
+    let x: i32 = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let y: i32 = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
     let sum = x + y;
     if sum % 3 != 0 {
         print!("0\n");
         return;
     }
+
     let n = sum / 3;
     let x_ = x - n;
     let y_ = y - n;
+
     if x_ < 0 || y_ < 0 {
         print!("0\n");
         return;
     }
 
-    // Precompute tables only after passing reachability checks (matches C behavior)
+    // Precompute factorials and inverses up to MAX-1 (spec assumes query fits this bound).
     let (fac, finv, _inv) = com_init();
 
-    let nn = (x_ + y_) as i32;
-    let kk = x_ as i32;
-    let ans = com(nn, kk, &fac, &finv) % MOD;
+    let ans = com(x_ + y_, x_, &fac, &finv) % MOD;
     print!("{ans}\n");
 }

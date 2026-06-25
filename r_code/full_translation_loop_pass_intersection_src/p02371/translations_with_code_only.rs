@@ -6,14 +6,14 @@ fn max_i32(a: i32, b: i32) -> i32 {
 
 struct Solver {
     // Large fixed-size buffers as in the C code.
-    q: Vec<i32>,      // queue for bfs (unused in final result but kept for fidelity)
-    cdist: Vec<i32>,  // C[] in C code
-    ta: Vec<i32>,
-    nt: Vec<i32>,
-    fr: Vec<i32>,
-    to: Vec<i32>,
-    co: Vec<i32>,
-    f: Vec<i32>, // visited flags (0/1)
+    q: Vec<i32>,      // [1000000]
+    cdist: Vec<i32>,  // C[100010]
+    ta: Vec<i32>,     // ta[100010]
+    nt: Vec<i32>,     // nt[200010]
+    fr: Vec<i32>,     // fr[200010]
+    to: Vec<i32>,     // to[200010]
+    co: Vec<i32>,     // co[200010]
+    f: Vec<i32>,      // f[100010] used as boolean 0/1
 }
 
 impl Solver {
@@ -41,8 +41,9 @@ impl Solver {
                 continue;
             }
             self.f[ti] = 1;
-            let su = s as usize;
-            self.cdist[ti] = self.cdist[su].wrapping_add(self.co[i as usize]);
+            // Preserve C's signed overflow behavior as wrapping.
+            let ns = s as usize;
+            self.cdist[ti] = self.cdist[ns].wrapping_add(self.co[i as usize]);
             let rec = self.dfs(_v, _e, self.to[i as usize], d.wrapping_add(self.co[i as usize]));
             maxv = max_i32(maxv, rec);
             i = self.nt[i as usize];
@@ -60,17 +61,19 @@ impl Solver {
         self.cdist[s as usize] = 0;
         let mut t: i32 = 0;
         let mut r: i32 = 1;
+
+        // C loop: for(r=1; r-t; t++)
         while r - t != 0 {
             let qt = self.q[t as usize] as usize;
             let mut i = self.ta[qt];
             while i + 1 != 0 {
-                let to_i = self.to[i as usize] as usize;
-                let fr_i = self.fr[i as usize] as usize;
-                let cand = self.cdist[fr_i].wrapping_add(self.co[i as usize]);
-                if self.cdist[to_i] > cand {
-                    self.cdist[to_i] = cand;
-                    if maxv < self.cdist[to_i] {
-                        maxv = self.cdist[to_i];
+                let fr = self.fr[i as usize] as usize;
+                let to = self.to[i as usize] as usize;
+                let cand = self.cdist[fr].wrapping_add(self.co[i as usize]);
+                if self.cdist[to] > cand {
+                    self.cdist[to] = cand;
+                    if maxv < self.cdist[to] {
+                        maxv = self.cdist[to];
                         *g = self.to[i as usize];
                     }
                     self.q[r as usize] = self.to[i as usize];
@@ -123,12 +126,13 @@ impl Solver {
         }
         self.cdist[g as usize] = 0;
         self.f[g as usize] = 1;
+
         self.dfs(v, e * 2, g, 0)
     }
 }
 
 fn main() {
-    // Read all input, parse as i32 like scanf("%d").
+    // Read all input (scanf-like whitespace handling).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();

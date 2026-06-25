@@ -1,36 +1,51 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read all input; behavior is undefined for malformed/missing input per spec.
+    // Read entire stdin (matches typical scanf behavior for well-formed input;
+    // unspecified behavior for malformed input per spec).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let n: usize = it.next().unwrap().parse().unwrap();
-    // Capacity constraint is a precondition; we do not enforce it (undefined otherwise).
+    // scanf("%d", &N) => 32-bit signed in C; we parse as i64 then cast to usize.
+    let n_i64: i64 = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return, // unspecified by spec; keep minimal behavior
+    };
+    let n: usize = n_i64 as usize;
+
+    // Read A[1..N] as long long (signed 64-bit).
     let mut a: Vec<i64> = Vec::with_capacity(n);
     for _ in 0..n {
-        a.push(it.next().unwrap().parse().unwrap());
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        a.push(v);
     }
 
     let mut ans: i64 = 0;
 
-    // Process from first to last, allowing at most one cross-position pair per boundary.
-    for i in 0..n {
-        // Form as many within-position pairs as possible.
-        // For negative values, Rust's / and % follow truncation toward zero; spec says meaning
-        // is not guaranteed then, so we keep direct arithmetic behavior.
+    if n == 0 {
+        // Not possible per preconditions (N >= 1), but keep safe.
+        println!("0");
+        return;
+    }
+
+    // Process i = 1..N-1 (0-based: 0..n-1)
+    for i in 0..(n - 1) {
+        // Internal pairing at i
         ans += a[i] / 2;
         a[i] %= 2;
 
-        // Optionally form one cross-position pair with successor:
-        // requires current leftover == 1 and successor strictly > 1 at that moment.
-        if i + 1 < n && a[i] == 1 && a[i + 1] > 1 {
+        // Adjacent pairing if A[i] is odd and A[i+1] > 1 at that moment
+        if a[i] == 1 && a[i + 1] > 1 {
             ans += 1;
             a[i] = 0;
-            a[i + 1] -= 1; // reduce successor by exactly 1 only when it is strictly > 1
+            a[i + 1] -= 1;
         }
     }
 
-    print!("{ans}");
+    // Final position internal pairing using possibly decremented value
+    ans += a[n - 1] / 2;
+
+    // Print as long long with newline
+    println!("{}", ans);
 }

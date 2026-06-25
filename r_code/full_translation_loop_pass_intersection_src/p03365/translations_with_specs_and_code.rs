@@ -27,43 +27,44 @@ fn choose(n: i64, r: i64, fact: &[i64], invfact: &[i64]) -> i64 {
 }
 
 fn main() {
-    // Precompute factorials and inverse factorials up to 1_000_000 (inclusive),
-    // matching the C code's fixed-table approach.
-    let mut fact = vec![0i64; MAX + 1];
+    // Read input
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let n: i64 = input.split_whitespace().next().unwrap().parse().unwrap();
+
+    // Precompute factorials and inverse factorials up to MAX.
+    // Matches the C code: fact[0..=1_000_004] is filled, invfact[0..=1_000_000] is valid.
+    let mut fact = vec![0i64; MAX + 5];
     let mut invfact = vec![0i64; MAX + 1];
 
     fact[0] = 1;
-    for i in 1..=MAX {
+    for i in 1..(MAX + 5) {
         fact[i] = (fact[i - 1] * (i as i64)) % MOD;
     }
+
     invfact[MAX] = mod_pow(fact[MAX], MOD - 2);
     for i in (0..MAX).rev() {
         invfact[i] = (invfact[i + 1] * ((i + 1) as i64)) % MOD;
     }
 
-    // Read input n
-    let mut input = String::new();
-    io::stdin().read_to_string(&mut input).unwrap();
-    let n: i64 = input.split_whitespace().next().unwrap().parse().unwrap();
-
-    // temp[k] for k in [0, n-1]
-    // Note: Spec precondition requires 0 <= n <= 1_000_000.
-    let n_usize = n as usize;
-    let mut temp = vec![0i64; n_usize];
-
-    for k in 0..n_usize {
+    // Compute temp[k] for k = 0..n-1
+    // Note: per spec, behavior is undefined if n is out of supported range; we do not add checks.
+    let nu = n as usize;
+    let mut temp = vec![0i64; nu.max(1)];
+    for k in 0..nu {
         let k_i64 = k as i64;
-        let val = choose(k_i64 - 1, (n - 1) - k_i64, &fact, &invfact);
-        let val = (val * fact[k]) % MOD;
-        let val = (val * fact[(n - 1 - k_i64) as usize]) % MOD;
-        temp[k] = val;
+        let term = choose(k_i64 - 1, n - 1 - k_i64, &fact, &invfact);
+        // fact indices used: fact[k] and fact[n-1-k]
+        let t = (((term * fact[k]) % MOD) * fact[(n - 1 - k_i64) as usize]) % MOD;
+        temp[k] = t;
     }
 
+    // Accumulate answer: sum_{k=1}^{n-1} k * (temp[k] - temp[k-1]) mod MOD
     let mut ans: i64 = 0;
-    for k in 1..n_usize {
+    for k in 1..nu {
         let diff = (temp[k] - temp[k - 1] + MOD) % MOD;
-        ans = (ans + (k as i64) * diff) % MOD;
+        ans = (ans + ((k as i64) * diff) % MOD) % MOD;
     }
 
-    println!("{}", ans);
+    print!("{ans}\n");
 }

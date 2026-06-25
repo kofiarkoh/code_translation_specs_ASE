@@ -3,7 +3,7 @@ use std::collections::BinaryHeap;
 use std::io::{self, Read};
 
 const EPS: f64 = 1e-8;
-const INF: f64 = 0x01010101 as f64; // same sentinel magnitude as C
+const INF_I32: i32 = 0x01010101; // matches C's INF macro
 
 #[derive(Clone)]
 struct Edge {
@@ -13,7 +13,7 @@ struct Edge {
     cost: f64,
 }
 
-fn add_edge(g: &mut [Vec<Edge>], from: usize, to: usize, cap: i32, cost: f64) {
+fn add_edge(g: &mut Vec<Vec<Edge>>, from: usize, to: usize, cap: i32, cost: f64) {
     let rev_to = g[to].len();
     let rev_from = g[from].len();
     g[from].push(Edge {
@@ -36,15 +36,15 @@ struct State {
     dist: f64,
 }
 
-// Min-heap by dist using BinaryHeap (max-heap) with reversed ordering.
+// BinaryHeap is max-heap; reverse ordering for min-heap behavior.
 impl Ord for State {
     fn cmp(&self, other: &Self) -> Ordering {
-        // Reverse by dist; tie-break by vertex for total order.
+        // Reverse by dist; treat NaN as equal (should not occur here).
         other
             .dist
             .partial_cmp(&self.dist)
             .unwrap_or(Ordering::Equal)
-            .then_with(|| other.v.cmp(&self.v))
+            .then_with(|| self.v.cmp(&other.v))
     }
 }
 impl PartialOrd for State {
@@ -59,92 +59,83 @@ impl PartialEq for State {
 }
 impl Eq for State {}
 
-fn min_cost_flow(g: &mut [Vec<Edge>], s: usize, t: usize, mut f: i32) -> f64 {
-    let v = g.len();
-    let mut potential = vec![0.0f64; v];
-    let mut dist = vec![INF; v];
-    let mut prevv = vec![0usize; v];
-    let mut preve = vec![0usize; v];
+fn min_cost_flow(g: &mut Vec<Vec<Edge>>, s: usize, t: usize, mut f: i32) -> Option<f64> {
+    let n = g.len();
+    let mut potential = vec![0.0f64; n];
+    let mut dist = vec![INF_I32 as f64; n];
+    let mut prevv = vec![0usize; n];
+    let mut preve = vec![0usize; n];
 
     let mut ret = 0.0f64;
 
     while f > 0 {
-        // Dijkstra on reduced costs
-        for i in 0..v {
-            dist[i] = INF;
-        }
-        dist[s] = 0.0;
-
+        dist.fill(INF_I32 as f64);
         let mut pq = BinaryHeap::new();
+        dist[s] = 0.0;
         pq.push(State { v: s, dist: 0.0 });
 
-        while let Some(State { v: cur, dist: dcur }) = pq.pop() {
-            if dist[cur] + EPS < dcur {
+        while let Some(State { v, dist: d }) = pq.pop() {
+            if dist[v] < d {
                 continue;
             }
-            for (ei, e) in g[cur].iter().enumerate() {
+            for (i, e) in g[v].iter().enumerate() {
                 if e.cap <= 0 {
                     continue;
                 }
-                let nxt = e.to;
-                let nd = dcur + e.cost + potential[cur] - potential[nxt];
-                if dist[nxt] > nd + EPS {
-                    dist[nxt] = nd;
-                    prevv[nxt] = cur;
-                    preve[nxt] = ei;
-                    pq.push(State { v: nxt, dist: nd });
+                let nv = e.to;
+                let nd = d + e.cost + potential[v] - potential[nv];
+                if dist[nv] > nd + EPS {
+                    dist[nv] = nd;
+                    prevv[nv] = v;
+                    preve[nv] = i;
+                    pq.push(State { v: nv, dist: nd });
                 }
             }
         }
 
-        if dist[t] >= INF / 2.0 {
-            return -1.0;
+        if dist[t] == INF_I32 as f64 {
+            return None; // impossible
         }
 
-        // Update potentials; in C they add min_cost[s] even if INF.
-        // Here we only add for reachable nodes to avoid INF propagation,
-        // which can cause non-termination/timeouts.
-        for i in 0..v {
-            if dist[i] < INF / 2.0 {
-                potential[i] += dist[i];
+        for v in 0..n {
+            potential[v] += dist[v];
+        }
+
+        let mut add = f;
+        let mut v = t;
+        while v != s {
+            let pv = prevv[v];
+            let ei = preve[v];
+            let cap = g[pv][ei].cap;
+            if add > cap {
+                add = cap;
             }
+            v = pv;
         }
 
-        // Find bottleneck
-        let mut addf = f;
-        let mut cur = t;
-        while cur != s {
-            let pv = prevv[cur];
-            let pe = preve[cur];
-            let cap = g[pv][pe].cap;
-            if addf > cap {
-                addf = cap;
-            }
-            cur = pv;
-        }
+        f -= add;
+        ret += (add as f64) * potential[t];
 
-        f -= addf;
-        ret += (addf as f64) * potential[t];
+        let mut v2 = t;
+        while v2 != s {
+            let pv = prevv[v2];
+            let ei = preve[v2];
+            let rev = g[pv][ei].rev;
 
-        // Augment
-        let mut cur2 = t;
-        while cur2 != s {
-            let pv = prevv[cur2];
-            let pe = preve[cur2];
-            let rev = g[pv][pe].rev;
+            // Update forward edge
+            g[pv][ei].cap -= add;
+            // Update reverse edge
+            g[v2][rev].cap += add;
 
-            g[pv][pe].cap -= addf;
-            g[cur2][rev].cap += addf;
-
-            cur2 = pv;
+            v2 = pv;
         }
     }
 
-    ret
+    Some(ret)
 }
 
-// Gauss-Jordan elimination with partial pivoting.
-// Mirrors the C implementation closely.
+// Solves A * x = c using Gauss-Jordan with partial pivoting.
+// Returns None if pivot is too small (singular/ill-conditioned per EPS).
 fn gauss_jordan(a: &[Vec<i32>], c: &[i32]) -> Option<Vec<f64>> {
     let n = a.len();
     let mut b = vec![vec![0.0f64; n + 1]; n];
@@ -172,6 +163,7 @@ fn gauss_jordan(a: &[Vec<i32>], c: &[i32]) -> Option<Vec<f64>> {
         for j in (i + 1)..=n {
             b[i][j] /= div;
         }
+
         for j in 0..n {
             if j == i {
                 continue;
@@ -194,7 +186,7 @@ fn gauss_jordan(a: &[Vec<i32>], c: &[i32]) -> Option<Vec<f64>> {
 }
 
 struct Scanner {
-    buf: Vec<u8>,
+    input: Vec<u8>,
     idx: usize,
 }
 impl Scanner {
@@ -202,25 +194,25 @@ impl Scanner {
         let mut s = String::new();
         io::stdin().read_to_string(&mut s).unwrap();
         Self {
-            buf: s.into_bytes(),
+            input: s.into_bytes(),
             idx: 0,
         }
     }
     fn next_i32(&mut self) -> i32 {
-        while self.idx < self.buf.len() && self.buf[self.idx].is_ascii_whitespace() {
+        while self.idx < self.input.len() && self.input[self.idx].is_ascii_whitespace() {
             self.idx += 1;
         }
         let mut sign = 1i32;
-        if self.idx < self.buf.len() && self.buf[self.idx] == b'-' {
+        if self.idx < self.input.len() && self.input[self.idx] == b'-' {
             sign = -1;
             self.idx += 1;
         }
         let mut n = 0i32;
-        while self.idx < self.buf.len() && !self.buf[self.idx].is_ascii_whitespace() {
-            n = n * 10 + (self.buf[self.idx] - b'0') as i32;
+        while self.idx < self.input.len() && !self.input[self.idx].is_ascii_whitespace() {
+            n = n * 10 + (self.input[self.idx] - b'0') as i32;
             self.idx += 1;
         }
-        sign * n
+        n * sign
     }
     fn next_usize(&mut self) -> usize {
         self.next_i32() as usize
@@ -247,33 +239,30 @@ fn main() {
             c[i] = sc.next_i32();
         }
 
-        // Per spec, singular systems are outside reliable contract; C ignores failure.
-        // We keep behavior defined enough to run: fall back to zeros if singular.
+        // Spec says the system has a unique solution; C proceeds even if not.
+        // We follow C behavior as closely as possible: if singular, labels are undefined.
+        // Here we still attempt; if it fails, we use 0.0 labels (best-effort) to proceed.
         let x = gauss_jordan(&a, &c).unwrap_or_else(|| vec![0.0; n]);
 
         let mut g: Vec<Vec<Edge>> = vec![Vec::new(); n];
 
-        let mut dests: Vec<usize> = Vec::new();
         for i in 0..n {
             let m = sc.next_usize();
-            dests.clear();
-            dests.reserve(m);
-            for _ in 0..m {
-                dests.push(sc.next_usize());
+            let mut d = vec![0usize; m];
+            for j in 0..m {
+                d[j] = sc.next_usize();
             }
             for j in 0..m {
                 let cap = sc.next_i32();
-                let to = dests[j];
+                let to = d[j];
                 let cost = (x[i] - x[to]).abs();
                 add_edge(&mut g, i, to, cap, cost);
             }
         }
 
-        let ans = min_cost_flow(&mut g, s, t, f);
-        if ans < 0.0 {
-            out.push_str("impossible\n");
-        } else {
-            out.push_str(&format!("{:.10}\n", ans));
+        match min_cost_flow(&mut g, s, t, f) {
+            None => out.push_str("impossible\n"),
+            Some(ans) => out.push_str(&format!("{:.10}\n", ans)),
         }
     }
 

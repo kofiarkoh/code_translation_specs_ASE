@@ -1,32 +1,28 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, split by whitespace (matches scanf("%d %d") and scanf("%s")).
+    // Read entire stdin, split by whitespace (matches scanf("%d %d") then scanf("%s")).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let num: usize = it.next().unwrap().parse().unwrap();
-    let changes: usize = it.next().unwrap().parse().unwrap();
-    let s = it.next().unwrap_or("");
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let k: usize = it.next().unwrap().parse().unwrap();
+    let s = it.next().unwrap(); // precondition: at least N binary chars present
 
-    // Convert first `num` chars: '1' => true, otherwise false (per spec invariant).
-    // The C code assumes s has at least `num` chars (precondition).
-    let bytes = s.as_bytes();
-    let mut bits: Vec<u8> = Vec::with_capacity(num + 1);
-    for i in 0..num {
-        bits.push(if bytes[i] == b'1' { 1 } else { 0 });
+    // Convert first N chars to boolean bits: '1' => true, else false.
+    // Then append a sentinel bit that differs from the last bit to flush the final run.
+    let mut bits: Vec<bool> = Vec::with_capacity(n + 1);
+    for b in s.as_bytes().iter().take(n) {
+        bits.push(*b == b'1');
     }
+    // Sentinel: opposite of last bit (C code assumes n>0 per spec).
+    bits.push(!bits[n - 1]);
 
-    // Sentinel: str[num] = !(str[num-1]) to force flushing the last run.
-    // (C uses char with boolean values 0/1; we do the same with u8.)
-    let last = bits[num - 1];
-    bits.push(if last == 1 { 0 } else { 1 });
-
-    // Build run-length array starting with an implicit previous value of 1,
-    // producing runs in the pattern: #1 #0 #1 #0 ...
+    // Build run-length array starting with a run of 1s (possibly length 0),
+    // alternating #1, #0, #1, #0, ...
     let mut arr: Vec<i32> = Vec::new();
-    let mut prev: u8 = 1;
+    let mut prev = true; // start expecting '1' run
     let mut cnt: i32 = 0;
     for &b in &bits {
         if b == prev {
@@ -37,25 +33,26 @@ fn main() {
             cnt = 1;
         }
     }
-    let aidx = arr.len();
 
-    // Prefix sums `cum` with the same indexing scheme as the C code:
-    // cum[i] = sum_{k < i} arr[k]
-    let mut cum: Vec<i32> = vec![0; aidx + 1];
-    for i in 0..aidx {
-        cum[i + 1] = cum[i] + arr[i];
+    // Prefix sums cum where cum[i] = sum(arr[0..i]).
+    let mut cum: Vec<i32> = Vec::with_capacity(arr.len() + 1);
+    cum.push(0);
+    for &v in &arr {
+        let last = *cum.last().unwrap();
+        cum.push(last + v);
     }
 
-    let ranges: usize = 2 * changes + 1;
+    // Sliding over starting indices at 1-runs (even indices), taking up to 2K+1 runs.
+    let ranges = 2 * k + 1;
     let mut ans: i32 = 0;
 
-    // Consider windows starting at '1'-run boundaries (even indices).
-    // Note: The C code computes cum[i+ranges]-cum[i] before checking bounds,
-    // which is undefined if i+ranges > aidx. Per spec, behavior is undefined
-    // when preconditions are violated; here we keep defined Rust behavior by
-    // clamping the window end to aidx (equivalent to "use as many runs as exist").
+    // In the original C, cum is a large zero-initialized static array, so reading beyond
+    // computed prefix values yields 0 and can produce incorrect results if not guarded.
+    // The intended behavior per spec is to consider only valid concatenations of runs,
+    // so we clamp the end index to arr.len().
+    let aidx = arr.len();
     for i in (0..aidx).step_by(2) {
-        let end = (i + ranges).min(aidx);
+        let end = std::cmp::min(i + ranges, aidx);
         let val = cum[end] - cum[i];
         if val > ans {
             ans = val;
@@ -65,5 +62,5 @@ fn main() {
         }
     }
 
-    print!("{ans}\n");
+    println!("{}", ans);
 }

@@ -21,126 +21,80 @@ fn cross(a: Pt, b: Pt) -> f64 {
     a.x * b.y - a.y * b.x
 }
 
-fn sgn(v: f64) -> i32 {
-    if v > EPS {
-        1
-    } else if v < -EPS {
-        -1
-    } else {
-        0
+// Signed area *2 of triangle (a,b,p): positive if p is to the left of directed edge a->b.
+fn side(a: Pt, b: Pt, p: Pt) -> f64 {
+    cross(b.sub(a), p.sub(a))
+}
+
+// Intersect segment p->q with the infinite line a->b, assuming they are not parallel in the
+// crossing cases per the specification precondition.
+fn intersect_segment_with_line(p: Pt, q: Pt, a: Pt, b: Pt) -> Pt {
+    let r = q.sub(p);
+    let s = b.sub(a);
+    let denom = cross(r, s);
+    // If denom is 0, lines are parallel; spec precondition rules out needing this intersection
+    // in ambiguous cases. Still, avoid NaN by returning p (narrowest behavior).
+    if denom.abs() < EPS {
+        return p;
+    }
+    // Solve p + t*r intersects line through a in direction s:
+    // cross((a - p), s) / cross(r, s)
+    let t = cross(a.sub(p), s) / denom;
+    Pt {
+        x: p.x + t * r.x,
+        y: p.y + t * r.y,
     }
 }
 
-fn on_segment(a: Pt, b: Pt, p: Pt) -> bool {
-    // Collinear and within bounding box (with tolerance).
-    sgn(cross(b.sub(a), p.sub(a))) == 0
-        && p.x >= a.x.min(b.x) - EPS
-        && p.x <= a.x.max(b.x) + EPS
-        && p.y >= a.y.min(b.y) - EPS
-        && p.y <= a.y.max(b.y) + EPS
-}
-
-fn segments_intersect(a: Pt, b: Pt, c: Pt, d: Pt) -> bool {
-    // Standard robust-ish segment intersection with EPS-based orientation.
-    let ab = b.sub(a);
-    let ac = c.sub(a);
-    let ad = d.sub(a);
-    let cd = d.sub(c);
-    let ca = a.sub(c);
-    let cb = b.sub(c);
-
-    let o1 = sgn(cross(ab, ac));
-    let o2 = sgn(cross(ab, ad));
-    let o3 = sgn(cross(cd, ca));
-    let o4 = sgn(cross(cd, cb));
-
-    if o1 == 0 && on_segment(a, b, c) {
-        return true;
+// Clip convex/possibly-nonconvex polygon `poly` by half-plane "left of directed edge a->b".
+// Uses tolerance: points with side >= -EPS are kept.
+fn clip_by_halfplane(poly: &[Pt], a: Pt, b: Pt) -> Vec<Pt> {
+    if poly.is_empty() {
+        return Vec::new();
     }
-    if o2 == 0 && on_segment(a, b, d) {
-        return true;
-    }
-    if o3 == 0 && on_segment(c, d, a) {
-        return true;
-    }
-    if o4 == 0 && on_segment(c, d, b) {
-        return true;
-    }
-
-    (o1 * o2 < 0) && (o3 * o4 < 0)
-}
-
-fn point_in_convex_polygon_inclusive(poly: &[Pt], p: Pt) -> bool {
-    // Inclusive point-in-convex-polygon test using consistent orientation.
-    // Returns true if p is inside or on boundary.
-    let n = poly.len();
-    if n == 0 {
-        return false;
-    }
-    if n == 1 {
-        return (poly[0].x - p.x).abs() <= EPS && (poly[0].y - p.y).abs() <= EPS;
-    }
-    if n == 2 {
-        return on_segment(poly[0], poly[1], p);
-    }
-
-    let mut pos = false;
-    let mut neg = false;
-    for i in 0..n {
-        let a = poly[i];
-        let b = poly[(i + 1) % n];
-        let v = cross(b.sub(a), p.sub(a));
-        let s = sgn(v);
-        if s > 0 {
-            pos = true;
-        } else if s < 0 {
-            neg = true;
-        }
-        if pos && neg {
-            return false;
-        }
-    }
-    true
-}
-
-fn polygon_intersects_square(poly: &[Pt]) -> bool {
-    // Fixed closed square: (0,0), (10000,0), (10000,10000), (0,10000)
-    let sq = [
-        Pt { x: 0.0, y: 0.0 },
-        Pt { x: 10000.0, y: 0.0 },
-        Pt { x: 10000.0, y: 10000.0 },
-        Pt { x: 0.0, y: 10000.0 },
-    ];
-
-    // 1) Any polygon vertex inside/on square?
-    for &p in poly {
-        if p.x >= -EPS && p.x <= 10000.0 + EPS && p.y >= -EPS && p.y <= 10000.0 + EPS {
-            return true;
-        }
-    }
-
-    // 2) Any square corner inside/on polygon?
-    for &c in &sq {
-        if point_in_convex_polygon_inclusive(poly, c) {
-            return true;
-        }
-    }
-
-    // 3) Any edge intersection (including touching)?
+    let mut out: Vec<Pt> = Vec::new();
     let n = poly.len();
     for i in 0..n {
-        let a = poly[i];
-        let b = poly[(i + 1) % n];
-        for j in 0..4 {
-            let c = sq[j];
-            let d = sq[(j + 1) % 4];
-            if segments_intersect(a, b, c, d) {
-                return true;
+        let cur = poly[i];
+        let prev = poly[(i + n - 1) % n];
+        let cur_in = side(a, b, cur) >= -EPS;
+        let prev_in = side(a, b, prev) >= -EPS;
+
+        if cur_in {
+            if !prev_in {
+                // entering: add intersection then current
+                let ip = intersect_segment_with_line(prev, cur, a, b);
+                out.push(ip);
+            }
+            out.push(cur);
+        } else if prev_in {
+            // leaving: add intersection only
+            let ip = intersect_segment_with_line(prev, cur, a, b);
+            out.push(ip);
+        }
+    }
+
+    // Remove near-duplicate consecutive points to keep polygon well-formed.
+    // This is a minimal robustness step consistent with tolerance-based behavior.
+    let mut cleaned: Vec<Pt> = Vec::new();
+    for p in out {
+        if cleaned.is_empty() {
+            cleaned.push(p);
+        } else {
+            let last = *cleaned.last().unwrap();
+            if (p.x - last.x).abs() > 1e-12 || (p.y - last.y).abs() > 1e-12 {
+                cleaned.push(p);
             }
         }
     }
-
-    false
+    if cleaned.len() >= 2 {
+        let first = cleaned[0];
+        let last = *cleaned.last().unwrap();
+        if (first.x - last.x).abs() <= 1e-12 && (first.y - last.y).abs() <= 1e-12 {
+            cleaned.pop();
+        }
+    }
+    cleaned
 }
 
 fn main() {
@@ -148,33 +102,46 @@ fn main() {
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let mut out = String::new();
+    let mut outputs: Vec<String> = Vec::new();
 
     loop {
-        let n_opt = it.next();
-        if n_opt.is_none() {
+        let Some(tok) = it.next() else { break };
+        let m: i64 = tok.parse().unwrap();
+        if m <= 0 {
             break;
         }
-        let n: i32 = match n_opt.unwrap().parse() {
-            Ok(v) => v,
-            Err(_) => break,
-        };
-        if n <= 0 {
-            break;
-        }
-        let n_usize = n as usize;
+        let m_usize = m as usize;
 
-        let mut poly: Vec<Pt> = Vec::with_capacity(n_usize);
-        for _ in 0..n_usize {
-            let x: f64 = it.next().unwrap().parse::<i64>().unwrap() as f64;
-            let y: f64 = it.next().unwrap().parse::<i64>().unwrap() as f64;
-            poly.push(Pt { x, y });
+        let mut verts: Vec<Pt> = Vec::with_capacity(m_usize);
+        for _ in 0..m_usize {
+            let x: i64 = it.next().unwrap().parse().unwrap();
+            let y: i64 = it.next().unwrap().parse().unwrap();
+            verts.push(Pt {
+                x: x as f64,
+                y: y as f64,
+            });
         }
 
-        let ans = if polygon_intersects_square(&poly) { '1' } else { '0' };
-        out.push(ans);
-        out.push('\n');
+        // Start with fixed square [0,10000] x [0,10000], as a convex polygon in CCW order.
+        let mut region = vec![
+            Pt { x: 0.0, y: 0.0 },
+            Pt { x: 10000.0, y: 0.0 },
+            Pt { x: 10000.0, y: 10000.0 },
+            Pt { x: 0.0, y: 10000.0 },
+        ];
+
+        // Apply half-plane cuts for each directed edge of the input polygon.
+        for i in 0..m_usize {
+            if region.is_empty() {
+                break;
+            }
+            let a = verts[i];
+            let b = verts[(i + 1) % m_usize];
+            region = clip_by_halfplane(&region, a, b);
+        }
+
+        outputs.push(if region.is_empty() { "0" } else { "1" }.to_string());
     }
 
-    print!("{out}");
+    print!("{}", outputs.join("\n"));
 }

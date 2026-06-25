@@ -7,25 +7,26 @@ fn main() {
 
     let mut it = input.split_whitespace();
 
-    // C uses: ll N; int A, B; and scanf("%lld%d%d", ...)
-    // Spec assumes inputs are parseable and step count non-negative.
-    let mut n: i64 = it.next().unwrap().parse().unwrap();
+    // Per spec: exactly three integers are provided; otherwise output is unspecified.
+    let n: i64 = it.next().unwrap().parse().unwrap();
     let mut a: i32 = it.next().unwrap().parse().unwrap();
     let mut b: i32 = it.next().unwrap().parse().unwrap();
 
-    // Match C behavior for non-negative N (per spec precondition).
-    n %= 12;
+    // Spec: step count is non-negative; k = N mod 12 in [0, 11].
+    // C uses N %= 12 on signed; with the precondition N >= 0, this matches.
+    let k: i64 = n % 12;
 
-    let mut i: i64 = 0;
-    while i < n {
-        a = a - b;
-        i += 1;
-        if i == n {
-            break;
+    // Apply exactly k steps:
+    // odd t:  (A, B) -> (A - B, B)
+    // even t: (A, B) -> (A, A + B)
+    for t in 1..=k {
+        if t % 2 == 1 {
+            a = a - b;
+        } else {
+            b = a + b;
         }
-        b = a + b;
-        i += 1;
     }
 
-    print!("{} {}\n", a, b);
+    // Preserve output formatting: "A B\n"
+    println!("{} {}", a, b);
 }

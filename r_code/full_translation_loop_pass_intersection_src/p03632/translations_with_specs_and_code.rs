@@ -1,7 +1,7 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read all input from stdin
+    // Read all input (expects four integers).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -11,14 +11,14 @@ fn main() {
     let c: i32 = it.next().unwrap().parse().unwrap();
     let d: i32 = it.next().unwrap().parse().unwrap();
 
-    // Per spec: compute K = number of integers in intersection of [A,B] and [C,D]
-    // Then output 0 if K==0 else K-1.
-    let left = a.max(c);
-    let right = b.min(d);
+    // SPEC: overlap length for closed intervals [a,b] and [c,d] is:
+    // if intersection is [L,R] with L <= R, output R - L, else 0.
+    let l = a.max(c);
+    let r = b.min(d);
 
-    let k: i32 = if left <= right { right - left + 1 } else { 0 };
-    let out: i32 = if k == 0 { 0 } else { k - 1 };
+    let ans = if l <= r { r - l } else { 0 };
+    print!("{}", ans);
 
-    // Match C behavior: print integer with no trailing newline.
-    print!("{out}");
+    // Note: The provided C code counts integer points in the intersection and prints (count - 1),
+    // which equals R - L when endpoints are integers and within range. This matches the SPEC.
 }

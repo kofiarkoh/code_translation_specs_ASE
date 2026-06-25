@@ -2,112 +2,89 @@ use std::io::{self, Read};
 
 #[derive(Clone, Copy, Debug)]
 struct Node {
-    // Minimum and maximum prefix sum within this segment
-    min: i64,
-    max: i64,
-    // Maximum (P[b] - P[a]) with a <= b within this segment
-    best: i64,
+    min_pref: i64, // minimum prefix sum in this segment
+    max_pref: i64, // maximum prefix sum in this segment
+    best: i64,     // maximum difference P[b]-P[a] with a<b within this segment
 }
 
 impl Node {
-    fn single(x: i64) -> Self {
-        Node { min: x, max: x, best: 0 }
-    }
-
-    fn merge(left: Node, right: Node) -> Self {
-        // Crossing best uses min from left and max from right to preserve a <= b.
-        let cross = right.max - left.min;
-        let best = left.best.max(right.best).max(cross);
+    fn leaf(v: i64) -> Self {
+        // Segment of length 1: only one prefix value, so no valid a<b inside.
         Node {
-            min: left.min.min(right.min),
-            max: left.max.max(right.max),
-            best,
+            min_pref: v,
+            max_pref: v,
+            best: 0,
         }
     }
 
-    fn add_all(&mut self, delta: i64) {
-        // Adding a constant to all prefix sums shifts min/max but does not change best difference.
-        self.min += delta;
-        self.max += delta;
+    fn combine(left: Node, right: Node) -> Self {
+        // For concatenated segment:
+        // - min/max are straightforward.
+        // - best is max of:
+        //   * best entirely in left
+        //   * best entirely in right
+        //   * best crossing: max in right - min in left (a in left, b in right)
+        let min_pref = left.min_pref.min(right.min_pref);
+        let max_pref = left.max_pref.max(right.max_pref);
+        let cross = right.max_pref - left.min_pref;
+        let best = left.best.max(right.best).max(cross);
+        Node {
+            min_pref,
+            max_pref,
+            best,
+        }
     }
 }
 
 struct SegTree {
-    n: usize,        // number of leaves (power of two)
-    tree: Vec<Node>, // 1-indexed nodes, size 2*n
-    lazy: Vec<i64>,  // 1-indexed lazy tags, size 2*n (only internal nodes used)
+    n: usize,        // number of leaves (prefix positions), equals n_input + 1
+    size: usize,     // power-of-two >= n
+    tree: Vec<Node>, // 1-indexed segment tree nodes
 }
 
 impl SegTree {
     fn new(values: &[i64]) -> Self {
-        let m = values.len();
-        let mut n = 1usize;
-        while n < m {
-            n <<= 1;
+        let n = values.len();
+        let mut size = 1usize;
+        while size < n {
+            size <<= 1;
         }
 
-        let mut tree = vec![Node::single(0); 2 * n];
-        let lazy = vec![0i64; 2 * n];
+        // Initialize all nodes as neutral leaves with value 0.
+        // This is safe because we will build by setting actual leaves and combining.
+        let mut tree = vec![Node::leaf(0); 2 * size];
 
-        for i in 0..n {
-            let v = if i < m { values[i] } else { 0 };
-            tree[n + i] = Node::single(v);
-        }
-        for i in (1..n).rev() {
-            tree[i] = Node::merge(tree[i << 1], tree[i << 1 | 1]);
+        // Set leaves
+        for i in 0..size {
+            let v = if i < n { values[i] } else { 0 };
+            tree[size + i] = Node::leaf(v);
         }
 
-        SegTree { n, tree, lazy }
+        // Build
+        for idx in (1..size).rev() {
+            tree[idx] = Node::combine(tree[idx << 1], tree[(idx << 1) | 1]);
+        }
+
+        SegTree { n, size, tree }
+    }
+
+    fn set(&mut self, pos: usize, val: i64) {
+        // pos is 0-based within [0, n)
+        let mut idx = self.size + pos;
+        self.tree[idx] = Node::leaf(val);
+        idx >>= 1;
+        while idx >= 1 {
+            self.tree[idx] = Node::combine(self.tree[idx << 1], self.tree[(idx << 1) | 1]);
+            if idx == 1 {
+                break;
+            }
+            idx >>= 1;
+        }
     }
 
     fn best(&self) -> i64 {
+        // Root best is the maximum subarray sum with empty subarray allowed (>=0).
         self.tree[1].best
-    }
-
-    fn apply(&mut self, idx: usize, delta: i64) {
-        self.tree[idx].add_all(delta);
-        self.lazy[idx] += delta;
-    }
-
-    fn push(&mut self, idx: usize) {
-        let tag = self.lazy[idx];
-        if tag != 0 {
-            self.apply(idx << 1, tag);
-            self.apply(idx << 1 | 1, tag);
-            self.lazy[idx] = 0;
-        }
-    }
-
-    fn pull(&mut self, idx: usize) {
-        self.tree[idx] = Node::merge(self.tree[idx << 1], self.tree[idx << 1 | 1]);
-    }
-
-    fn add_range(&mut self, l: usize, r: usize, delta: i64) {
-        // Add delta to all values in [l, r) (0-based indices over the prefix array).
-        self.add_range_rec(1, 0, self.n, l, r, delta);
-    }
-
-    fn add_range_rec(
-        &mut self,
-        idx: usize,
-        seg_l: usize,
-        seg_r: usize,
-        ql: usize,
-        qr: usize,
-        delta: i64,
-    ) {
-        if ql >= seg_r || qr <= seg_l {
-            return;
-        }
-        if ql <= seg_l && seg_r <= qr {
-            self.apply(idx, delta);
-            return;
-        }
-        self.push(idx);
-        let mid = (seg_l + seg_r) >> 1;
-        self.add_range_rec(idx << 1, seg_l, mid, ql, qr, delta);
-        self.add_range_rec(idx << 1 | 1, mid, seg_r, ql, qr, delta);
-        self.pull(idx);
     }
 }
 
@@ -116,10 +93,7 @@ fn main() {
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let n: usize = match it.next() {
-        Some(x) => x.parse().unwrap(),
-        None => return,
-    };
+    let n: usize = it.next().unwrap().parse().unwrap();
     let q: usize = it.next().unwrap().parse().unwrap();
 
     let mut a = vec![0i64; n];
@@ -127,10 +101,10 @@ fn main() {
         a[i] = it.next().unwrap().parse().unwrap();
     }
 
-    // Prefix sums P[0..=n]
+    // Build prefix sums P[0..n], P[0]=0, P[k]=sum_{j<k} a[j]
     let mut p = vec![0i64; n + 1];
-    for i in 0..n {
-        p[i + 1] = p[i] + a[i];
+    for k in 1..=n {
+        p[k] = p[k - 1] + a[k - 1];
     }
 
     let mut st = SegTree::new(&p);
@@ -139,17 +113,20 @@ fn main() {
     out.push_str(&format!("{}\n", st.best()));
 
     for _ in 0..q {
-        let pos_1: usize = it.next().unwrap().parse().unwrap(); // 1-based position in A
-        let v: i64 = it.next().unwrap().parse().unwrap();
+        let i1: usize = it.next().unwrap().parse().unwrap(); // 1-based
+        let t: i64 = it.next().unwrap().parse().unwrap();
+        let idx = i1 - 1; // 0-based in a
 
-        let idx = pos_1 - 1;
         let old = a[idx];
-        let delta = v - old;
-        a[idx] = v;
+        a[idx] = t;
+        let delta = t - old;
 
-        // Update prefix sums: P[k] for k >= pos_1 increases by delta.
-        // P indices are 0..=n, so affected range is [pos_1, n+1).
-        st.add_range(pos_1, n + 1, delta);
+        // Update all prefix sums P[k] for k >= i1 (since P uses count of first k elements)
+        // i1 is 1-based element index, so affected prefix indices are k in [i1..=n].
+        for k in i1..=n {
+            p[k] += delta;
+            st.set(k, p[k]);
+        }
 
         out.push_str(&format!("{}\n", st.best()));
     }

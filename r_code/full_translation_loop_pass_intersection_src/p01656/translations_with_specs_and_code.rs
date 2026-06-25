@@ -1,36 +1,28 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, whitespace-delimited parsing (matches scanf("%d%d") and scanf("%d%s")).
+    // Read entire stdin as whitespace-separated tokens (matches scanf("%d%s") behavior).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
+    // Per spec: undefined behavior on malformed/missing input; we unwrap accordingly.
     let n: usize = it.next().unwrap().parse().unwrap();
     let q: i32 = it.next().unwrap().parse().unwrap();
 
-    // Fixed, bounded storage as in C: names[50][32]
-    // names[0] initialized to default.
-    let mut names: Vec<String> = vec![String::new(); 50];
-    names[0] = "kogakubu10gokan".to_string();
+    // Default name as in the C code initialization.
+    let mut answer = String::from("kogakubu10gokan");
 
-    // answer points to names[0] initially.
-    let mut answer_idx: usize = 0;
-
-    // C loop: for(i=1;i<=N;i++)
-    // Spec precondition: N does not exceed fixed capacity (<= 49).
-    for i in 1..=n {
+    // Process N records in input order; update answer when year <= query year.
+    for _ in 0..n {
         let year: i32 = it.next().unwrap().parse().unwrap();
-        let name = it.next().unwrap();
-
-        // Store into fixed slot (bounded by spec; no explicit error handling).
-        names[i] = name.to_string();
-
+        let name = it.next().unwrap(); // token (non-whitespace)
         if year <= q {
-            answer_idx = i;
+            answer.clear();
+            answer.push_str(name);
         }
     }
 
-    // Exactly one line with the selected name.
-    println!("{}", names[answer_idx]);
+    // Output exactly one name token followed by a newline.
+    println!("{answer}");
 }

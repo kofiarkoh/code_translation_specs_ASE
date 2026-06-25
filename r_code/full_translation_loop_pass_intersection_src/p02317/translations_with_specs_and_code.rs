@@ -1,8 +1,8 @@
 use std::io::{self, Read};
 
 fn bs(d: &[i32], n: usize, c: i32) -> usize {
-    // Mirrors the C bs(): search in d[0..n) and return either exact index,
-    // or k+1 where k is the last index with d[k] < c (i.e., lower_bound for >= c).
+    // Mirrors the C bs(): returns the index of the first element >= c
+    // within d[0..n], assuming d is non-decreasing there.
     let mut j: i32 = 0;
     let mut k: i32 = n as i32 - 1;
     loop {
@@ -23,7 +23,7 @@ fn bs(d: &[i32], n: usize, c: i32) -> usize {
 }
 
 fn main() {
-    // No explicit error handling, per spec/C behavior.
+    // Read all input (no explicit error handling per spec).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -34,9 +34,9 @@ fn main() {
         a.push(it.next().unwrap().parse().unwrap());
     }
 
-    // Fixed-size arrays in C; here we allocate proportional to n (<= 100000 per spec).
+    // dp holds candidate tail values; dp[0] is a sentinel -1 as in C.
+    // Note: per spec assumption, a[0] is not less than -1; otherwise result may be incorrect.
     let mut dp: Vec<i32> = vec![0; n + 1];
-
     dp[0] = -1;
     dp[1] = a[0];
     let mut j: usize = 1;

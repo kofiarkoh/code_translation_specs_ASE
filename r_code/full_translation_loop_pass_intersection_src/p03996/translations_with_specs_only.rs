@@ -1,83 +1,109 @@
 use std::io::{self, Read};
 
+#[derive(Clone, Copy)]
+struct Node {
+    // id is implicit by index, but kept for clarity
+    id: usize,
+    count: i64,
+    prev: Option<usize>,
+    next: Option<usize>,
+}
+
 fn main() {
     // Read all input as whitespace-separated integers.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let cap: usize = match it.next() {
-        Some(v) => v.parse().unwrap(),
-        None => return,
+    let n: i64 = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return, // No input; unspecified by spec. Do nothing.
     };
-    let ncat: usize = it.next().unwrap().parse().unwrap();
-    let len: usize = it.next().unwrap().parse().unwrap();
+    let m_i64: i64 = it.next().unwrap().parse().unwrap();
+    let q_i64: i64 = it.next().unwrap().parse().unwrap();
 
-    // Derive per-category required counts under "capacity propagation rules".
-    //
-    // The specification does not define these rules explicitly; the narrowest
-    // reasonable interpretation consistent with:
-    // - "derive per-category required counts from the input sequence"
-    // - "for every category, its derived required count never exceeds the capacity"
-    // is: count occurrences per category, saturating at `cap`.
-    let mut req = vec![0usize; ncat];
-    for _ in 0..len {
-        let idx: usize = it.next().unwrap().parse().unwrap();
-        if idx < ncat {
-            if req[idx] < cap {
-                req[idx] += 1;
-            }
-        } else {
-            // Out-of-range behavior is unspecified; preconditions say it won't happen.
-            // We do nothing to keep behavior defined in Rust.
-        }
+    // Spec assumes m >= 0 and q >= 0; no guarding in the original.
+    // We interpret them as sizes; if negative, behavior is unspecified in spec.
+    let m: usize = m_i64 as usize;
+    let q: usize = q_i64 as usize;
+
+    let mut a: Vec<usize> = Vec::with_capacity(q);
+    for _ in 0..q {
+        let x: usize = it.next().unwrap().parse().unwrap();
+        a.push(x);
     }
 
-    // Completion state per category.
-    let mut complete = vec![false; ncat];
+    // Allocate nodes 0..=m
+    let mut nodes: Vec<Node> = (0..=m)
+        .map(|i| Node {
+            id: i,
+            count: 0,
+            prev: None,
+            next: None,
+        })
+        .collect();
 
-    // Initial completion marking: any category with required count == capacity is complete.
-    for i in 0..ncat {
-        if req[i] == cap {
-            complete[i] = true;
+    // Initialize count[0] = n
+    nodes[0].count = n;
+
+    // Build list by scanning from end, tail pointer p starts at 0
+    let mut p: usize = 0;
+
+    for &x in a.iter().rev() {
+        if nodes[x].count == 0 {
+            // Append x to tail p
+            nodes[x].prev = Some(p);
+            nodes[p].next = Some(x);
+            p = x;
         }
+
+        // Update count[x] = min(count[x] + 1, count[prev(x)])
+        // prev(x) is the recorded prev pointer (set when appended).
+        // For x==0, prev is None; in the C program this would be undefined if reached.
+        // Under the spec's assumptions, we follow the described computation; if prev is None,
+        // we conservatively treat it as 0 to keep code total, but this path should not occur
+        // for valid inputs as per the spec's intended behavior.
+        let prev_idx = nodes[x].prev.unwrap_or(0);
+        let prev_count = nodes[prev_idx].count;
+
+        // Use i64 arithmetic; spec does not mention overflow behavior.
+        let inc = nodes[x].count + 1;
+        nodes[x].count = if inc < prev_count { inc } else { prev_count };
     }
 
-    // "Allowed" is always the smallest category identifier not yet marked complete.
-    let mut allowed: usize = 0;
-    while allowed < ncat && complete[allowed] {
-        allowed += 1;
+    // Validation
+    let mut complete = vec![false; m + 1];
+    let mut allow: usize = 0;
+
+    // Traverse from head (0) following next pointers
+    let mut cur: Option<usize> = Some(0);
+
+    // Phase 1: automatic prefix completion while count == n
+    while let Some(idx) = cur {
+        if nodes[idx].count != n {
+            break;
+        }
+        let id = nodes[idx].id;
+        complete[id] = true;
+        while allow <= m && complete[allow] {
+            allow += 1;
+        }
+        cur = nodes[idx].next;
     }
 
-    // Main verification phase:
-    // The remaining categories, when processed in the program’s derived order,
-    // must match the smallest non-complete category identifier at each step.
-    //
-    // The specification does not define the "derived order" beyond being based on
-    // the derived required counts. The narrowest interpretation is to process
-    // categories in increasing identifier order, considering only those not already
-    // complete and with a positive required count.
-    for i in 0..ncat {
-        if complete[i] {
-            continue;
-        }
-        if req[i] == 0 {
-            continue;
-        }
-
-        if i != allowed {
-            println!("No");
+    // Phase 2: ordered completion check
+    while let Some(idx) = cur {
+        let id = nodes[idx].id;
+        if allow > m || id != allow {
+            print!("No\n");
             return;
         }
-
-        // Process this category: mark complete at most once.
-        complete[i] = true;
-
-        // Advance allowed to the next smallest incomplete category.
-        while allowed < ncat && complete[allowed] {
-            allowed += 1;
+        complete[id] = true;
+        while allow <= m && complete[allow] {
+            allow += 1;
         }
+        cur = nodes[idx].next;
     }
 
-    println!("Yes");
+    print!("Yes\n");
 }

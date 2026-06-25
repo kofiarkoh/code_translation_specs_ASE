@@ -1,9 +1,8 @@
 use std::io::{self, Read};
 
 const MOD: i64 = 998_244_353;
-const MAX_SUM: usize = 90310;
 
-fn mod_norm(x: i64) -> i64 {
+fn norm_mod(x: i64) -> i64 {
     let mut v = x % MOD;
     if v < 0 {
         v += MOD;
@@ -11,81 +10,63 @@ fn mod_norm(x: i64) -> i64 {
     v
 }
 
-fn mod_pow(mut a: i64, mut e: usize) -> i64 {
-    a = mod_norm(a);
-    let mut r: i64 = 1;
-    while e > 0 {
-        if (e & 1) == 1 {
-            r = (r * a) % MOD;
-        }
-        a = (a * a) % MOD;
-        e >>= 1;
-    }
-    r
-}
-
 fn main() {
     let mut input = String::new();
-    io::stdin().read_to_string(&mut input).ok();
+    io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    // Narrow interpretation consistent with the failing sample:
-    // the first integer is the count n, followed by exactly n values.
-    // If fewer than n values exist, we process what is available (EOF stops normally).
-    let n_decl: usize = match it.next() {
-        Some(s) => s.parse::<usize>().unwrap_or(0),
+    // Behavior is unspecified if the first integer cannot be read.
+    // We choose the narrowest reasonable behavior: do nothing (no output).
+    let _first = match it.next() {
+        Some(s) => s,
         None => return,
     };
 
-    let mut d = vec![0i64; MAX_SUM];
-    let mut e = vec![0i64; MAX_SUM];
+    // Read remaining integers (assumed nonnegative per spec).
+    let mut a: Vec<usize> = Vec::new();
+    let mut s_total: usize = 0;
+    for tok in it {
+        let v: usize = tok.parse().unwrap();
+        s_total = s_total.saturating_add(v);
+        a.push(v);
+    }
+
+    // Fixed-size arrays in the original; here we size exactly to S+1.
+    // Spec assumes S is small enough to avoid out-of-bounds.
+    let mut d = vec![0i64; s_total + 1];
+    let mut e = vec![0i64; s_total + 1];
     d[0] = 1;
     e[0] = 1;
 
-    let mut n: usize = 0;
-    let mut sum_s: usize = 0;
+    let mut running_sum: usize = 0;
+    let mut r: i64 = 1; // baseline 3^n mod MOD
 
-    for _ in 0..n_decl {
-        let x: usize = match it.next() {
-            Some(s) => match s.parse::<usize>() {
-                Ok(v) => v,
-                Err(_) => break,
-            },
-            None => break,
-        };
-
-        let old_sum = sum_s;
-        let new_sum = old_sum + x;
-
-        for k in (0..=old_sum).rev() {
-            let nk = k + x;
-            let dk = d[k];
-            let ek = e[k];
-            d[nk] = (d[nk] + (2 * dk) % MOD) % MOD;
-            e[nk] = (e[nk] + ek) % MOD;
+    for &ai in &a {
+        // Update in decreasing order so each ai is used at most once.
+        for t in (0..=running_sum).rev() {
+            let to = t + ai;
+            // D[to] += 2 * D[t]
+            d[to] = (d[to] + 2 * d[t]) % MOD;
+            // E[to] += E[t]
+            e[to] = (e[to] + e[t]) % MOD;
         }
-
-        sum_s = new_sum;
-        n += 1;
+        running_sum += ai;
+        r = (r * 3) % MOD;
     }
 
-    let pow3n = mod_pow(3, n);
+    // Finalization:
+    // Start from R = 3^n, then subtract 3*D[t] for t <= floor(S/2),
+    // and if S even subtract 3*E[S/2].
+    let mut ans: i64 = r;
 
-    let half = sum_s / 2;
-    let mut sum_d: i64 = 0;
-    for k in 0..=half {
-        sum_d += d[k];
-        if sum_d >= MOD {
-            sum_d -= MOD;
-        }
+    let half = s_total / 2;
+    for t in 0..=half {
+        ans -= 3 * d[t];
+    }
+    if s_total % 2 == 0 {
+        ans -= 3 * e[half];
     }
 
-    let mut ans = pow3n;
-    ans = mod_norm(ans - (3 * sum_d) % MOD);
-
-    if (sum_s & 1) == 0 {
-        ans = (ans + (3 * e[half]) % MOD) % MOD;
-    }
-
-    println!("{}", mod_norm(ans));
+    ans = norm_mod(ans);
+    println!("{}", ans);
 }

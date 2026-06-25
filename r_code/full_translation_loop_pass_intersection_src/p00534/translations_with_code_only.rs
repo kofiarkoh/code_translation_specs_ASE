@@ -1,30 +1,29 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin
+    // Read entire stdin, parse as i32 like scanf("%d")
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
     let n: usize = match it.next() {
-        Some(v) => v.parse().unwrap(),
+        Some(v) => v.parse::<i32>().unwrap() as usize,
         None => return,
     };
-    let m: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse::<i32>().unwrap() as usize;
 
     // 1-based arrays to match C indexing
     let mut k = vec![0i32; n + 1];
     let mut t = vec![0i32; m + 1];
 
     for i in 1..=n {
-        k[i] = it.next().unwrap().parse().unwrap();
+        k[i] = it.next().unwrap().parse::<i32>().unwrap();
     }
     for i in 1..=m {
-        t[i] = it.next().unwrap().parse().unwrap();
+        t[i] = it.next().unwrap().parse::<i32>().unwrap();
     }
 
-    // hi has dimensions [m+1][n+1]
-    // Initialize to 1_000_000_000 like the C code.
+    // hi is (m+1) x (n+1)
     let mut hi = vec![vec![1_000_000_000i32; n + 1]; m + 1];
 
     // hi[i][0] = 0 for i=0..m
@@ -32,18 +31,14 @@ fn main() {
         hi[i][0] = 0;
     }
 
-    // DP transitions.
-    // Note: C uses signed int arithmetic; overflow is undefined in C.
-    // We use wrapping ops to avoid Rust panics and to emulate typical 2's-complement behavior.
+    // DP with i32 wrapping to emulate typical C int overflow behavior.
+    // Note: C signed overflow is UB, but many contest solutions rely on 2's complement wrap.
     for i in 1..=m {
         for j in 1..=n {
             let prod = k[j].wrapping_mul(t[i]);
-            let sum = prod.wrapping_add(hi[i - 1][j - 1]);
-            let mut val = sum;
-            if val > hi[i - 1][j] {
-                val = hi[i - 1][j];
-            }
-            hi[i][j] = val;
+            let val = prod.wrapping_add(hi[i - 1][j - 1]);
+            let prev = hi[i - 1][j];
+            hi[i][j] = if val > prev { prev } else { val };
         }
     }
 

@@ -6,16 +6,14 @@ fn f(n: LL, x: LL) -> LL {
     if n == 0 {
         return if x <= 0 { 0 } else { 1 };
     }
-    // In C: (1LL<<n) is undefined for n >= 63 (or negative).
-    // We emulate the common two's-complement/x86 behavior by masking the shift count.
-    // This preserves the bit-level behavior the C code likely relies on.
-    let sh = (n as u64) & 63;
-    let p: LL = ((1i64).wrapping_shl(sh as u32)).wrapping_sub(1);
+    // In C: (1LL<<n) is undefined if n is negative or >= 64.
+    // We emulate typical two's-complement behavior by using wrapping shifts.
+    let p: LL = ((1i64).wrapping_shl(n as u32)).wrapping_sub(1);
 
     if x <= 2i64.wrapping_mul(p) {
         f(n - 1, x - 1)
     } else {
-        p.wrapping_add(1).wrapping_add(f(n - 1, x - 1 - 2i64.wrapping_mul(p)))
+        p + 1 + f(n - 1, x - 1 - 2 * p)
     }
 }
 
@@ -23,8 +21,8 @@ fn main() {
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
-    let n: LL = it.next().unwrap_or("0").parse().unwrap();
-    let k: LL = it.next().unwrap_or("0").parse().unwrap();
+    let n: LL = it.next().unwrap().parse().unwrap();
+    let k: LL = it.next().unwrap().parse().unwrap();
 
     print!("{}", f(n, k));
 }

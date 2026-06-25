@@ -1,12 +1,17 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, whitespace-separated tokens (matches scanf-style behavior).
+    // Read entire stdin (no explicit error handling per spec).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let n: i32 = it.next().unwrap().parse().unwrap();
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    let mut out = String::new();
 
     for _ in 0..n {
         let x1: f64 = it.next().unwrap().parse().unwrap();
@@ -16,7 +21,7 @@ fn main() {
         let x3: f64 = it.next().unwrap().parse().unwrap();
         let y3: f64 = it.next().unwrap().parse().unwrap();
 
-        // Solve for circumcenter (px, py) via linear system derived from equal power distances.
+        // Solve for circumcenter (px, py) via linear system derived from equal power of point.
         let a1 = 2.0 * (x2 - x1);
         let b1 = 2.0 * (y2 - y1);
         let c1 = x1 * x1 - x2 * x2 + y1 * y1 - y2 * y2;
@@ -29,8 +34,8 @@ fn main() {
         let px = (b1 * c2 - b2 * c1) / denom;
         let py = (c1 * a2 - c2 * a1) / denom;
 
-        // Radius computed using Newton iteration exactly as in the C code:
-        // r starts at s/2 and iterates until r == previous value (bitwise float equality).
+        // Radius computed as sqrt(s) using the same iterative method as the C code.
+        // Note: This uses exact floating equality in the loop condition, matching C semantics.
         let s = (x1 - px) * (x1 - px) + (y1 - py) * (y1 - py);
         let mut x = 0.0f64;
         let mut r = s / 2.0;
@@ -44,7 +49,8 @@ fn main() {
             r = -r;
         }
 
-        // Match printf("%.3lf %.3lf %.3lf\n", ...)
-        println!("{:.3} {:.3} {:.3}", px, py, r);
+        out.push_str(&format!("{:.3} {:.3} {:.3}\n", px, py, r));
     }
+
+    print!("{out}");
 }

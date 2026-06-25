@@ -1,7 +1,7 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, parse three signed integers.
+    // Read entire stdin, parse three signed integers (C uses long; use i64 here).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -15,20 +15,17 @@ fn main() {
         // Match C's puts("0") behavior: prints "0\n"
         println!("0");
     } else {
-        // Find index of a (strictly) largest element; ties keep the first encountered.
-        // Note: C code initializes `max` as int 0, which would be wrong for all-negative odds.
-        // The SPEC defines "largest of the three values", so we implement that correctly.
+        // Find an index of a maximum element; if ties, any one is acceptable per spec.
+        // (C code picks the first element strictly greater than current max, but its
+        // initialization is flawed for negative values; spec does not require that behavior.)
         let mut m = 0usize;
-        let mut max = x[0];
         for i in 1..3 {
-            if x[i] > max {
-                max = x[i];
+            if x[i] > x[m] {
                 m = i;
             }
         }
-
         x[m] = 1;
-        // No trailing newline, matching C's printf("%ld", ...)
+        // Match C's printf("%ld", ...) behavior: no trailing newline.
         print!("{}", x[0] * x[1] * x[2]);
     }
 }

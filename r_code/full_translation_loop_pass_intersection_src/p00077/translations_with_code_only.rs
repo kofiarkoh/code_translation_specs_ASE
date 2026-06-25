@@ -1,51 +1,57 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Tokenize exactly like `scanf("%s", str)` (whitespace-separated).
+    // Read entire stdin, then mimic scanf("%s") tokenization (whitespace-separated).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
 
     let mut out = String::new();
 
     for token in input.split_whitespace() {
-        let b = token.as_bytes();
-        let n = b.len();
+        // C uses a fixed buffer char str[MAX]; scanf("%s", str) can overflow,
+        // but we cannot (safely) emulate that in Rust. We proceed with the token as-is.
+        let bytes = token.as_bytes();
+        let length = bytes.len();
+
         let mut i: usize = 0;
+        while i < length {
+            if bytes[i] == b'@' {
+                // C code:
+                // for(++i, j=0; j<str[i]-'0'; ++j) printf("%c", str[i+1]);
+                // i += 1; continue;
+                i += 1;
 
-        while i < n {
-            if b[i] == b'@' {
-                // C:
-                // if(str[i] == '@') {
-                //   for(++i, j=0; j<str[i]-'0'; ++j) printf("%c", str[i+1]);
-                //   i += 1;
-                //   continue;
-                // }
-                //
-                // Important: after seeing '@' at position i0, C does ++i (now at digit),
-                // prints str[i+1] (the char after the digit) count times, then does i += 1,
-                // and the outer for-loop will also do ++i. Net effect: it skips both the digit
-                // and the repeated character, continuing after them.
-                let i0 = i;
-                let digit_pos = i0 + 1;
-                let ch_pos = i0 + 2;
-
-                if digit_pos < n && ch_pos < n {
-                    // In C, `str[digit_pos] - '0'` is an int; for typical inputs it's '0'..'9'.
-                    let count = (b[digit_pos] as i32) - (b'0' as i32);
-                    if count > 0 {
-                        let ch = b[ch_pos] as char;
-                        for _ in 0..(count as usize) {
-                            out.push(ch);
-                        }
-                    }
+                // If input is malformed (e.g., '@' at end), C would read out of bounds (UB).
+                // We avoid panics and emulate "do nothing further" for missing bytes.
+                if i >= length {
+                    break;
                 }
-                // Move i to the repeated character position; the loop's i += 1 at bottom
-                // will advance past it, matching the C control flow.
-                i = ch_pos;
+
+                // Emulate C's (potentially signed) char arithmetic as closely as possible:
+                // treat str[i] as unsigned byte, compute (byte - b'0') with wrapping,
+                // then interpret as signed i8, then promote to int for the loop bound.
+                let diff_u8 = bytes[i].wrapping_sub(b'0');
+                let count = (diff_u8 as i8) as i32;
+
+                // Character to repeat is str[i+1]
+                if i + 1 >= length {
+                    break;
+                }
+                let ch = bytes[i + 1] as char;
+
+                // for (j=0; j<count; ++j) ...
+                // If count <= 0, loop does not execute (matches C).
+                for _ in 0..(count.max(0) as usize) {
+                    out.push(ch);
+                }
+
+                i += 1; // i += 1 in C after the loop
+                i += 1; // loop's ++i equivalent (we used while, so advance to next)
+                continue;
             } else {
-                out.push(b[i] as char);
+                out.push(bytes[i] as char);
+                i += 1;
             }
-            i += 1;
         }
 
         out.push('\n');

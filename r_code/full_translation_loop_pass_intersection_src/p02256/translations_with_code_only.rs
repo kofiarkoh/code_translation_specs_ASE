@@ -7,6 +7,7 @@ const INPUT_NUM_MIN: U32 = 1;
 const INPUT_NUM_MAX: U32 = 1_000_000_000;
 
 fn calc_gcd_u32(mut large: U32, mut small: U32) -> U32 {
+    // Mirrors the C loop structure closely, including the explicit small==0 break.
     let mut rem: U32 = 0;
 
     loop {
@@ -27,17 +28,19 @@ fn calc_gcd_u32(mut large: U32, mut small: U32) -> U32 {
 }
 
 fn main() {
-    // Read entire stdin; if parsing fails or insufficient tokens, behave like C code
-    // where u32_x/u32_y remain 0 (since scanf would not assign them).
+    // Read entire stdin, then parse like scanf("%d %d", ...)
+    // Note: C uses "%d" with unsigned int variables (UB). We emulate typical behavior by
+    // parsing as signed 32-bit first, then casting to u32 (two's complement wrap).
     let mut input = String::new();
-    io::stdin().read_to_string(&mut input).ok();
+    io::stdin().read_to_string(&mut input).unwrap();
 
     let mut it = input.split_whitespace();
-    let x_opt = it.next().and_then(|s| s.parse::<U32>().ok());
-    let y_opt = it.next().and_then(|s| s.parse::<U32>().ok());
 
-    let u32_x: U32 = x_opt.unwrap_or(0);
-    let u32_y: U32 = y_opt.unwrap_or(0);
+    let x_i: i32 = it.next().unwrap_or("0").parse().unwrap_or(0);
+    let y_i: i32 = it.next().unwrap_or("0").parse().unwrap_or(0);
+
+    let u32_x: U32 = x_i as U32;
+    let u32_y: U32 = y_i as U32;
 
     let mut return_val: U08 = 0;
 
@@ -48,12 +51,15 @@ fn main() {
     {
         return_val = 1;
     } else {
-        let gcd = if u32_x > u32_y {
+        let gcd: U32 = if u32_x > u32_y {
             calc_gcd_u32(u32_x, u32_y)
         } else {
             calc_gcd_u32(u32_y, u32_x)
         };
-        print!("{gcd}\n");
+
+        // Match C's printf("%d\n", u32_gcd) behavior: print as signed int.
+        // For in-range values this is identical.
+        println!("{}", gcd as i32);
     }
 
     std::process::exit(return_val as i32);

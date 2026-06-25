@@ -1,19 +1,18 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, like typical scanf-based solutions.
+    // Read entire stdin, parse as whitespace-separated integers (like scanf("%d")).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    // Global in C: int go[100000];
-    // In Rust, keep a fixed-size buffer and only use the first n elements.
+    // Fixed-size array as in the C code: int go[100000];
     let mut go = vec![0i32; 100_000];
 
     loop {
         let n_opt = it.next();
         if n_opt.is_none() {
-            break; // EOF: C code would stop when scanf fails; we stop here.
+            break; // EOF: C would stop because scanf would fail; here we just exit.
         }
         let n: i32 = n_opt.unwrap().parse().unwrap();
         if n == 0 {
@@ -30,7 +29,7 @@ fn main() {
         while i < n_usize {
             if go[i - 1] != go[i] {
                 // for (j = i - 1; j >= 0 && go[j] != go[i]; j--) { go[j] = go[i]; }
-                // In C, j is int and the loop condition checks j >= 0.
+                // In C, j is int and the loop condition checks j >= 0 before indexing.
                 // In Rust with usize, we emulate the same by breaking when j would go below 0.
                 let mut j = i - 1;
                 while go[j] != go[i] {

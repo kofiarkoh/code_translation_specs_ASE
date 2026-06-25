@@ -1,44 +1,49 @@
 use std::io::{self, Read};
 
-const MAX_PAIRS: usize = 10_000;
-const MAX_NAME_LEN: usize = 256; // includes terminator in C-like sense; we store up to MAX_NAME_LEN-1 chars
-const DEFAULT_NAME: &str = "Unknown";
-
 fn main() {
+    // Read entire stdin; undefined behavior on malformed/missing input is acceptable per spec.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
+
     let mut it = input.split_whitespace();
 
-    let count: usize = it.next().unwrap().parse().unwrap();
-    let query_year: i64 = it.next().unwrap().parse().unwrap();
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let query_year: i32 = it.next().unwrap().parse().unwrap();
 
-    // Fixed, bounded storage as per spec (capacity fixed at compile time).
-    // We don't need to store all names to preserve behavior, but we still allocate
-    // a fixed-capacity buffer to reflect the constraint.
-    let mut _stored_names: Vec<String> = Vec::with_capacity(MAX_PAIRS);
+    // Fixed storage capacity implied by spec (at most 49 records).
+    // We don't rely on storing all records for correctness, but we keep bounded storage to match
+    // the non-functional constraint.
+    const MAX_RECORDS: usize = 49;
+    const MAX_NAME_LEN: usize = 31;
 
-    let mut selected = DEFAULT_NAME.to_string();
+    // Default name is predefined by the program; the spec does not provide its literal value.
+    // Narrowest reasonable interpretation: use a fixed constant token.
+    let default_name: &str = "Unknown";
+    let mut selected = default_name.to_string();
 
-    for _ in 0..count {
-        let year: i64 = it.next().unwrap().parse().unwrap();
-        let name_token = it.next().unwrap();
+    // Bounded storage (not required for selection logic, but matches fixed-memory constraint).
+    let mut _years: [i32; MAX_RECORDS] = [0; MAX_RECORDS];
+    let mut _names: [String; MAX_RECORDS] = std::array::from_fn(|_| String::new());
 
-        // Enforce fixed maximum name length in a C-like way: keep at most MAX_NAME_LEN-1 chars.
-        // Spec says behavior is not guaranteed if limits are exceeded; truncation is a narrow,
-        // bounded interpretation that keeps the program total and within fixed storage.
-        let mut name = String::new();
-        for ch in name_token.chars().take(MAX_NAME_LEN.saturating_sub(1)) {
-            name.push(ch);
-        }
+    for i in 0..n {
+        let year: i32 = it.next().unwrap().parse().unwrap();
+        let name = it.next().unwrap().to_string();
 
-        // Store up to fixed capacity; if exceeded, behavior is not guaranteed by spec.
-        // We choose to stop storing further names but still process selection based on read input.
-        if _stored_names.len() < MAX_PAIRS {
-            _stored_names.push(name.clone());
+        // Name length constraint violations are undefined per spec; we do not enforce.
+        // Still, keep behavior predictable by truncating to the fixed maximum if longer.
+        let stored_name = if name.len() > MAX_NAME_LEN {
+            name.chars().take(MAX_NAME_LEN).collect::<String>()
+        } else {
+            name
+        };
+
+        if i < MAX_RECORDS {
+            _years[i] = year;
+            _names[i] = stored_name.clone();
         }
 
         if year <= query_year {
-            selected = name;
+            selected = stored_name;
         }
     }
 

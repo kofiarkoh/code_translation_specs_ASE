@@ -1,11 +1,11 @@
 use std::io::{self, Read};
 
-const NUM_MAX: usize = 100000;
+const NUM_MAX: usize = 100_000;
 const BUF_SIZE: usize = NUM_MAX + 50;
 
 fn main() {
-    // Read entire stdin, then parse like scanf("%d %d") and scanf("%s") would:
-    // whitespace-separated tokens.
+    // Read entire stdin, then parse like scanf("%d %d") and scanf("%s")
+    // (whitespace-separated tokens).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -13,30 +13,29 @@ fn main() {
     let num: usize = it.next().unwrap_or("0").parse::<i32>().unwrap_or(0).max(0) as usize;
     let changes: i32 = it.next().unwrap_or("0").parse::<i32>().unwrap_or(0);
 
-    // get_str(str, BUF_SIZE): scanf("%<size>s") reads a single token (no spaces),
-    // with a maximum field width. We'll emulate by taking the next token and
-    // truncating to BUF_SIZE characters (bytes) since C uses char[] bytes.
-    let mut s = it.next().unwrap_or("").as_bytes().to_vec();
-    if s.len() > BUF_SIZE {
-        s.truncate(BUF_SIZE);
+    let s = it.next().unwrap_or("");
+    // C code uses a fixed buffer and scanf("%<size>s"), which reads a token up to size chars.
+    // We'll emulate by truncating to BUF_SIZE characters (bytes) since input is expected ASCII.
+    let mut bytes = s.as_bytes().to_vec();
+    if bytes.len() > BUF_SIZE {
+        bytes.truncate(BUF_SIZE);
     }
-    // Ensure we can index up to num (inclusive) as the C code does (str[num] write).
-    if s.len() < num + 1 {
-        s.resize(num + 1, 0);
+    // Ensure we can index up to num (inclusive) as the C code does.
+    if bytes.len() < num + 1 {
+        bytes.resize(num + 1, b'\0');
     }
 
-    // for(i = 0; i < num; i++) str[i] = (str[i] == '1');
+    // Convert first `num` chars: str[i] = (str[i] == '1'); stored as 0/1 byte.
     for i in 0..num {
-        s[i] = if s[i] == b'1' { 1 } else { 0 };
+        bytes[i] = if bytes[i] == b'1' { 1 } else { 0 };
     }
-    // str[num] = !(str[num-1]);
-    // In C, '!' yields 0 or 1. Here we keep bytes 0/1.
+    // str[num] = !(str[num-1]); with C char logical-not => 0/1.
     if num > 0 {
-        s[num] = if s[num - 1] == 0 { 1 } else { 0 };
+        bytes[num] = if bytes[num - 1] == 0 { 1 } else { 0 };
     } else {
-        // C would read str[-1] (UB) if num==0; we avoid panic but keep a deterministic value.
-        // This is the closest safe emulation without invoking UB.
-        s[0] = 1;
+        // The C code would read str[-1] (UB) if num==0; we avoid panic and pick a value.
+        // This is a best-effort emulation; behavior is unspecified in C for num==0.
+        bytes[0] = 1;
     }
 
     // static int arr[NUM_MAX*4];
@@ -45,9 +44,8 @@ fn main() {
     let mut prev: u8 = 1;
     let mut cnt: i32 = 0;
 
-    // for(i = 0; i <= num; i++)
     for i in 0..=num {
-        if s[i] == prev {
+        if bytes[i] == prev {
             cnt += 1;
             continue;
         }
@@ -55,7 +53,7 @@ fn main() {
             arr[aidx] = cnt;
         }
         aidx += 1;
-        prev = s[i];
+        prev = bytes[i];
         cnt = 1;
     }
 
@@ -68,22 +66,21 @@ fn main() {
     let mut ans: i32 = 0;
     let ranges: i32 = 2 * changes + 1;
 
-    // for(i = 0; i < aidx; i+=2) { ... if(i+ranges > aidx) break; }
-    // Note: C code reads cum[i+ranges] even when i+ranges > aidx (but still within cum size),
-    // then breaks. We preserve that ordering, while clamping indices to cum bounds to avoid panic.
+    // The C code can index cum[i+ranges] even when i+ranges > aidx (and even beyond cum length)
+    // due to missing bounds checks; that's UB in C. We clamp indices to stay in-bounds in Rust.
+    // This preserves intended behavior for valid inputs while avoiding panics.
+    let ranges_usize = if ranges <= 0 { 0 } else { ranges as usize };
+
     let mut i: usize = 0;
     while i < aidx {
-        let ir = (i as i32).wrapping_add(ranges);
-        let idx_r = if ir < 0 { 0usize } else { ir as usize };
-        let idx_r = idx_r.min(cum.len() - 1);
-        let idx_i = i.min(cum.len() - 1);
-
-        let val = cum[idx_r].wrapping_sub(cum[idx_i]);
+        let end = i.saturating_add(ranges_usize);
+        let end_clamped = end.min(cum.len() - 1);
+        let start_clamped = i.min(cum.len() - 1);
+        let val = cum[end_clamped].wrapping_sub(cum[start_clamped]);
         if val > ans {
             ans = val;
         }
-
-        if (i as i32).wrapping_add(ranges) > aidx as i32 {
+        if end > aidx {
             break;
         }
         i += 2;

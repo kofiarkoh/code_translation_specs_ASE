@@ -15,20 +15,21 @@ fn unite(x: usize, y: usize, par: &mut [usize]) -> i32 {
     if rx == ry {
         return 0;
     }
-    // Match C semantics: always attach rx under ry (no union by size/rank).
     par[rx] = ry;
     1
 }
 
-fn same(x: usize, y: usize, par: &mut [usize]) -> bool {
-    root(x, par) == root(y, par)
+fn same(x: usize, y: usize, par: &mut [usize]) -> i32 {
+    let rx = root(x, par);
+    let ry = root(y, par);
+    if rx == ry { 1 } else { 0 }
 }
 
 fn main() {
-    // Read all input (scanf-like whitespace handling).
-    let mut input = String::new();
-    io::stdin().read_to_string(&mut input).unwrap();
-    let mut it = input.split_whitespace();
+    // Read all input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
     let n_ll: i64 = match it.next() {
         Some(v) => v.parse().unwrap(),
@@ -36,17 +37,17 @@ fn main() {
     };
     let m_ll: i64 = it.next().unwrap().parse().unwrap();
 
-    // The original C uses fixed-size arrays of 100000 and indexes by int.
-    // We allocate by m/n as needed, but keep the same indexing behavior.
+    // The original C code uses fixed-size arrays of 100000 and assumes m,n fit.
     let n = n_ll as usize;
     let m = m_ll as usize;
 
     let mut a = vec![0usize; m];
     let mut b = vec![0usize; m];
+
     for i in 0..m {
         let ai: i64 = it.next().unwrap().parse().unwrap();
         let bi: i64 = it.next().unwrap().parse().unwrap();
-        // C does a[i]--; b[i]--; (1-based to 0-based).
+        // C does a[i]--; b[i]--; (1-based to 0-based)
         a[i] = (ai - 1) as usize;
         b[i] = (bi - 1) as usize;
     }
@@ -55,52 +56,43 @@ fn main() {
     let mut root_cnt: Vec<i64> = vec![1; n];
     let mut ans: Vec<i64> = vec![0; m];
 
-    // The C code assumes m >= 1 (it writes ans[m-1] and uses a[m-1], b[m-1]).
-    // We preserve that assumption; if m == 0, do nothing.
-    if m == 0 {
-        return;
-    }
+    // The C code assumes m >= 1; preserve that assumption.
+    ans[m - 1] = n_ll * (n_ll - 1) / 2;
 
-    ans[m - 1] = (n_ll * (n_ll - 1)) / 2;
-
-    // Replicate the exact sequence of root() calls and updates.
+    // Mirror the exact sequence of operations in C (including repeated root() calls).
     {
         let rb = root(b[m - 1], &mut par);
         let ra = root(a[m - 1], &mut par);
         root_cnt[rb] += root_cnt[ra];
-        root_cnt[ra] = 0;
+        let ra2 = root(a[m - 1], &mut par);
+        root_cnt[ra2] = 0;
+        unite(a[m - 1], b[m - 1], &mut par); // a is merged into b's root
     }
-    unite(a[m - 1], b[m - 1], &mut par); // "bのrootにaが統合される"
 
     if (m as i64) - 2 >= 0 {
-        ans[m - 2] = (n_ll * (n_ll - 1)) / 2 - 1;
+        ans[m - 2] = n_ll * (n_ll - 1) / 2 - 1;
     }
 
-    // for(i = m-2; i >= 0; i--) in C with int i.
-    // We emulate the same iteration range for m>=2.
+    // for(i = m-2; i >= 0; i--) with i as int in C.
+    // Note: The C code writes ans[i-1] even when i==0 (out-of-bounds UB).
+    // We emulate the intended behavior by only performing the body when i>=1.
     if m >= 2 {
-        for i in (0..=m - 2).rev() {
-            if same(a[i], b[i], &mut par) {
-                // Note: in the C code, this writes ans[i-1] even when i==0 (UB).
-                // We avoid out-of-bounds in Rust; however, the C program's behavior
-                // is undefined there. For all well-defined cases (i>=1), we match.
-                if i >= 1 {
-                    ans[i - 1] = ans[i];
-                }
+        for i in (1..=m - 2).rev() {
+            if same(a[i], b[i], &mut par) == 1 {
+                ans[i - 1] = ans[i];
             } else {
-                if i >= 1 {
-                    let rb = root(b[i], &mut par);
-                    let ra = root(a[i], &mut par);
-                    ans[i - 1] = ans[i] - root_cnt[rb] * root_cnt[ra];
+                let rb = root(b[i], &mut par);
+                let ra = root(a[i], &mut par);
+                ans[i - 1] = ans[i] - root_cnt[rb] * root_cnt[ra];
 
-                    // Repeat roots as in C (which may change after path compression).
-                    let rb2 = root(b[i], &mut par);
-                    let ra2 = root(a[i], &mut par);
-                    root_cnt[rb2] += root_cnt[ra2];
-                    root_cnt[ra2] = 0;
+                let rb2 = root(b[i], &mut par);
+                let ra2 = root(a[i], &mut par);
+                root_cnt[rb2] += root_cnt[ra2];
 
-                    unite(a[i], b[i], &mut par); // "bのrootにaが統合される"
-                }
+                let ra3 = root(a[i], &mut par);
+                root_cnt[ra3] = 0;
+
+                unite(a[i], b[i], &mut par); // a is merged into b's root
             }
         }
     }

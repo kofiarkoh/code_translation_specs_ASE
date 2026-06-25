@@ -9,16 +9,17 @@ fn main() {
     let n: i64 = it.next().unwrap().parse().unwrap();
     let k: i64 = it.next().unwrap().parse().unwrap();
 
-    // SPEC requires reading n additional integers; values do not affect result.
-    // The C code also allocates/stores them (linear memory), but Rust can read and ignore
-    // while preserving I/O behavior and time complexity.
+    // SPEC requires memory proportional to n by storing the sequence,
+    // even though values do not affect the result.
+    let mut a: Vec<i64> = Vec::with_capacity(n.max(0) as usize);
     for _ in 0..n {
-        let _x: i64 = it.next().unwrap().parse().unwrap();
-        let _ = _x;
+        let x: i64 = it.next().unwrap().parse().unwrap();
+        a.push(x);
     }
+    drop(a);
 
-    // Compute minimal t >= 1 such that k + (t-1)*(k-1) >= n.
-    // Follow the C code's arithmetic (undefined behavior if k <= 1, per spec).
+    // Compute minimal t such that k + (t-1)*(k-1) >= n, with t positive.
+    // Follow the C code's arithmetic approach; note: for n <= k, this yields t = 1.
     let mut t: i64 = ((n - k) / (k - 1)) + 1;
     if k + ((t - 1) * (k - 1)) < n {
         t += 1;

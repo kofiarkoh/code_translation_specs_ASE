@@ -1,119 +1,123 @@
-use std::collections::HashSet;
 use std::io::{self, Read};
 
 fn main() {
-    // Read all input as whitespace-separated integers.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let mut out = String::new();
-
     loop {
-        let Some(t_str) = it.next() else { break };
-        let t: usize = t_str.parse().unwrap();
-        if t == 0 {
+        let n: usize = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => break,
+        };
+        if n == 0 {
             break;
         }
-        let w: usize = it.next().unwrap().parse().unwrap();
+        let m: usize = it.next().unwrap().parse().unwrap();
 
-        let mut targets: Vec<i64> = Vec::with_capacity(t);
-        for _ in 0..t {
-            let v: i64 = it.next().unwrap().parse::<i64>().unwrap();
-            targets.push(v);
+        let mut targets: Vec<i32> = Vec::with_capacity(n);
+        for _ in 0..n {
+            targets.push(it.next().unwrap().parse::<i32>().unwrap());
         }
 
-        let mut weights: Vec<i64> = Vec::with_capacity(w);
-        for _ in 0..w {
-            let v: i64 = it.next().unwrap().parse::<i64>().unwrap();
-            weights.push(v);
+        let mut weights: Vec<i32> = Vec::with_capacity(m);
+        for _ in 0..m {
+            weights.push(it.next().unwrap().parse::<i32>().unwrap());
         }
 
-        // Compute all achievable signed sums using each weight at most once:
-        // each weight can be added, subtracted, or unused.
-        // We store all sums (including negative and 0) in a set.
-        let mut sums: HashSet<i64> = HashSet::new();
-        sums.insert(0);
-
-        for &wt in &weights {
-            let current: Vec<i64> = sums.iter().copied().collect();
-            for s in current {
-                sums.insert(s + wt);
-                sums.insert(s - wt);
-                // s (unused) already present
+        // Enumerate all signed net outcomes Q by assigning each weight a coefficient in {-1,0,+1}.
+        // Practical constraints: m <= 12, so 3^m <= 531441.
+        let mut q_vals: Vec<i32> = Vec::new();
+        q_vals.push(0);
+        for &w in &weights {
+            let prev = q_vals.clone();
+            q_vals.reserve(prev.len() * 2);
+            for &s in &prev {
+                // Intermediate arithmetic is assumed to fit in i32; if it doesn't, behavior is unspecified.
+                q_vals.push(s + w);
+                q_vals.push(s - w);
             }
         }
 
-        // Determine which targets are already measurable.
-        // Per spec: exact measurability depends on whether the target appears
-        // as a positive achievable sum; 0 is considered measurable.
-        let mut unmeasurable: Vec<i64> = Vec::new();
-        for &m in &targets {
-            if m == 0 {
-                continue;
+        // Determine which targets are "exactly balanceable" per spec:
+        // exists q == t AND t > 0. Note: t == 0 is never treated as exactly balanceable.
+        let mut unbalanceable: Vec<i32> = Vec::new();
+        for &t in &targets {
+            let mut ok = false;
+            if t > 0 {
+                for &q in &q_vals {
+                    if q == t {
+                        ok = true;
+                        break;
+                    }
+                }
             }
-            if !sums.contains(&m) {
-                unmeasurable.push(m);
+            if !ok {
+                unbalanceable.push(t);
             }
         }
 
-        if unmeasurable.is_empty() {
-            out.push_str("0\n");
+        if unbalanceable.is_empty() {
+            println!("0");
             continue;
         }
 
-        // For each unmeasurable target m, the set of adjustment candidates d is:
-        // d = |m - s| for some achievable signed sum s of original weights.
-        // We need a single common d that works for all unmeasurable targets,
-        // and we must output the smallest non-negative such d.
+        // For each unbalanceable target t, candidate deviations are { |t - q| : q in Q }.
+        // We need the minimum d in the intersection across all such targets.
         //
-        // Narrow interpretation: d is allowed to be 0 (non-negative integer).
-        // If d=0 works, it means each unmeasurable target equals some achievable sum,
-        // which contradicts "unmeasurable"; however, we still compute per definition.
-        let sums_vec: Vec<i64> = sums.iter().copied().collect();
+        // Narrow, faithful approach: compute per-target deviation sets and intersect.
+        // Use sorting + dedup to represent sets without assuming any external bounds.
+        let mut intersection: Option<Vec<i32>> = None;
 
-        let mut common: Option<HashSet<i64>> = None;
-        for &m in &unmeasurable {
-            let mut cand: HashSet<i64> = HashSet::new();
-            for &s in &sums_vec {
-                let d = (m - s).abs();
-                cand.insert(d);
+        for &t in &unbalanceable {
+            let mut ds: Vec<i32> = Vec::with_capacity(q_vals.len());
+            for &q in &q_vals {
+                // Use i64 for subtraction/abs to avoid accidental i32 overflow in Rust;
+                // spec says behavior is unspecified on overflow, but inputs are assumed to fit i32.
+                let diff = (t as i64) - (q as i64);
+                let ad = diff.abs() as i32;
+                ds.push(ad);
             }
-            common = match common {
-                None => Some(cand),
+            ds.sort_unstable();
+            ds.dedup();
+
+            intersection = Some(match intersection {
+                None => ds,
                 Some(prev) => {
-                    let inter: HashSet<i64> = prev.intersection(&cand).copied().collect();
-                    Some(inter)
+                    // Intersect two sorted unique vectors.
+                    let mut i = 0usize;
+                    let mut j = 0usize;
+                    let mut out: Vec<i32> = Vec::new();
+                    while i < prev.len() && j < ds.len() {
+                        let a = prev[i];
+                        let b = ds[j];
+                        if a == b {
+                            out.push(a);
+                            i += 1;
+                            j += 1;
+                        } else if a < b {
+                            i += 1;
+                        } else {
+                            j += 1;
+                        }
+                    }
+                    out
                 }
-            };
-            if common.as_ref().unwrap().is_empty() {
+            });
+
+            if intersection.as_ref().unwrap().is_empty() {
                 break;
             }
         }
 
-        let common = common.unwrap();
-        if common.is_empty() {
-            out.push_str("-1\n");
-            continue;
-        }
-
-        // Find minimal non-negative integer in the common candidate set.
-        let mut best: Option<i64> = None;
-        for &d in &common {
-            if d < 0 {
-                continue;
+        match intersection {
+            Some(v) if !v.is_empty() => {
+                // Minimum non-negative integer d in the intersection.
+                println!("{}", v[0]);
             }
-            best = match best {
-                None => Some(d),
-                Some(b) => Some(b.min(d)),
-            };
-        }
-
-        match best {
-            Some(d) => out.push_str(&format!("{d}\n")),
-            None => out.push_str("-1\n"),
+            _ => {
+                println!("-1");
+            }
         }
     }
-
-    print!("{out}");
 }

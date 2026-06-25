@@ -14,53 +14,57 @@ fn main() {
     let mut it = input.split_whitespace();
 
     let n: usize = it.next().unwrap().parse().unwrap();
-    let target: usize = it.next().unwrap().parse().unwrap();
+    let s: usize = it.next().unwrap().parse().unwrap();
 
-    let mut a = vec![0usize; n];
-    for i in 0..n {
-        a[i] = it.next().unwrap().parse().unwrap();
+    let mut a: Vec<usize> = Vec::with_capacity(n);
+    for _ in 0..n {
+        a.push(it.next().unwrap().parse().unwrap());
     }
 
-    // dp[s] = number of ways over all non-empty segments ending at current position
-    // to choose a subset within that segment summing to s.
-    //
-    // Transition when processing value x:
-    // - Start a new segment at this position: subset either empty (sum 0) or includes x (sum x).
-    // - Extend any existing segment ending at previous position: for each existing subset sum s,
-    //   either do not take x (sum stays s) or take x (sum becomes s + x).
-    //
-    // This yields:
-    // new_dp[s] = (start_new contributes to s) + 2*dp[s] (extend, not take / take handled separately)
-    // More explicitly:
-    // new_dp[s] = start_new[s] + dp[s] (extend, not take) + dp[s - x] (extend, take)
-    // where start_new[0] += 1, start_new[x] += 1 (if x <= target).
-    let mut dp = vec![0u32; target + 1];
-    let mut ans: u32 = 0;
+    // dp0_prev[j] = dp0(i-1, j)
+    // dp1[j]      = dp1(i, j) as we iterate i forward (prefix-accumulated)
+    let mut dp0_prev = vec![0u32; s + 1];
+    let mut dp1 = vec![0u32; s + 1];
 
-    for &x in &a {
-        let mut ndp = vec![0u32; target + 1];
+    // Initialization at i = 0
+    dp0_prev[0] = 1;
+    dp1[0] = 1;
+    if a[0] <= s {
+        dp0_prev[a[0]] = add_mod(dp0_prev[a[0]], 1);
+        dp1[a[0]] = add_mod(dp1[a[0]], 1);
+    }
 
-        // Start new segment [i, i] with empty subset.
-        ndp[0] = add_mod(ndp[0], 1);
+    // Transitions for i = 1..n-1
+    for i in 1..n {
+        let ai = a[i];
+        let mut dp0_cur = vec![0u32; s + 1];
 
-        // Start new segment [i, i] with subset {i}.
-        if x <= target {
-            ndp[x] = add_mod(ndp[x], 1);
-        }
-
-        // Extend previous segments.
-        for s in 0..=target {
-            // Not take x.
-            ndp[s] = add_mod(ndp[s], dp[s]);
-            // Take x.
-            if x <= s {
-                ndp[s] = add_mod(ndp[s], dp[s - x]);
+        // Carry forward and optionally append A[i]
+        for j in 0..=s {
+            let v = dp0_prev[j];
+            if v == 0 {
+                continue;
+            }
+            dp0_cur[j] = add_mod(dp0_cur[j], v);
+            if j + ai <= s {
+                dp0_cur[j + ai] = add_mod(dp0_cur[j + ai], v);
             }
         }
 
-        dp = ndp;
-        ans = add_mod(ans, dp[target]);
+        // Base injections at every index
+        dp0_cur[0] = add_mod(dp0_cur[0], 1);
+        if ai <= s {
+            dp0_cur[ai] = add_mod(dp0_cur[ai], 1);
+        }
+
+        // Accumulate across indices: dp1(i,j) = dp1(i-1,j) + dp0(i,j)
+        for j in 0..=s {
+            dp1[j] = add_mod(dp1[j], dp0_cur[j]);
+        }
+
+        dp0_prev = dp0_cur;
     }
 
-    println!("{}", ans);
+    // Output dp1(n-1, s)
+    println!("{}", dp1[s]);
 }

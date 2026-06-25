@@ -1,10 +1,10 @@
-use std::cmp::Reverse;
+use std::cmp::Ordering;
 use std::collections::VecDeque;
 use std::io::{self, Read};
 
 fn bfs_farthest(start: usize, adj: &[Vec<usize>]) -> (usize, i32) {
     let n = adj.len();
-    // depth == 0 means unvisited; visited vertices get positive depths (1-based).
+    // Depths are "positive depth exactly once"; use 0 as unvisited sentinel.
     let mut depth = vec![0i32; n];
     let mut q = VecDeque::new();
 
@@ -32,36 +32,44 @@ fn bfs_farthest(start: usize, adj: &[Vec<usize>]) -> (usize, i32) {
 }
 
 fn main() {
-    // No explicit error handling per specification; malformed/insufficient input => unspecified.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let n: usize = it.next().unwrap().parse().unwrap();
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
 
-    // Fixed internal capacity is implied by the spec (<= 200000); we do not enforce it.
-    let mut adj: Vec<Vec<usize>> = vec![Vec::new(); n];
+    let mut adj = vec![Vec::<usize>::new(); n];
 
-    for _ in 0..(n.saturating_sub(1)) {
+    // Exactly n-1 edges; indices are 1-based in input, mapped to 0-based.
+    for _ in 0..n.saturating_sub(1) {
         let a: usize = it.next().unwrap().parse().unwrap();
         let b: usize = it.next().unwrap().parse().unwrap();
-        // Input is 1-based; convert to 0-based. Preconditions guarantee validity.
         let u = a - 1;
         let v = b - 1;
         adj[u].push(v);
         adj[v].push(u);
     }
 
-    // The spec mentions "sorting-like processing of edges"; sorting adjacency lists matches that
-    // flavor without changing BFS semantics.
+    // "Additional logarithmic factors due to internal ordering of edge records":
+    // sort adjacency lists to emulate deterministic ordered traversal.
     for nbrs in &mut adj {
-        nbrs.sort_unstable_by_key(|&x| Reverse(x));
-        nbrs.sort_unstable();
+        nbrs.sort_unstable_by(|x, y| {
+            if x < y {
+                Ordering::Less
+            } else if x > y {
+                Ordering::Greater
+            } else {
+                Ordering::Equal
+            }
+        });
     }
 
-    // First BFS from vertex 0 to find a farthest vertex.
+    // First traversal from an arbitrary start vertex (0).
     let (s, _) = bfs_farthest(0, &adj);
-    // Second BFS from that farthest vertex; maximum depth equals diameter length in vertices.
+    // Second traversal from s; diameter length D is maximum depth value (in vertices).
     let (_, d) = bfs_farthest(s, &adj);
 
     if d % 3 == 0 {

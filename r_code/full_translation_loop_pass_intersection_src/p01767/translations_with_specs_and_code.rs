@@ -1,7 +1,7 @@
 use std::io::{self, Read};
 
 fn upper_bound(data: &[i32], key: i32) -> usize {
-    // Returns first index i such that data[i] > key (i.e., count of elements <= key)
+    // Returns the first index i such that data[i] > key (i.e., count of elements <= key).
     let mut l: usize = 0;
     let mut r: usize = data.len();
     while l < r {
@@ -16,7 +16,7 @@ fn upper_bound(data: &[i32], key: i32) -> usize {
 }
 
 fn main() {
-    // Read entire stdin (no explicit error handling per spec).
+    // Read entire stdin; behavior is unspecified if input is malformed/insufficient (per spec).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -38,11 +38,11 @@ fn main() {
         c.push(it.next().unwrap().parse().unwrap());
     }
 
-    // Sort nondecreasingly. Note: C comparator uses subtraction which can overflow;
-    // spec says ordering overflow is outside defined behavior, so normal Rust ordering is fine.
-    a.sort();
+    // Spec requires ordering without overflow in comparisons.
+    // C code used subtraction in comparator (can overflow); Rust uses a safe total order.
+    a.sort_unstable();
 
-    // Prefix sums: sum[i] = sum of first i elements (sum[0] = 0).
+    // Prefix sums: sum[i] = sum of first i elements (i in 0..=n)
     let mut sum: Vec<i64> = vec![0; n + 1];
     for i in 1..=n {
         sum[i] = sum[i - 1] + a[i - 1] as i64;

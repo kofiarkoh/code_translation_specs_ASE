@@ -1,12 +1,41 @@
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, HashSet};
 use std::io::{self, Read};
+
+fn is_connected_subset(subset: &[usize], adj: &[u32]) -> bool {
+    if subset.len() <= 1 {
+        return true;
+    }
+    let mut in_set_mask: u32 = 0;
+    for &v in subset {
+        in_set_mask |= 1u32 << v;
+    }
+
+    let start = subset[0];
+    let mut visited: u32 = 0;
+    let mut stack = vec![start];
+    visited |= 1u32 << start;
+
+    while let Some(v) = stack.pop() {
+        let neigh_in_set = adj[v] & in_set_mask;
+        let mut m = neigh_in_set & !visited;
+        while m != 0 {
+            let lsb = m & (!m + 1);
+            let u = lsb.trailing_zeros() as usize;
+            visited |= 1u32 << u;
+            stack.push(u);
+            m &= m - 1;
+        }
+    }
+
+    (visited & in_set_mask) == in_set_mask
+}
 
 fn main() {
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let mut first_case = true;
+    let mut first_dataset = true;
 
     loop {
         let n_opt = it.next();
@@ -17,158 +46,144 @@ fn main() {
         if n <= 0 {
             break;
         }
-        let m: usize = it.next().unwrap().parse().unwrap();
+        let g: usize = it.next().unwrap().parse().unwrap();
 
-        // Map distinct names to ids 0..k-1, preserving first-seen order.
-        let mut name_to_id: HashMap<String, usize> = HashMap::new();
-        let mut id_to_name: Vec<String> = Vec::new();
-
+        // Read candidate names; treat as unique set (duplicates ignored).
+        let mut name_to_idx: HashMap<String, usize> = HashMap::new();
+        let mut idx_to_name: Vec<String> = Vec::new();
         for _ in 0..(n as usize) {
-            let s = it.next().unwrap().to_string();
-            if !name_to_id.contains_key(&s) {
-                let id = id_to_name.len();
-                name_to_id.insert(s.clone(), id);
-                id_to_name.push(s);
+            let nm = it.next().unwrap().to_string();
+            if !name_to_idx.contains_key(&nm) {
+                let idx = idx_to_name.len();
+                name_to_idx.insert(nm.clone(), idx);
+                idx_to_name.push(nm);
             }
         }
 
-        let k = id_to_name.len();
-        // Precondition says k <= 30; we rely on that for bitmask representation.
-        // If violated, behavior is unspecified by the spec; we keep a best-effort approach.
-        let mut groups: Vec<u32> = Vec::with_capacity(m);
-
-        for _ in 0..m {
-            let cnt: usize = it.next().unwrap().parse().unwrap();
+        let m = idx_to_name.len(); // number of distinct candidates (<= 20 by precondition)
+        // Read groups as bitmasks over distinct candidates.
+        let mut groups: Vec<u32> = Vec::with_capacity(g);
+        for _ in 0..g {
+            let k: usize = it.next().unwrap().parse().unwrap();
             let mut mask: u32 = 0;
-            for _ in 0..cnt {
-                let s = it.next().unwrap();
-                // Spec: behavior not well-defined if unknown; we emulate a "may be incorrect"
-                // interpretation by simply ignoring unknown names (no panic).
-                if let Some(&id) = name_to_id.get(s) {
-                    if id < 32 {
-                        mask |= 1u32 << id;
-                    }
+            for _ in 0..k {
+                let nm = it.next().unwrap();
+                if let Some(&idx) = name_to_idx.get(nm) {
+                    mask |= 1u32 << idx;
+                } else {
+                    // Unspecified by contract; ignore unknown names to keep behavior narrow.
                 }
             }
             groups.push(mask);
         }
 
-        let mut answer: Option<Vec<usize>> = None;
-
-        // Try sizes 1..=5, stop at first size with any solution.
-        for size in 1..=5 {
-            if let Some(sol) = find_solution_of_size(size, k, &groups) {
-                answer = Some(sol);
-                break;
+        // Build adjacency among candidates: edge if co-appear in at least one group.
+        let mut adj: Vec<u32> = vec![0u32; m];
+        for &gm in &groups {
+            // For each pair in group, connect.
+            let mut members: Vec<usize> = Vec::new();
+            let mut mm = gm;
+            while mm != 0 {
+                let lsb = mm & (!mm + 1);
+                let idx = lsb.trailing_zeros() as usize;
+                members.push(idx);
+                mm &= mm - 1;
+            }
+            for i in 0..members.len() {
+                for j in (i + 1)..members.len() {
+                    let a = members[i];
+                    let b = members[j];
+                    adj[a] |= 1u32 << b;
+                    adj[b] |= 1u32 << a;
+                }
             }
         }
 
-        if !first_case {
-            print!("\n");
-        }
-        first_case = false;
+        // Search for smallest size 1..5 satisfying:
+        // - coverage: each group has at least one chosen person
+        // - connectivity: chosen people connected in induced co-appearance graph
+        let mut best: Option<Vec<usize>> = None;
 
-        match answer {
+        // Precompute group masks; if any group mask is 0, it can never be covered.
+        let impossible_due_to_empty_group = groups.iter().any(|&gm| gm == 0);
+
+        if !impossible_due_to_empty_group {
+            let max_k = 5usize.min(m);
+            for k in 1..=max_k {
+                let mut comb: Vec<usize> = (0..k).collect();
+                loop {
+                    // Build chosen mask
+                    let mut chosen_mask: u32 = 0;
+                    for &i in &comb {
+                        chosen_mask |= 1u32 << i;
+                    }
+
+                    // Coverage check
+                    let mut ok = true;
+                    for &gm in &groups {
+                        if (gm & chosen_mask) == 0 {
+                            ok = false;
+                            break;
+                        }
+                    }
+
+                    if ok && is_connected_subset(&comb, &adj) {
+                        best = Some(comb.clone());
+                        break;
+                    }
+
+                    // Next combination in lexicographic order over indices [0..m)
+                    // Standard algorithm.
+                    let mut i = k;
+                    while i > 0 {
+                        i -= 1;
+                        if comb[i] != i + m - k {
+                            break;
+                        }
+                    }
+                    if comb[0] == m - k && (0..k).all(|t| comb[t] == t + m - k) {
+                        // This condition is too strict; use a clearer termination below.
+                    }
+
+                    // Find rightmost element that can be incremented.
+                    let mut pos_opt = None;
+                    for pos in (0..k).rev() {
+                        if comb[pos] < pos + m - k {
+                            pos_opt = Some(pos);
+                            break;
+                        }
+                    }
+                    if pos_opt.is_none() {
+                        break;
+                    }
+                    let pos = pos_opt.unwrap();
+                    comb[pos] += 1;
+                    for j in (pos + 1)..k {
+                        comb[j] = comb[j - 1] + 1;
+                    }
+                }
+
+                if best.is_some() {
+                    break;
+                }
+            }
+        }
+
+        if !first_dataset {
+            println!();
+        }
+        first_dataset = false;
+
+        match best {
             None => {
                 println!("Impossible");
             }
             Some(sol) => {
                 println!("{}", sol.len());
-                for id in sol {
-                    println!("{}", id_to_name[id]);
+                for idx in sol {
+                    println!("{}", idx_to_name[idx]);
                 }
             }
         }
     }
-}
-
-fn find_solution_of_size(size: usize, k: usize, groups: &[u32]) -> Option<Vec<usize>> {
-    if size == 0 {
-        return None;
-    }
-    if k == 0 {
-        return None;
-    }
-    if size > k {
-        return None;
-    }
-
-    // Enumerate combinations in increasing id order; first found is acceptable.
-    let mut comb: Vec<usize> = (0..size).collect();
-    loop {
-        if is_valid_set(&comb, groups) {
-            return Some(comb.clone());
-        }
-        if !next_combination(&mut comb, k) {
-            break;
-        }
-    }
-    None
-}
-
-fn next_combination(comb: &mut [usize], n: usize) -> bool {
-    // Standard lexicographic next combination for strictly increasing indices.
-    let r = comb.len();
-    for i in (0..r).rev() {
-        if comb[i] != i + n - r {
-            comb[i] += 1;
-            for j in i + 1..r {
-                comb[j] = comb[j - 1] + 1;
-            }
-            return true;
-        }
-    }
-    false
-}
-
-fn is_valid_set(sel: &[usize], groups: &[u32]) -> bool {
-    // Build selection bitmask.
-    let mut sel_mask: u32 = 0;
-    for &id in sel {
-        if id < 32 {
-            sel_mask |= 1u32 << id;
-        } else {
-            // Out of representable range; spec says undefined if limits exceeded.
-            return false;
-        }
-    }
-
-    // Coverage: every group intersects selection.
-    for &g in groups {
-        if (g & sel_mask) == 0 {
-            return false;
-        }
-    }
-
-    // Connectivity: considering only selected people, groups form a single connected component
-    // via shared membership (restricted to selected people).
-    //
-    // Interpret as: build a graph on groups where an edge exists if the two groups share at least
-    // one selected person; then all groups must be connected (or trivially connected if <=1 group).
-    if groups.len() <= 1 {
-        return true;
-    }
-
-    let mut restricted: Vec<u32> = Vec::with_capacity(groups.len());
-    for &g in groups {
-        restricted.push(g & sel_mask);
-    }
-
-    // If any restricted group is empty, coverage would have failed already.
-    // BFS over groups.
-    let mut seen = vec![false; groups.len()];
-    let mut q = VecDeque::new();
-    seen[0] = true;
-    q.push_back(0usize);
-
-    while let Some(i) = q.pop_front() {
-        for j in 0..groups.len() {
-            if !seen[j] && (restricted[i] & restricted[j]) != 0 {
-                seen[j] = true;
-                q.push_back(j);
-            }
-        }
-    }
-
-    seen.into_iter().all(|b| b)
 }

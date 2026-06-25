@@ -1,59 +1,53 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, parse as whitespace-separated integers.
+    // Read entire stdin, parse as whitespace-separated integers (like scanf).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let mut out = String::new();
+    // Fixed maximum storage capacity per spec/C code.
+    let mut go: Vec<i32> = vec![0; 100_000];
 
     loop {
         let n_opt = it.next();
         if n_opt.is_none() {
-            break; // No explicit error handling per spec.
+            break; // Unspecified behavior for malformed input; just stop if no more tokens.
         }
         let n: usize = n_opt.unwrap().parse().unwrap();
         if n == 0 {
             break;
         }
 
-        // Read list
-        let mut go: Vec<i32> = Vec::with_capacity(n);
-        for _ in 0..n {
-            let v: i32 = it.next().unwrap().parse().unwrap();
-            go.push(v);
+        // Preconditions say n <= 100000; no explicit error handling required.
+        for i in 0..n {
+            go[i] = it.next().unwrap().parse().unwrap();
         }
 
-        // Transform per spec / C code:
-        // For each odd i, if go[i-1] != go[i], overwrite leftward until a match is found.
+        // Transform per spec: for each odd i, if go[i-1] != go[i], overwrite backward
+        // until reaching an element already equal to go[i] or start.
         let mut i = 1usize;
         while i < n {
             if go[i - 1] != go[i] {
-                let val = go[i];
-                // j goes from i-1 down to 0 while go[j] != val, setting go[j] = val.
-                let mut j = i;
-                while j > 0 {
+                let target = go[i];
+                let mut j: isize = (i as isize) - 1;
+                while j >= 0 && go[j as usize] != target {
+                    go[j as usize] = target;
                     j -= 1;
-                    if go[j] == val {
-                        break;
-                    }
-                    go[j] = val;
                 }
             }
             i += 2;
         }
 
-        // Count zeros
-        let mut cnt = 0i32;
-        for &x in &go {
-            if x == 0 {
+        // Count zeros in the transformed prefix [0..n).
+        let mut cnt: i32 = 0;
+        for k in 0..n {
+            if go[k] == 0 {
                 cnt += 1;
             }
         }
 
-        out.push_str(&format!("{cnt}\n"));
+        // Preserve output formatting: one integer per line.
+        println!("{cnt}");
     }
-
-    print!("{out}");
 }

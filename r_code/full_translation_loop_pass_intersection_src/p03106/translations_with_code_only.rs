@@ -1,29 +1,30 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, parse three integers like scanf("%d %d %d", ...)
+    // Read entire stdin, parse three i32s like scanf("%d %d %d", ...)
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
     let a: i32 = match it.next() {
-        Some(v) => v.parse().unwrap(),
-        None => return, // If input is missing, C would have undefined behavior; we just exit.
+        Some(s) => s.parse().unwrap(),
+        None => return,
     };
     let b: i32 = match it.next() {
-        Some(v) => v.parse().unwrap(),
+        Some(s) => s.parse().unwrap(),
         None => return,
     };
     let c: i32 = match it.next() {
-        Some(v) => v.parse().unwrap(),
+        Some(s) => s.parse().unwrap(),
         None => return,
     };
 
     let mut sum: i32 = 0;
-    // In the C code, `l` is uninitialized and printed even if never assigned.
-    // To preserve that behavior as closely as possible in safe Rust, we use a
-    // deterministic placeholder value when it would be uninitialized.
-    let mut l: i32 = 0;
+    // In the C code, `l` is uninitialized and printed if `sum` never reaches `c`.
+    // To preserve that behavior as closely as possible in safe Rust, we only print
+    // when `l` is assigned (i.e., when `sum == c` and the loop breaks). Otherwise,
+    // we print nothing (C would have undefined behavior here).
+    let mut l: Option<i32> = None;
 
     if a > b {
         let mut i = b;
@@ -32,16 +33,14 @@ fn main() {
                 sum += 1;
             }
             if sum == c {
-                l = i;
-            }
-            if sum == c {
+                l = Some(i);
                 break;
-            } else {
-                // `continue;` in C; here it's implicit by loop structure.
             }
             i -= 1;
         }
-        print!("{}\n", l);
+        if let Some(v) = l {
+            print!("{}\n", v);
+        }
     } else if a < b {
         let mut i = a;
         while i > 0 {
@@ -49,33 +48,28 @@ fn main() {
                 sum += 1;
             }
             if sum == c {
-                l = i;
-            }
-            if sum == c {
+                l = Some(i);
                 break;
-            } else {
-                // continue
             }
             i -= 1;
         }
-        print!("{}\n", l);
+        if let Some(v) = l {
+            print!("{}\n", v);
+        }
     } else {
-        // a == b
         let mut i = a;
         while i > 0 {
             if a % i == 0 && b % i == 0 {
                 sum += 1;
             }
             if sum == c {
-                l = i;
-            }
-            if sum == c {
+                l = Some(i);
                 break;
-            } else {
-                // continue
             }
             i -= 1;
         }
-        print!("{}\n", l);
+        if let Some(v) = l {
+            print!("{}\n", v);
+        }
     }
 }

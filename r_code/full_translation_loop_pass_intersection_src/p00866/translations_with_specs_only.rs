@@ -1,37 +1,97 @@
+use std::cmp::Ordering;
 use std::io::{self, Read};
 
-const SECS_12H: usize = 12 * 60 * 60; // 43200
+const DAY_SECONDS: usize = 12 * 60 * 60; // 0..=43199
+const MOD: i32 = 60;
+
+fn mod60(x: i32) -> i32 {
+    let r = x % MOD;
+    if r < 0 { r + MOD } else { r }
+}
 
 fn fmt_time(t: usize) -> String {
     let h = t / 3600;
-    let m = (t / 60) % 60;
+    let m = (t % 3600) / 60;
     let s = t % 60;
     format!("{:02}:{:02}:{:02}", h, m, s)
 }
 
+fn next_permutation(a: &mut [i32; 3]) -> bool {
+    // Lexicographic next_permutation for length 3.
+    // Returns false if it was the last permutation (and leaves it in last state).
+    let n = 3;
+    let mut i = n as i32 - 2;
+    while i >= 0 && a[i as usize] >= a[(i + 1) as usize] {
+        i -= 1;
+    }
+    if i < 0 {
+        return false;
+    }
+    let i = i as usize;
+    let mut j = n - 1;
+    while a[j] <= a[i] {
+        j -= 1;
+    }
+    a.swap(i, j);
+    a[i + 1..].reverse();
+    true
+}
+
+fn feasible_times_for_watch(r0: i32, r1: i32, r2: i32) -> Vec<usize> {
+    // A time t (h,m,s) is feasible for this watch if there exists:
+    // - a permutation assigning the three readings to (hour_pos, minute_pos, second_pos) on 0..59
+    // - an integer offset k in 0..59 added uniformly to all three readings (mod 60)
+    // such that:
+    //   minute_pos == m
+    //   second_pos == s
+    //   hour_pos == (5*h + m/12) mod 60, with integer division (standard analog geometry discretized)
+    //
+    // We interpret "hour-hand advances with minutes" on a 0..59 scale as:
+    //   hour_pos = floor((60*(h + m/60))/12) = 5*h + floor(m/12)
+    // This is the narrowest integer-consistent interpretation implied by the spec.
+    let mut times = Vec::new();
+
+    // Generate all 6 permutations of the three readings.
+    let mut p = [r0, r1, r2];
+    p.sort(); // start from lexicographically smallest to have deterministic search order
+    loop {
+        let a = p[0];
+        let b = p[1];
+        let c = p[2];
+
+        // For each offset k, the displayed positions become (a+k, b+k, c+k) mod 60.
+        // We need b' = m, c' = s, and a' = hour_pos(h,m).
+        for k in 0..60 {
+            let hour_pos = mod60(a + k);
+            let m = mod60(b + k) as usize;
+            let s = mod60(c + k) as usize;
+
+            // For each hour h in 0..11, check if hour_pos matches 5*h + floor(m/12).
+            let m_i32 = m as i32;
+            let hour_from_m = (m_i32 / 12) as i32; // floor
+            for h in 0..12 {
+                let expected = mod60(5 * (h as i32) + hour_from_m);
+                if expected == hour_pos {
+                    let t = (h as usize) * 3600 + m * 60 + s;
+                    times.push(t);
+                }
+            }
+        }
+
+        if !next_permutation(&mut p) {
+            break;
+        }
+    }
+
+    times.sort_unstable();
+    times.dedup();
+    times
+}
+
 fn main() {
-    // Read all input as whitespace-separated integers.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
-
-    // Precompute, for each time t in [0, 43199], the triple of hand positions
-    // in "minutes/seconds units" (i.e., 0..59) for hour/minute/second hands.
-    //
-    // We interpret the hour hand position as the minute-mark it points to:
-    // floor((t mod 12h) / 720) in 0..59 (since 12h / 60 = 720s per mark).
-    // Minute hand: floor((t mod 1h) / 60) in 0..59.
-    // Second hand: t mod 60 in 0..59.
-    //
-    // This matches the spec's "minutes/seconds units" and stays within 0..59.
-    let mut hpos = [0u8; SECS_12H];
-    let mut mpos = [0u8; SECS_12H];
-    let mut spos = [0u8; SECS_12H];
-    for t in 0..SECS_12H {
-        hpos[t] = ((t / 720) % 60) as u8;
-        mpos[t] = ((t / 60) % 60) as u8;
-        spos[t] = (t % 60) as u8;
-    }
 
     let mut out = String::new();
 
@@ -40,127 +100,79 @@ fn main() {
         if n_opt.is_none() {
             break;
         }
-        let n: i32 = match n_opt.unwrap().parse() {
-            Ok(v) => v,
-            Err(_) => break,
-        };
+        let n: i32 = n_opt.unwrap().parse().unwrap();
         if n <= 0 {
             break;
         }
         let n = n as usize;
 
-        // Fixed limits are part of the spec; if violated, behavior is undefined.
-        // We still try to proceed without panicking.
-        let mut watches: Vec<[u8; 3]> = Vec::with_capacity(n);
-        for _ in 0..n {
-            let a: i32 = it.next().unwrap_or("0").parse().unwrap_or(0);
-            let b: i32 = it.next().unwrap_or("0").parse().unwrap_or(0);
-            let c: i32 = it.next().unwrap_or("0").parse().unwrap_or(0);
-            // Values are intended 0..59; we clamp via modulo to keep in-range
-            // without inventing error handling.
-            let aa = ((a % 60 + 60) % 60) as u8;
-            let bb = ((b % 60 + 60) % 60) as u8;
-            let cc = ((c % 60 + 60) % 60) as u8;
-            watches.push([aa, bb, cc]);
-        }
-
-        // For each watch, compute feasible times within the 12-hour cycle.
-        // Model: observed triple are the three hands in unknown assignment, and
-        // there is an unknown common offset k (0..59) added to all three hand
-        // positions modulo 60 (a "stopped" watch with a common shift).
+        // For each time t, store how many watches can be satisfied at t.
+        // We will later find the minimal interval [L,R] such that for every watch i,
+        // there exists some t in [L,R] feasible for i.
         //
-        // A time t is feasible if there exists a permutation p of (H,M,S) and
-        // an offset k such that:
-        //   (pos_p0(t) + k) % 60 == obs0
-        //   (pos_p1(t) + k) % 60 == obs1
-        //   (pos_p2(t) + k) % 60 == obs2
+        // Approach:
+        // - Build for each watch its sorted feasible times list.
+        // - Use a sliding window over the global time axis 0..43199:
+        //   Maintain counts per watch of how many feasible times are currently in window.
+        //   We can update by adding/removing time points using a time->list-of-watches mapping.
         //
-        // Equivalently, for a given permutation, k is determined by the first
-        // equation; then the other two must match.
-        let perms: [[usize; 3]; 6] = [
-            [0, 1, 2],
-            [0, 2, 1],
-            [1, 0, 2],
-            [1, 2, 0],
-            [2, 0, 1],
-            [2, 1, 0],
-        ];
+        // To avoid O(n*DAY_SECONDS), we build an event list:
+        //   events[t] = list of watch indices that are feasible at time t.
+        let mut events: Vec<Vec<usize>> = vec![Vec::new(); DAY_SECONDS];
 
-        // feasible[w][t] = true if time t is feasible for watch w.
-        let mut feasible: Vec<Vec<bool>> = Vec::with_capacity(n);
-        for w in 0..n {
-            let obs = watches[w];
-            let mut ok = vec![false; SECS_12H];
+        for wi in 0..n {
+            let r0: i32 = it.next().unwrap().parse().unwrap();
+            let r1: i32 = it.next().unwrap().parse().unwrap();
+            let r2: i32 = it.next().unwrap().parse().unwrap();
 
-            for t in 0..SECS_12H {
-                let pos = [hpos[t], mpos[t], spos[t]];
-                let mut any = false;
-
-                for p in perms.iter() {
-                    // k = obs0 - pos[p0] mod 60
-                    let k = (obs[0] as i16 - pos[p[0]] as i16).rem_euclid(60) as u8;
-
-                    let v1 = (pos[p[1]] as u16 + k as u16) % 60;
-                    if v1 as u8 != obs[1] {
-                        continue;
-                    }
-                    let v2 = (pos[p[2]] as u16 + k as u16) % 60;
-                    if v2 as u8 != obs[2] {
-                        continue;
-                    }
-                    any = true;
-                    break;
-                }
-
-                ok[t] = any;
+            let times = feasible_times_for_watch(r0, r1, r2);
+            // Spec assumes at least one feasible time exists; otherwise behavior unspecified.
+            for &t in &times {
+                events[t].push(wi);
             }
-
-            feasible.push(ok);
         }
 
-        // Find the minimum-length interval [L, R] (inclusive) such that for each
-        // watch w, there exists some t in [L, R] with feasible[w][t] == true.
-        //
-        // Use a two-pointer sliding window over time 0..43199.
-        let mut counts = vec![0i32; n];
+        let mut in_window = vec![0u32; n];
         let mut covered = 0usize;
 
         let mut best_l = 0usize;
-        let mut best_r = SECS_12H - 1;
+        let mut best_r = DAY_SECONDS - 1;
         let mut best_len = best_r - best_l;
 
         let mut l = 0usize;
-        for r in 0..SECS_12H {
-            for w in 0..n {
-                if feasible[w][r] {
-                    if counts[w] == 0 {
-                        covered += 1;
-                    }
-                    counts[w] += 1;
+        for r in 0..DAY_SECONDS {
+            for &wi in &events[r] {
+                if in_window[wi] == 0 {
+                    covered += 1;
                 }
+                in_window[wi] += 1;
             }
 
             while covered == n && l <= r {
                 let len = r - l;
+                // Tie-breaking: earliest by start time among those encountered by search order.
+                // Our search order is increasing r, and for each r we shrink l as much as possible,
+                // so the first time we see a given (len, l) is deterministic.
                 if len < best_len || (len == best_len && l < best_l) {
                     best_len = len;
                     best_l = l;
                     best_r = r;
                 }
 
-                for w in 0..n {
-                    if feasible[w][l] {
-                        counts[w] -= 1;
-                        if counts[w] == 0 {
-                            covered -= 1;
-                        }
+                for &wi in &events[l] {
+                    in_window[wi] -= 1;
+                    if in_window[wi] == 0 {
+                        covered -= 1;
                     }
                 }
                 l += 1;
             }
         }
 
-        out.push_str(&format!("{} {}\n", fmt_time(best_l), fmt_time(best_r)));
+        out.push_str(&fmt_time(best_l));
+        out.push(' ');
+        out.push_str(&fmt_time(best_r));
+        out.push('\n');
     }
 
     print!("{out}");

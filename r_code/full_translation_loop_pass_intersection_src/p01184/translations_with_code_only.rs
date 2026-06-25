@@ -10,12 +10,11 @@ struct HashEntry {
 
 fn hash_index(s: &str) -> usize {
     let bytes = s.as_bytes();
-    let w = bytes.len();
-    // C code assumes non-empty strings (scanf("%s") never reads empty).
+    let w = bytes.len() as i32;
+    // C code assumes non-empty strings (scanf("%s") never yields empty).
     let first = bytes[0] as i32;
-    let last = bytes[w - 1] as i32;
-    let w_i = w as i32;
-    let i = (101 * first + 103 * last + 107 * w_i) % (HASHSIZ as i32);
+    let last = bytes[bytes.len() - 1] as i32;
+    let i = (101 * first + 103 * last + 107 * w) % (HASHSIZ as i32);
     i as usize
 }
 
@@ -61,18 +60,17 @@ fn insert(hash: &mut [HashEntry; HASHSIZ], names: &[String], s_idx: usize, id: i
 }
 
 fn check(pat: i32, f: &[i32], m: usize) -> bool {
-    // First condition: every group must intersect pat.
     for i in 0..m {
         if (f[i] & pat) == 0 {
             return false;
         }
     }
 
-    // Build g[] as singleton bits present in pat.
-    let mut g = [0i32; 6]; // C uses size 6; pat size is <= 5 bits in search, but keep same.
+    // g has capacity 6 in C; pat is limited to <= 5 bits set by construction.
+    let mut g = [0i32; 6];
     let mut s_cnt = 0usize;
     let mut k = pat;
-    let mut bit = 0;
+    let mut bit = 0i32;
     while k != 0 {
         if (k & 1) != 0 {
             g[s_cnt] = 1 << bit;
@@ -82,7 +80,6 @@ fn check(pat: i32, f: &[i32], m: usize) -> bool {
         k >>= 1;
     }
 
-    // Propagate connectivity via f[i] restricted to pat.
     for i in 0..m {
         for j in 0..s_cnt {
             if (g[j] & f[i]) != 0 {
@@ -91,7 +88,6 @@ fn check(pat: i32, f: &[i32], m: usize) -> bool {
         }
     }
 
-    // Union overlapping components in a single pass (matches C logic).
     let mut kk = g[0];
     for i in 1..s_cnt {
         if (g[i] & kk) != 0 {
@@ -102,7 +98,7 @@ fn check(pat: i32, f: &[i32], m: usize) -> bool {
 }
 
 fn main() {
-    // Read entire stdin and tokenize like scanf would (whitespace-separated).
+    // Read all input and tokenize like scanf with %d/%s (whitespace-separated).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -116,7 +112,10 @@ fn main() {
             break;
         }
         let n: i32 = n_opt.unwrap().parse().unwrap();
-        let m: i32 = it.next().unwrap().parse().unwrap();
+        let m: i32 = match it.next() {
+            Some(v) => v.parse().unwrap(),
+            None => break,
+        };
         if n <= 0 {
             break;
         }
@@ -129,27 +128,31 @@ fn main() {
         let mut hash = [HashEntry { s_idx: None, id: 0 }; HASHSIZ];
         let mut f = [0i32; 22];
 
-        let mut id: i32 = 1;
         let mut names: Vec<String> = Vec::new();
+        let mut id: i32 = 1;
         let mut sz: usize = 0;
 
-        // Read n names; insert unique ones into hash, assign bit ids in insertion order.
-        for _ in 0..n {
+        let mut nn = n;
+        while nn > 0 {
+            nn -= 1;
             let s = it.next().unwrap().to_string();
             names.push(s);
             let idx = names.len() - 1;
             if insert(&mut hash, &names, idx, id) {
                 sz += 1;
+                // C uses int; shifting left is safe here (sz <= 31 by array size).
                 id <<= 1;
             }
         }
 
-        // Read m groups; OR ids (including -1 if lookup fails, matching C behavior).
-        for i in 0..(m as usize) {
-            let j: i32 = it.next().unwrap().parse().unwrap();
-            for _ in 0..j {
+        let mm = m as usize;
+        for i in 0..mm {
+            let mut j: i32 = it.next().unwrap().parse().unwrap();
+            while j > 0 {
+                j -= 1;
                 let buf = it.next().unwrap();
                 let lid = lookup(&hash, &names, buf);
+                // In C, OR with -1 would set all bits; we preserve that behavior.
                 f[i] |= lid;
             }
         }
@@ -161,99 +164,12 @@ fn main() {
             let mut j: i32 = (1 << i) - 1;
             let limit: i32 = 1 << (sz as i32);
             while j < limit {
-                if check(j, &f, m as usize) {
+                if check(j, &f, mm) {
                     ans = j;
                     ans_size = i;
                     break 'done;
                 }
-                // Gosper's hack, exactly as in C (with i32 arithmetic).
-                let x = j & !(j - 1);
-                let y = j + x;
-                j = (((j & !y) / x) >> 1) | y;
-            }
-        }
-
-        if ans < 0 {
-            out.push_str("Impossible\n");
-        } else {
-            out.push_str(&format!("{}\n", ans_size));
-            let mut bit_id: i32 = 1;
-            // Print names in the order they were stored in `name[sz]` in C:
-            // i.e., only the unique inserted ones, in insertion order.
-            // In this Rust version, `names` contains all read names; we need the first `sz`
-            // unique-inserted names in order. We can reconstruct by scanning hash insertion
-            // order is not stored, so instead we mimic C: it stored unique names contiguously
-            // in name[0..sz). We can do the same by building `uniq_names` during insertion.
-            //
-            // To preserve semantics, we rebuild uniq_names now by re-reading from hash is not possible.
-            // So we must have stored them during insertion; do it retroactively by tracking indices.
-        }
-    }
-
-    // The above needs unique-name list; implement by re-running with proper storage.
-    // Since we must output exactly, we redo main logic with correct tracking.
-
-    // Re-parse and produce output again correctly.
-    let mut it = input.split_whitespace();
-    cno = 0;
-    out.clear();
-
-    loop {
-        let n_opt = it.next();
-        if n_opt.is_none() {
-            break;
-        }
-        let n: i32 = n_opt.unwrap().parse().unwrap();
-        let m: i32 = it.next().unwrap().parse().unwrap();
-        if n <= 0 {
-            break;
-        }
-
-        if cno > 0 {
-            out.push('\n');
-        }
-        cno += 1;
-
-        let mut hash = [HashEntry { s_idx: None, id: 0 }; HASHSIZ];
-        let mut f = [0i32; 22];
-
-        let mut id: i32 = 1;
-        let mut all_names: Vec<String> = Vec::new();
-        let mut uniq_names: Vec<String> = Vec::new();
-        let mut sz: usize = 0;
-
-        for _ in 0..n {
-            let s = it.next().unwrap().to_string();
-            all_names.push(s);
-            let idx = all_names.len() - 1;
-            if insert(&mut hash, &all_names, idx, id) {
-                uniq_names.push(all_names[idx].clone());
-                sz += 1;
-                id <<= 1;
-            }
-        }
-
-        for i in 0..(m as usize) {
-            let j: i32 = it.next().unwrap().parse().unwrap();
-            for _ in 0..j {
-                let buf = it.next().unwrap();
-                let lid = lookup(&hash, &all_names, buf);
-                f[i] |= lid;
-            }
-        }
-
-        let mut ans: i32 = -1;
-        let mut ans_size: i32 = 0;
-
-        'done: for i in 1..=5 {
-            let mut j: i32 = (1 << i) - 1;
-            let limit: i32 = 1 << (sz as i32);
-            while j < limit {
-                if check(j, &f, m as usize) {
-                    ans = j;
-                    ans_size = i;
-                    break 'done;
-                }
+                // Gosper's hack as in C, using i32 arithmetic.
                 let x = j & !(j - 1);
                 let y = j + x;
                 j = (((j & !y) / x) >> 1) | y;
@@ -267,7 +183,7 @@ fn main() {
             let mut bit_id: i32 = 1;
             for i in 0..sz {
                 if (ans & bit_id) != 0 {
-                    out.push_str(&uniq_names[i]);
+                    out.push_str(&names[i]);
                     out.push('\n');
                 }
                 bit_id <<= 1;

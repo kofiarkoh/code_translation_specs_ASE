@@ -2,7 +2,7 @@ use std::io::{self, Read};
 use std::process;
 
 fn main() {
-    // Read entire stdin, parse as i32 like C's "%d" into `int` (typically 32-bit).
+    // Read entire stdin, parse as i32 like C's "%d" into int (commonly 32-bit).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -12,12 +12,12 @@ fn main() {
 
     for i in 0..3 {
         for j in 0..3 {
-            // If input is missing, C's scanf would fail and leave `c[i][j]` uninitialized (UB).
+            // If input is missing, C's scanf would fail and leave c[i][j] uninitialized (UB).
             // Here we default to 0 to keep the program total; typical contest inputs are valid.
             c[i][j] = it.next().and_then(|s| s.parse::<i32>().ok()).unwrap_or(0);
         }
 
-        // Replicate the exact branching structure used to compute the row minimum.
+        // Replicate the C branching exactly.
         if c[i][0] > c[i][1] {
             if c[i][1] > c[i][2] {
                 minv[i] = c[i][2];
@@ -33,7 +33,7 @@ fn main() {
         }
     }
 
-    // In C, signed overflow is UB; in Rust, we use wrapping to emulate typical 2's-complement behavior.
+    // C signed overflow is UB; use wrapping to emulate typical two's-complement behavior.
     for i in 0..3 {
         for j in 0..3 {
             c[i][j] = c[i][j].wrapping_sub(minv[i]);

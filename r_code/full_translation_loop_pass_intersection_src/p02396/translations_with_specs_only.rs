@@ -2,18 +2,22 @@ use std::io::{self, Read};
 
 fn main() {
     let mut input = String::new();
-    io::stdin().read_to_string(&mut input).unwrap();
+    io::stdin().read_to_string(&mut input).ok();
 
-    let mut count: usize = 0;
+    let mut case_counter: i64 = 0;
 
     for tok in input.split_whitespace() {
-        let v: i64 = tok.parse().unwrap();
-        count += 1;
+        let value: i64 = match tok.parse() {
+            Ok(v) => v,
+            Err(_) => break, // unspecified by spec; stop on malformed token
+        };
 
-        if v == 0 {
+        case_counter += 1;
+
+        if value == 0 {
             break;
         }
 
-        println!("Case {}: {}", count, v);
+        println!("Case {}: {}", case_counter, value);
     }
 }

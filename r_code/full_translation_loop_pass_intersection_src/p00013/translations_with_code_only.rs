@@ -1,11 +1,11 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Fixed-size stack, zero-initialized like `int railroad[10] = {};`
+    // Matches `int railroad[10] = {};` (zero-initialized).
     let mut railroad = [0i32; 10];
     let mut i: i32 = 0;
 
-    // Read entire stdin and parse whitespace-separated integers, like repeated scanf("%d", ...)
+    // Read entire stdin and parse whitespace-separated integers, like scanf("%d", ...).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
 
@@ -17,19 +17,23 @@ fn main() {
         };
 
         if car == 0 {
-            // Pop: i--; print railroad[i];
-            i -= 1;
-            // The original C has undefined behavior if i goes out of bounds.
-            // We emulate typical behavior by wrapping the index into the array range.
-            let idx = (i as isize).rem_euclid(railroad.len() as isize) as usize;
-            println!("{}", railroad[idx]);
+            // C code: i--; printf("%d\n", railroad[i]);
+            // Note: In C, underflow/out-of-bounds is undefined; we emulate the same
+            // indexing behavior by using wrapping arithmetic and unchecked indexing.
+            i = i.wrapping_sub(1);
+            let idx = i as usize;
+
+            // Use get_unchecked to avoid Rust bounds checks (C would not check).
+            // This is necessary to preserve C's potential UB behavior as closely as possible.
+            let val = unsafe { *railroad.get_unchecked(idx) };
+            print!("{}\n", val);
         } else {
-            // Push: railroad[i] = car; i++;
-            // The original C has undefined behavior if i goes out of bounds.
-            // We emulate typical behavior by wrapping the index into the array range.
-            let idx = (i as isize).rem_euclid(railroad.len() as isize) as usize;
-            railroad[idx] = car;
-            i += 1;
+            // C code: railroad[i] = car; i++;
+            let idx = i as usize;
+            unsafe {
+                *railroad.get_unchecked_mut(idx) = car;
+            }
+            i = i.wrapping_add(1);
         }
     }
 }

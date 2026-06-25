@@ -1,27 +1,21 @@
 use std::io::{self, Read};
 
-const MAX_CAPACITY: usize = 1_000_000;
-
 fn main() {
-    // No explicit error handling per spec; unwrap/assumptions are acceptable.
+    // Read entire stdin; undefined behavior on malformed input is acceptable per spec.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
+
     let mut it = input.split_whitespace();
 
     let n: usize = it.next().unwrap().parse().unwrap();
-
-    // Fixed maximum capacity as per spec (bounded memory usage).
-    // If n violates this, behavior is not defined by the spec; we allow panic.
-    assert!(n >= 1);
-    assert!(n <= MAX_CAPACITY);
-
+    // Spec says 1 <= n <= 1_000_000; no explicit error handling.
     let mut a: Vec<i64> = Vec::with_capacity(n);
     for _ in 0..n {
         let v: i64 = it.next().unwrap().parse().unwrap();
         a.push(v);
     }
 
-    // Partition around the last element as pivot (Lomuto partition scheme).
+    // Single partitioning step around the last element as pivot.
     let pivot = a[n - 1];
     let mut i: usize = 0;
     for j in 0..(n - 1) {
@@ -31,15 +25,15 @@ fn main() {
         }
     }
     a.swap(i, n - 1);
-    let pivot_pos = i; // 0-based index of pivot's final position
+    let pivot_idx = i; // 0-based; final 1-based position is pivot_idx + 1.
 
-    // Output: one line, single spaces, pivot position bracket-marked, trailing newline.
+    // Output: single line, space-separated; exactly one element (pivot final position) bracketed.
     let mut out = String::new();
     for idx in 0..n {
         if idx > 0 {
             out.push(' ');
         }
-        if idx == pivot_pos {
+        if idx == pivot_idx {
             out.push('[');
             out.push_str(&a[idx].to_string());
             out.push(']');

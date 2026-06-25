@@ -13,38 +13,23 @@ fn main() {
     let mut it = input.split_whitespace();
 
     let n: usize = match it.next().and_then(|t| t.parse::<i32>().ok()) {
-        Some(v) => v as usize, // C stores into int; negative would be UB-ish for loop bounds; keep cast behavior.
+        Some(v) => v as usize, // mirrors C's int->loop usage; negative would behave oddly in C too
         None => std::process::exit(1),
     };
 
-    // C has a fixed-size global array P[114514]; we emulate with a fixed buffer.
-    let mut p = vec![0u8; 114_514];
-
+    let mut p: Vec<u8> = vec![0; n];
     for i in 0..n {
         let tok = match it.next() {
             Some(t) => t,
             None => std::process::exit(1),
         };
-        // scanf("%3s", hoge) reads up to 3 non-whitespace chars; we only use hoge[0].
-        // If token is empty (can't happen with split_whitespace), we'd be in trouble; mimic failure by exiting.
-        let first = match tok.as_bytes().first() {
-            Some(&c) => c,
-            None => std::process::exit(1),
-        };
-        if i < p.len() {
-            p[i] = first;
-        } else {
-            // In C this would overflow P; behavior undefined. We choose to exit to avoid panic.
-            std::process::exit(1);
-        }
+        // scanf("%3s", hoge) reads up to 3 non-whitespace chars; we already have a token.
+        // C then uses hoge[0]; if empty token can't happen with %s.
+        p[i] = tok.as_bytes()[0];
     }
 
-    // The C code assumes N >= 2; otherwise it reads uninitialized P[1] etc. (UB).
-    // We emulate the same indexing behavior by exiting on too-small N to avoid Rust panics.
-    if n < 2 {
-        std::process::exit(1);
-    }
-
+    // The C code assumes N >= 2; if N < 2 it would read out of bounds (UB).
+    // We emulate the intended behavior for valid inputs (N >= 2).
     let mut notomamiko = souti(p[0], p[1]);
     for i in 2..n {
         notomamiko = souti(notomamiko, p[i]);

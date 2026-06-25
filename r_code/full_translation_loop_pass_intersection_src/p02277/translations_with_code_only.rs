@@ -7,9 +7,9 @@ struct Card {
     num: i32,
 }
 
-fn partition(a: &mut [Card], p: isize, r: isize) -> isize {
-    let mut i: isize = p - 1;
-    let x: i32 = a[r as usize].val;
+fn partition(a: &mut [Card], p: i32, r: i32) -> i32 {
+    let mut i = p - 1;
+    let x = a[r as usize].val;
 
     for j in p..r {
         if a[j as usize].val <= x {
@@ -21,7 +21,7 @@ fn partition(a: &mut [Card], p: isize, r: isize) -> isize {
     i + 1
 }
 
-fn quicksort(a: &mut [Card], p: isize, r: isize) {
+fn quicksort(a: &mut [Card], p: i32, r: i32) {
     if p < r {
         let q = partition(a, p, r);
         quicksort(a, p, q - 1);
@@ -30,20 +30,21 @@ fn quicksort(a: &mut [Card], p: isize, r: isize) {
 }
 
 fn main() {
-    // Read entire stdin, then parse tokens similarly to scanf("%d") and scanf(" %c%d")
+    // Read entire stdin and parse as whitespace-separated tokens.
+    // This matches scanf("%d") and scanf(" %c%d") behavior (leading whitespace skipped).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
     let n: usize = match it.next() {
-        Some(t) => t.parse::<usize>().unwrap(),
+        Some(t) => t.parse().unwrap(),
         None => return,
     };
 
     let mut a: Vec<Card> = Vec::with_capacity(n);
     for i in 0..n {
-        let c_tok = it.next().unwrap();
-        let c = c_tok.as_bytes()[0]; // scanf(" %c") reads a single non-whitespace char
+        let c_tok = it.next().unwrap_or("");
+        let c = c_tok.as_bytes().get(0).copied().unwrap_or(b'\0');
         let val: i32 = it.next().unwrap().parse().unwrap();
         a.push(Card {
             c,
@@ -53,7 +54,7 @@ fn main() {
     }
 
     if n > 0 {
-        quicksort(&mut a, 0, (n as isize) - 1);
+        quicksort(&mut a, 0, (n as i32) - 1);
     }
 
     let mut flag = 0;
@@ -66,14 +67,17 @@ fn main() {
         }
     }
 
+    let mut out = String::new();
     if flag == 1 {
-        print!("Not stable\n");
+        out.push_str("Not stable\n");
     } else {
-        print!("Stable\n");
+        out.push_str("Stable\n");
+    }
+    for card in &a {
+        out.push(card.c as char);
+        out.push(' ');
+        out.push_str(&format!("{}\n", card.val));
     }
 
-    for card in &a {
-        // C prints "%c %d\n"
-        print!("{} {}\n", card.c as char, card.val);
-    }
+    print!("{out}");
 }

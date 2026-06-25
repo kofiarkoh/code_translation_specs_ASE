@@ -3,7 +3,7 @@ use std::io::{self, Read};
 const MOD: i64 = 1_000_000_007;
 
 fn main() {
-    // Read entire stdin (matches scanf-style whitespace-separated parsing)
+    // Read entire stdin
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -24,8 +24,7 @@ fn main() {
         t[i] = it.next().unwrap().parse().unwrap();
     }
 
-    // dp is (n+1) x (m+1); C uses a global zero-initialized array.
-    // Values are always kept in [0, MOD) after each cell update.
+    // dp[i][j] for 0..=n, 0..=m
     let mut dp = vec![vec![0i64; m + 1]; n + 1];
 
     for i in 0..=n {
@@ -36,9 +35,10 @@ fn main() {
             }
             let mut val = (dp[i - 1][j] + dp[i][j - 1]) % MOD;
             if s[i - 1] != t[j - 1] {
-                // Subtract dp[i-1][j-1] in modulo world, mirroring C's negative handling.
+                // Subtract dp[i-1][j-1] in modulo world, matching C's behavior:
+                // dp can go negative, then % keeps sign, then we add MOD if negative.
                 val -= dp[i - 1][j - 1];
-                val %= MOD; // in Rust, % keeps the sign (like C), so may be negative
+                val %= MOD;
                 if val < 0 {
                     val += MOD;
                 }

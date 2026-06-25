@@ -1,32 +1,33 @@
 use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin; input is assumed well-formed per specification.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
+    // The specification says behavior is undefined if preconditions are violated.
+    // We therefore parse directly and index without extra checks.
     let n: usize = it.next().unwrap().parse().unwrap();
 
-    // Fixed supported capacity is at most 100 per specification; no explicit error handling.
-    let mut a: Vec<i64> = Vec::with_capacity(n);
-    let mut total: i64 = 0;
+    let mut a: Vec<i128> = Vec::with_capacity(n);
+    let mut s: i128 = 0;
     for _ in 0..n {
-        let v: i64 = it.next().unwrap().parse().unwrap();
+        let v: i128 = it.next().unwrap().parse().unwrap();
         a.push(v);
-        total += v; // Precondition: no overflow.
+        s += v;
     }
 
-    let q: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
 
     let mut out = String::new();
-    for _ in 0..q {
-        let pos_1based: usize = it.next().unwrap().parse().unwrap();
-        let replacement: i64 = it.next().unwrap().parse().unwrap();
+    for _ in 0..m {
+        let p: usize = it.next().unwrap().parse().unwrap(); // 1-based
+        let x: i128 = it.next().unwrap().parse().unwrap();
 
-        // Preconditions guarantee 1 <= pos_1based <= n.
-        let idx = pos_1based - 1;
-        let result = total - a[idx] + replacement; // Precondition: no overflow.
-        out.push_str(&result.to_string());
+        let orig = a[p - 1];
+        let ans = s - orig + x;
+        out.push_str(&ans.to_string());
         out.push('\n');
     }
 

@@ -9,13 +9,12 @@ fn main() {
     let token = input.split_whitespace().next().unwrap_or("");
 
     // C arrays: char S[11], ans[11]
-    // We'll emulate fixed-size buffers with explicit NUL termination.
+    // We'll model them as fixed-size byte arrays, NUL-terminated like C strings.
     let mut s = [0u8; 11];
     let mut ans = [0u8; 11];
 
-    // Copy token bytes into s, truncating to 10 bytes, and NUL-terminate.
-    // Note: In the original C, longer input would overflow (UB). We cannot
-    // reproduce UB in safe Rust; truncation is the closest safe behavior.
+    // `scanf("%s", S)` in C is unsafe if token is longer than 10 bytes (overflow UB).
+    // Here we emulate the in-bounds behavior by truncating to 10 bytes and adding NUL.
     let bytes = token.as_bytes();
     let n = bytes.len().min(10);
     s[..n].copy_from_slice(&bytes[..n]);
@@ -24,27 +23,24 @@ fn main() {
     let mut j: usize = 0;
 
     for i in 0..11 {
-        let c = s[i];
-        if c == b'B' {
+        if s[i] == b'B' {
             if j > 0 {
                 j -= 1;
             } else {
                 j = 0;
             }
         } else {
-            // In the C code, this can write past ans[10] if j grows too large (UB).
-            // Here we clamp to avoid panic while keeping behavior as close as possible.
-            if j < 11 {
-                ans[j] = c;
-                j += 1;
-            }
-            if c == 0 {
+            // In the original C, `ans[j++] = S[i];` can overflow `ans` if j reaches 11 (UB).
+            // With the truncation above and the loop bound, j stays within 0..=10 here.
+            ans[j] = s[i];
+            j += 1;
+            if s[i] == 0 {
                 break;
             }
         }
     }
 
-    // Mimic `printf("%s", ans)` by printing bytes up to the first NUL.
+    // Mimic `printf("%s", ans)` by printing up to the first NUL byte.
     let end = ans.iter().position(|&b| b == 0).unwrap_or(ans.len());
     let out = String::from_utf8_lossy(&ans[..end]);
     print!("{out}");

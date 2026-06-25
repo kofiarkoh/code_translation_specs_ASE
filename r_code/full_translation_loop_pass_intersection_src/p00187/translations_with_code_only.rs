@@ -11,7 +11,7 @@ fn l(
     dy: i32,
 ) -> Option<(f64, f64)> {
     // Emulate C's 32-bit signed int arithmetic (including wraparound on overflow)
-    // by using i32::wrapping_* operations.
+    // as closely as possible using wrapping operations.
     let acx = cx.wrapping_sub(ax);
     let acy = cy.wrapping_sub(ay);
 
@@ -45,7 +45,7 @@ fn l(
 }
 
 fn main() {
-    // Read all input; C code uses scanf in a loop, so whitespace-separated ints.
+    // Read all input; C code uses scanf in a loop.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -54,9 +54,6 @@ fn main() {
     let mut y1 = [0i32; 3];
     let mut x2 = [0i32; 3];
     let mut y2 = [0i32; 3];
-
-    let mut xs = [0f64; 3];
-    let mut ys = [0f64; 3];
 
     let mut i: usize = 0;
 
@@ -78,7 +75,7 @@ fn main() {
             None => break,
         };
 
-        // If parsing fails, mimic scanf failure by terminating.
+        // If parsing fails, C's scanf would stop; we stop as well.
         let ax: i32 = match a.parse() {
             Ok(v) => v,
             Err(_) => break,
@@ -103,32 +100,35 @@ fn main() {
 
         i += 1;
         if i == 3 {
+            let mut x = [0f64; 3];
+            let mut y = [0f64; 3];
+
             let ok0 = l(x1[0], y1[0], x2[0], y2[0], x1[1], y1[1], x2[1], y2[1]);
             let ok1 = l(x1[1], y1[1], x2[1], y2[1], x1[2], y1[2], x2[2], y2[2]);
             let ok2 = l(x1[2], y1[2], x2[2], y2[2], x1[0], y1[0], x2[0], y2[0]);
 
             if let (Some((x0, y0)), Some((x1p, y1p)), Some((x2p, y2p))) = (ok0, ok1, ok2) {
-                xs[0] = x0;
-                ys[0] = y0;
-                xs[1] = x1p;
-                ys[1] = y1p;
-                xs[2] = x2p;
-                ys[2] = y2p;
+                x[0] = x0;
+                y[0] = y0;
+                x[1] = x1p;
+                y[1] = y1p;
+                x[2] = x2p;
+                y[2] = y2p;
 
-                let mut s = 0.0f64;
+                let mut s_area = 0f64;
                 for j in 0..3 {
                     let k = (j + 1) % 3;
-                    s += (xs[j] - xs[k]) * (ys[j] + ys[k]) / 2.0;
+                    s_area += (x[j] - x[k]) * (y[j] + y[k]) / 2.0;
                 }
-                s = s.abs();
+                s_area = s_area.abs();
 
-                if s < 1e-6 {
+                if s_area < 1e-6 {
                     println!("kyo");
-                } else if s < 100000.0 - 1e-6 {
+                } else if s_area < 100000.0 - 1e-6 {
                     println!("syo-kichi");
-                } else if s < 1000000.0 - 1e-6 {
+                } else if s_area < 1000000.0 - 1e-6 {
                     println!("kichi");
-                } else if s < 1900000.0 - 1e-6 {
+                } else if s_area < 1900000.0 - 1e-6 {
                     println!("chu-kichi");
                 } else {
                     println!("dai-kichi");

@@ -15,8 +15,8 @@ fn com_init(fac: &mut [i64], finv: &mut [i64], inv: &mut [i64]) {
         fac[i] = fac[i - 1] * ii % MOD;
 
         // inv[i] = MOD - inv[MOD%i] * (MOD / i) % MOD;
-        let idx = (MOD % ii) as usize;
-        inv[i] = MOD - (inv[idx] * (MOD / ii) % MOD);
+        let mi = (MOD % ii) as usize;
+        inv[i] = MOD - (inv[mi] * (MOD / ii) % MOD);
 
         finv[i] = finv[i - 1] * inv[i] % MOD;
     }
@@ -29,19 +29,19 @@ fn com(n: i32, k: i32, fac: &[i64], finv: &[i64]) -> i64 {
     if n < 0 || k < 0 {
         return 0;
     }
-    let n = n as usize;
-    let k = k as usize;
-    fac[n] * (finv[k] * finv[n - k] % MOD) % MOD
+    let nu = n as usize;
+    let ku = k as usize;
+    fac[nu] * (finv[ku] * finv[nu - ku] % MOD) % MOD
 }
 
 fn main() {
-    // Read entire stdin, parse two ints like scanf("%d%d", &x, &y)
+    // Read entire stdin, parse two ints like scanf("%d%d", ...)
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
     let x: i32 = match it.next() {
         Some(v) => v.parse().unwrap(),
-        None => return, // if no input, do nothing (closest to C's unspecified behavior)
+        None => return,
     };
     let y: i32 = match it.next() {
         Some(v) => v.parse().unwrap(),
@@ -68,5 +68,5 @@ fn main() {
     com_init(&mut fac, &mut finv, &mut inv);
 
     let ans = com(x_ + y_, x_, &fac, &finv) % MOD;
-    print!("{ans}\n");
+    print!("{}\n", ans);
 }

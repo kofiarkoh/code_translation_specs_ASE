@@ -1,45 +1,25 @@
 use std::io::{self, Read};
 
-static mut SD_RATE: f64 = 0.0;
-
-/// Expected value computation as specified:
-/// - even pos: (pos/2)/p
-/// - odd pos: 1 + E(pos-1)*p + E(pos+1)*(1-p)
-fn get_val(pos: i32) -> f64 {
-    // SAFETY: This mirrors the C code's global `sdRate` usage.
-    // The program sets SD_RATE once before calling get_val, and then reads it.
-    let p = unsafe { SD_RATE };
-
+fn get_val(pos: i32, rate: f64) -> f64 {
+    // Even position: (pos/2) / rate, with integer division on pos/2 as in C.
     if pos % 2 == 0 {
-        // C semantics: integer division for (pos/2) before converting to double.
-        let half = (pos / 2) as f64;
-        return half / p;
+        return (pos / 2) as f64 / rate;
     }
 
-    let mut val = 1.0;
-    val += get_val(pos - 1) * p;
-    val += get_val(pos + 1) * (1.0 - p);
-    val
+    // Odd position: 1 + val(pos-1)*rate + val(pos+1)*(1-rate)
+    1.0 + get_val(pos - 1, rate) * rate + get_val(pos + 1, rate) * (1.0 - rate)
 }
 
 fn main() {
-    // Read entire stdin; C reads two lines with fgets+sscanf.
-    // We accept any whitespace-separated input, which is compatible with the spec's
-    // "two input lines" precondition and typical judge inputs.
+    // Read entire stdin; spec assumes at least two readable lines with valid values.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
     let pos: i32 = it.next().unwrap().parse().unwrap();
-    let mut rate_percent: f64 = it.next().unwrap().parse().unwrap();
-    rate_percent /= 100.0;
+    let mut rate: f64 = it.next().unwrap().parse().unwrap();
+    rate /= 100.0;
 
-    // SAFETY: Set once before recursion, then read-only.
-    unsafe {
-        SD_RATE = rate_percent;
-    }
-
-    let val = get_val(pos);
-    // Match C: "%.7lf\n"
+    let val = get_val(pos, rate);
     print!("{:.7}\n", val);
 }

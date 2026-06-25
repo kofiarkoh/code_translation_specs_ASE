@@ -18,9 +18,11 @@ fn main() {
     // C code:
     // strcpy(str, str1); strcat(str, str1);
     // Equivalent to str = str1 + str1.
-    let doubled = format!("{}{}", str1, str1);
+    let mut doubled = String::with_capacity(str1.len() * 2);
+    doubled.push_str(str1);
+    doubled.push_str(str1);
 
-    // C strstr checks for substring occurrence.
+    // C strstr returns NULL if not found.
     if doubled.contains(str2) {
         print!("Yes\n");
     } else {

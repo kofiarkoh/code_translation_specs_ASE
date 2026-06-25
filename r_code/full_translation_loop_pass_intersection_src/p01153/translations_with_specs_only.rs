@@ -1,72 +1,63 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
     let t: usize = match it.next() {
-        Some(x) => x.parse().unwrap(),
+        Some(v) => v.parse().unwrap(),
         None => return,
     };
 
-    let mut out = String::new();
-
-    for _case in 0..t {
+    let mut outs = Vec::with_capacity(t);
+    for _ in 0..t {
         let n: usize = it.next().unwrap().parse().unwrap();
-        let mut a: Vec<i64> = Vec::with_capacity(n);
-        for _ in 0..n {
-            a.push(it.next().unwrap().parse().unwrap());
+        let mut a = vec![0i32; n];
+        for i in 0..n {
+            a[i] = it.next().unwrap().parse().unwrap();
         }
 
-        if n == 0 || n == 1 {
-            // No merges possible, total score is 0.
-            out.push_str("0\n");
+        if n <= 1 {
+            outs.push("0".to_string());
             continue;
         }
 
-        // Duplicate the array to linearize the circle.
-        let mut b: Vec<i64> = Vec::with_capacity(2 * n);
-        b.extend_from_slice(&a);
-        b.extend_from_slice(&a);
+        // Duplicate the array to linearize circular segments of length <= n.
+        let mut b = vec![0i32; 2 * n];
+        for i in 0..2 * n {
+            b[i] = a[i % n];
+        }
 
-        // dp[l][r] = maximum score to fully merge the linear segment b[l..=r] into one segment.
-        // The merge cost when combining two adjacent merged segments [l..k] and [k+1..r]
-        // is abs(b[l] - b[r]) because the endpoints of the resulting segment are b[l] and b[r].
-        //
-        // This is the standard interval DP:
-        // dp[l][r] = max_{k in [l, r-1]} dp[l][k] + dp[k+1][r] + abs(b[l] - b[r])
-        //
-        // Then for the circle, take max over all length-n windows: max dp[s][s+n-1].
-        let m = 2 * n;
-        let mut dp = vec![vec![0i64; m]; m];
+        // dp[i][len] = maximum total score for the linear segment b[i..i+len),
+        // where merges follow the rule:
+        // splitting at k (1..len-1) adds abs(b[i] - b[i+k]) plus subproblems.
+        let mut dp = vec![vec![0i32; n + 1]; 2 * n];
 
         for len in 2..=n {
-            for l in 0..=m - len {
-                let r = l + len - 1;
-                let cost = (b[l] - b[r]).abs();
-                let mut best = i64::MIN;
-                for k in l..r {
-                    let v = dp[l][k] + dp[k + 1][r] + cost;
-                    if v > best {
-                        best = v;
+            for i in 0..=(2 * n - len) {
+                let mut best = i32::MIN;
+                for k in 1..len {
+                    let add = (b[i] - b[i + k]).abs();
+                    let val = dp[i][k].wrapping_add(dp[i + k][len - k]).wrapping_add(add);
+                    if val > best {
+                        best = val;
                     }
                 }
-                dp[l][r] = best;
+                dp[i][len] = best;
             }
         }
 
-        let mut ans = 0i64;
-        for s in 0..n {
-            let v = dp[s][s + n - 1];
+        // Maximize over all starting indices for the full length-n circular segment.
+        let mut ans = i32::MIN;
+        for start in 0..n {
+            let v = dp[start][n];
             if v > ans {
                 ans = v;
             }
         }
-
-        out.push_str(&format!("{ans}\n"));
+        outs.push(ans.to_string());
     }
 
-    print!("{out}");
+    print!("{}", outs.join("\n"));
 }

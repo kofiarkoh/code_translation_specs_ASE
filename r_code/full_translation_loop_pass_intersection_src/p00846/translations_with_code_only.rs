@@ -41,7 +41,7 @@ fn line_intersection(a: &Line, vs: &PP, ve: &PP) -> PP {
         a.e.x - vs.x,
         a.e.y - vs.y,
     );
-    // Matches C: division by (a2-a1) without special-case handling.
+    // Matches C behavior; if (a2-a1)==0, result becomes +/-inf or NaN as per IEEE-754.
     PP {
         x: (a.s.x * a2 - a.e.x * a1) / (a2 - a1),
         y: (a.s.y * a2 - a.e.y * a1) / (a2 - a1),
@@ -49,7 +49,7 @@ fn line_intersection(a: &Line, vs: &PP, ve: &PP) -> PP {
 }
 
 // Returns new vertex count (top), and writes a closed polygon into `po`
-// with po[top] == po[0], matching the C code behavior.
+// with po[top] == po[0], matching the C code.
 fn convex_cut(u: &Line, n: usize, p: &[PP], po: &mut [PP]) -> usize {
     let mut top: usize = 0;
 
@@ -78,8 +78,6 @@ fn convex_cut(u: &Line, n: usize, p: &[PP], po: &mut [PP]) -> usize {
         }
     }
 
-    // C writes po[top] = po[0] even when top==0 (would be UB there).
-    // We guard to keep Rust safe; for top>0 behavior matches exactly.
     if top > 0 {
         po[top] = po[0];
     }
@@ -87,11 +85,14 @@ fn convex_cut(u: &Line, n: usize, p: &[PP], po: &mut [PP]) -> usize {
 }
 
 fn main() {
-    // Read all input, parse as integers like scanf("%d")
+    // Read all input, then parse as integers like scanf("%d").
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
+    let mut out = String::new();
+
+    // Initial square polygon a[5]
     let a: [PP; 5] = [
         PP { x: 0.0, y: 0.0 },
         PP { x: 10000.0, y: 0.0 },
@@ -99,8 +100,6 @@ fn main() {
         PP { x: 0.0, y: 10000.0 },
         PP { x: 0.0, y: 0.0 },
     ];
-
-    let mut out = String::new();
 
     loop {
         let n_opt = it.next();
@@ -113,17 +112,18 @@ fn main() {
         }
         let n = n as usize;
 
-        let mut pts = vec![PP::default(); n + 1];
+        let mut p = vec![PP::default(); n + 1];
         for i in 0..n {
             let x: i32 = it.next().unwrap().parse().unwrap();
             let y: i32 = it.next().unwrap().parse().unwrap();
-            pts[i] = PP {
+            p[i] = PP {
                 x: x as f64,
                 y: y as f64,
             };
         }
-        pts[n] = pts[0];
+        p[n] = p[0];
 
+        // pol[2][100] in C; keep same capacity.
         let mut pol0 = vec![PP::default(); 100];
         let mut pol1 = vec![PP::default(); 100];
 
@@ -137,10 +137,7 @@ fn main() {
         let mut k2: usize = 1;
 
         for i in 0..n {
-            let u = Line {
-                s: pts[i],
-                e: pts[i + 1],
-            };
+            let u = Line { s: p[i], e: p[i + 1] };
             if k1 == 0 {
                 k = convex_cut(&u, k, &pol0, &mut pol1);
             } else {
@@ -149,7 +146,7 @@ fn main() {
             if k == 0 {
                 break;
             }
-            // k1 = k2; k2 = !k2;
+            // k1 = k2; k2 = !k2;  (toggle 0/1)
             k1 = k2;
             k2 = 1 - k2;
         }

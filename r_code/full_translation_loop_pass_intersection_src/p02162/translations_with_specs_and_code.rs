@@ -2,13 +2,12 @@ use std::io::{self, Read};
 use std::process;
 
 fn main() {
-    // Read entire stdin, then parse four integers.
     let mut input = String::new();
     if io::stdin().read_to_string(&mut input).is_err() {
         process::exit(1);
     }
-    let mut it = input.split_whitespace();
 
+    let mut it = input.split_whitespace();
     let t1: i32 = match it.next().and_then(|s| s.parse().ok()) {
         Some(v) => v,
         None => process::exit(1),
@@ -26,12 +25,10 @@ fn main() {
         None => process::exit(1),
     };
 
-    // SPEC: If either of the last two inputs is negative, decide based on the first two.
-    // Otherwise decide based on the last two.
     let out = if r1 < 0 || r2 < 0 {
-        if t1 > t2 {
+        if t1 < t2 {
             "Alice"
-        } else if t1 < t2 {
+        } else if t1 > t2 {
             "Bob"
         } else {
             "Draw"

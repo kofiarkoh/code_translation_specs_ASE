@@ -3,52 +3,55 @@ use std::io::{self, Read};
 const MOD: i64 = 1_000_000_007;
 
 fn main() {
-    // Read exactly two signed integers (undefined behavior if missing/invalid per spec).
+    // Read exactly two signed integers n and m from stdin.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
-    let n: usize = it.next().unwrap().parse::<i64>().unwrap() as usize;
-    let m: usize = it.next().unwrap().parse::<i64>().unwrap() as usize;
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let m: i64 = it.next().unwrap().parse().unwrap();
 
-    // Spec preconditions: n <= 5049, m <= 5049, m >= 1, n >= 0.
-    // We do not add extra error handling; behavior is undefined if violated.
+    // SPEC notes: the original C program assumes n,m are within fixed array bounds
+    // and does not validate non-negativity. We follow the same assumption.
+    // If n or m are negative, behavior is undefined in C; in Rust we'd panic on
+    // allocation/indices. This matches "undefined behavior" per spec.
+    let n_usize: usize = n.try_into().unwrap();
+    let m_usize: usize = m.try_into().unwrap();
 
-    // Precompute powers of 2 and powers of inv(2) up to n+m (inclusive).
-    let inv2_const: i64 = (MOD + 1) / 2; // modular inverse of 2 mod MOD
-    let limit = n + m;
-    let mut pow2 = vec![0i64; limit + 1];
-    let mut inv2 = vec![0i64; limit + 1];
+    // Precompute pow2 and inv2 for x = 0..(n+m)
+    let nm: usize = (n + m).try_into().unwrap();
+    let inv: i64 = (MOD + 1) / 2;
+
+    let mut pow2 = vec![0i64; nm + 1];
+    let mut inv2 = vec![0i64; nm + 1];
     pow2[0] = 1;
     inv2[0] = 1;
-    for i in 1..=limit {
-        pow2[i] = (pow2[i - 1] * 2) % MOD;
-        inv2[i] = (inv2[i - 1] * inv2_const) % MOD;
+    for x in 1..=nm {
+        pow2[x] = (pow2[x - 1] * 2) % MOD;
+        inv2[x] = (inv2[x - 1] * inv) % MOD;
     }
 
-    // DP tables:
-    // DP[i][j] for i in 0..=n, j in 0..=m (we only use j>=1)
-    // DQ[i][j] for i in 0..=n, j in 0..=m with DQ[i][0]=0
-    let mut dp = vec![vec![0i64; m + 1]; n + 1];
-    let mut dq = vec![vec![0i64; m + 1]; n + 1];
+    // dp and dq tables for i=0..n, j=0..m, zero-initialized.
+    // dq[i][0] = 0 and dp[i][0] = 0 naturally hold.
+    let mut dp = vec![vec![0i64; m_usize + 1]; n_usize + 1];
+    let mut dq = vec![vec![0i64; m_usize + 1]; n_usize + 1];
 
-    for i in 0..=n {
-        // dq[i][0] is already 0 by initialization (invariant).
-        for j in 1..=m {
+    for i in 0..=n_usize {
+        for j in 1..=m_usize {
             if i == 0 {
                 dp[i][j] = 1;
             } else {
-                // DP[i][j] = ((j+1)*DP[i-1][j] + DQ[i-1][j-1]*2^(j-1)) mod MOD
-                let term1 = ((j as i64 + 1) * dp[i - 1][j]) % MOD;
-                let term2 = (dq[i - 1][j - 1] * pow2[j - 1]) % MOD;
+                let jj = j as i64;
+                let term1 = ((jj + 1) % MOD) * dp[i - 1][j] % MOD;
+                let term2 = dq[i - 1][j - 1] * pow2[j - 1] % MOD;
                 dp[i][j] = (term1 + term2) % MOD;
             }
 
-            // DQ[i][j] = (DQ[i][j-1] + DP[i][j]*j*(1/2)^j) mod MOD
-            let add = (((dp[i][j] * (j as i64)) % MOD) * inv2[j]) % MOD;
+            let jj = j as i64;
+            let add = (dp[i][j] * jj % MOD) * inv2[j] % MOD;
             dq[i][j] = (dq[i][j - 1] + add) % MOD;
         }
     }
 
-    let result = dp[n][m] % MOD;
-    println!("{result}");
+    let result = dp[n_usize][m_usize] % MOD;
+    print!("{result}\n");
 }

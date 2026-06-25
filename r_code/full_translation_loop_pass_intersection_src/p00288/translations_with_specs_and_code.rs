@@ -1,8 +1,7 @@
-use std::cmp::Reverse;
-use std::collections::BinaryHeap;
+use std::cmp::min;
 use std::io::{self, Read};
 
-const INF: i32 = 0x1010_1010;
+const INF: i32 = 0x10101010;
 
 #[derive(Clone)]
 struct Edge {
@@ -33,7 +32,7 @@ impl MinCostFlow {
 
     fn reset(&mut self, v: usize) {
         self.g.clear();
-        self.g.resize(v, Vec::new());
+        self.g.resize_with(v, Vec::new);
         self.potential.fill(0);
         self.dist.fill(INF);
         // prevv/preve will be overwritten as needed
@@ -60,7 +59,7 @@ impl MinCostFlow {
         });
     }
 
-    // Returns -1 if cannot send F flow.
+    // Returns -1 if cannot send full flow.
     fn min_cost_flow(&mut self, s: usize, t: usize, mut f: i32) -> i32 {
         let v = self.g.len();
         self.potential.fill(0);
@@ -68,7 +67,12 @@ impl MinCostFlow {
 
         while f > 0 {
             self.dist.fill(INF);
+
+            // Dijkstra with potentials; use BinaryHeap as min-heap via Reverse.
+            use std::cmp::Reverse;
+            use std::collections::BinaryHeap;
             let mut pq: BinaryHeap<(Reverse<i32>, usize)> = BinaryHeap::new();
+
             self.dist[s] = 0;
             pq.push((Reverse(0), s));
 
@@ -76,17 +80,16 @@ impl MinCostFlow {
                 if self.dist[vtx] < d {
                     continue;
                 }
-                for (ei, e) in self.g[vtx].iter().enumerate() {
+                for (i, e) in self.g[vtx].iter().enumerate() {
                     if e.cap <= 0 {
                         continue;
                     }
                     let nv = e.to;
-                    // reduced cost with potentials
                     let nd = d + e.cost - self.potential[nv] + self.potential[vtx];
                     if self.dist[nv] > nd {
                         self.dist[nv] = nd;
                         self.prevv[nv] = vtx;
-                        self.preve[nv] = ei;
+                        self.preve[nv] = i;
                         pq.push((Reverse(nd), nv));
                     }
                 }
@@ -97,45 +100,38 @@ impl MinCostFlow {
             }
             for i in 0..v {
                 if self.dist[i] < INF {
-                    self.potential[i] = self.potential[i].saturating_add(self.dist[i]);
+                    self.potential[i] += self.dist[i];
                 }
             }
 
             let mut addf = f;
-            let mut cur = t;
-            while cur != s {
-                let pv = self.prevv[cur];
-                let pe = self.preve[cur];
+            let mut vtx = t;
+            while vtx != s {
+                let pv = self.prevv[vtx];
+                let pe = self.preve[vtx];
                 let cap = self.g[pv][pe].cap;
                 if addf > cap {
                     addf = cap;
                 }
-                cur = pv;
+                vtx = pv;
             }
 
             f -= addf;
-            ret = ret.saturating_add(addf.saturating_mul(self.potential[t]));
+            ret += addf * self.potential[t];
 
-            // apply
-            let mut cur2 = t;
-            while cur2 != s {
-                let pv = self.prevv[cur2];
-                let pe = self.preve[cur2];
+            // Apply augmentation (needs mutable borrows; do via indices and temporary rev info).
+            let mut vtx2 = t;
+            while vtx2 != s {
+                let pv = self.prevv[vtx2];
+                let pe = self.preve[vtx2];
                 let rev = self.g[pv][pe].rev;
 
-                // mutate with split borrows
-                let (to, rev_idx) = {
-                    let e = &self.g[pv][pe];
-                    (e.to, e.rev)
-                };
-                debug_assert_eq!(to, cur2);
-                debug_assert_eq!(rev_idx, rev);
-
+                // Decrease forward cap
                 self.g[pv][pe].cap -= addf;
-                let rev_edge_index = self.g[pv][pe].rev;
-                self.g[cur2][rev_edge_index].cap += addf;
+                // Increase reverse cap
+                self.g[vtx2][rev].cap += addf;
 
-                cur2 = pv;
+                vtx2 = pv;
             }
         }
 
@@ -148,7 +144,7 @@ fn abs_i32(x: i32) -> i32 {
 }
 
 fn main() {
-    // Read all input as bytes, parse ints.
+    // Read all input, parse as i32 tokens.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -194,30 +190,17 @@ fn main() {
         let mut ans: i32 = INF;
         let lim = 1usize << m;
 
-        for s in 0..lim {
-            let mut res_fixed: i32 = 0;
-            let mut cnt: i32 = 0;
-            for i in 0..m {
-                if ((s >> i) & 1) != 0 {
-                    res_fixed = res_fixed.saturating_add(fixed[i]);
-                    cnt += 1;
-                }
+        // Build graph for subset s and offset mi.
+        let mut make_edge = |mcf: &mut MinCostFlow, s_mask: usize, mi: i32| {
+            mcf.reset(v);
+            // demand nodes: 0..n
+            // facility nodes: n..n+m
+            // source: n+m, sink: n+m+1
+            for i in 0..n {
+                mcf.add_edge(source, i, 1, 0);
             }
-
-            // Binary search on offset (mi) as in C code.
-            let mut lb: i32 = 0;
-            let mut ub: i32 = 4002;
-
-            // Helper to build graph for subset s and offset mi.
-            let mut make_graph = |mi: i32, mcf: &mut MinCostFlow| {
-                mcf.reset(v);
-                for j in 0..n {
-                    mcf.add_edge(source, j, 1, 0);
-                }
-                for i in 0..m {
-                    if ((s >> i) & 1) == 0 {
-                        continue;
-                    }
+            for i in 0..m {
+                if (s_mask >> i) & 1 == 1 {
                     for j in 0..n {
                         let mut x = abs_i32(ax[j] - bx[i]) + abs_i32(ay[j] - by[i]) - mi;
                         if x < 0 {
@@ -227,31 +210,38 @@ fn main() {
                     }
                     mcf.add_edge(n + i, sink, cap[i], 0);
                 }
-            };
+            }
+        };
 
-            let mut infeasible = false;
+        for s_mask in 0..lim {
+            let mut res_fixed: i32 = 0;
+            let mut cnt: i32 = 0;
+            for i in 0..m {
+                if (s_mask >> i) & 1 == 1 {
+                    res_fixed += fixed[i];
+                    cnt += 1;
+                }
+            }
+
+            // Binary search for best integer mi, using the same scheme as C.
+            let mut lb: i32 = 0;
+            let mut ub: i32 = 4002;
+
+            let mut skip_subset = false;
             while lb + 1 < ub {
                 let mi = (lb + ub) >> 1;
 
-                make_graph(mi, &mut mcf);
-                let a1 = mcf.min_cost_flow(source, sink, n as i32);
-                let a1 = if a1 < 0 {
-                    -1
-                } else {
-                    a1.saturating_add(mi.saturating_mul(b).saturating_mul(cnt))
-                };
+                make_edge(&mut mcf, s_mask, mi);
+                let flow1 = mcf.min_cost_flow(source, sink, n as i32);
+                let a1 = if flow1 < 0 { -1 } else { flow1 + mi * b * cnt };
 
-                make_graph(mi - 1, &mut mcf);
-                let a2 = mcf.min_cost_flow(source, sink, n as i32);
-                let a2 = if a2 < 0 {
-                    -1
-                } else {
-                    a2.saturating_add((mi - 1).saturating_mul(b).saturating_mul(cnt))
-                };
+                make_edge(&mut mcf, s_mask, mi - 1);
+                let flow2 = mcf.min_cost_flow(source, sink, n as i32);
+                let a2 = if flow2 < 0 { -1 } else { flow2 + (mi - 1) * b * cnt };
 
                 if a1 < 0 || a2 < 0 {
-                    infeasible = true;
-                    break; // matches C's goto next (skip subset)
+                    skip_subset = true;
+                    break; // matches C's goto next
                 }
                 if a1 < a2 {
                     lb = mi;
@@ -259,21 +249,18 @@ fn main() {
                     ub = mi;
                 }
             }
-            if infeasible {
+            if skip_subset {
                 continue;
             }
 
-            make_graph(lb, &mut mcf);
-            let flow_cost = mcf.min_cost_flow(source, sink, n as i32);
-            if flow_cost < 0 {
-                // C code would have skipped earlier in the search, but keep consistent with spec:
-                // infeasible subsets are skipped.
+            make_edge(&mut mcf, s_mask, lb);
+            let flow = mcf.min_cost_flow(source, sink, n as i32);
+            // Per spec, infeasible subsets are skipped.
+            if flow < 0 {
                 continue;
             }
-            let total = res_fixed
-                .saturating_add(flow_cost)
-                .saturating_add(lb.saturating_mul(b).saturating_mul(cnt));
-            if total < ans {
+            let total = res_fixed + flow + lb * b * cnt;
+            if ans > total {
                 ans = total;
             }
         }

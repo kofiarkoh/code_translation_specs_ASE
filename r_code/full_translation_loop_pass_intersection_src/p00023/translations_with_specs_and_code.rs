@@ -1,16 +1,16 @@
 use std::io::{self, Read};
 
-fn sq(x: f64) -> f64 {
-    x * x
-}
-
 fn main() {
-    // Read entire stdin (no explicit error handling per spec).
+    // Read entire stdin (well-formed input assumed by spec).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let n: i32 = it.next().unwrap().parse().unwrap();
+    let n: i32 = match it.next() {
+        Some(tok) => tok.parse().unwrap(),
+        None => return,
+    };
+
     let mut out = String::new();
 
     for _ in 0..n {
@@ -23,24 +23,30 @@ fn main() {
 
         let dx = ax - bx;
         let dy = ay - by;
-        let d2 = sq(dx) + sq(dy);
 
-        let sum_r = ar + br;
-        let diff_r = ar - br;
+        let d2 = dx * dx + dy * dy;
+        let sum = ar + br;
+        let sum2 = sum * sum;
+        let diff = ar - br;
+        let diff2 = diff * diff;
 
-        if d2 > sq(sum_r) {
-            out.push_str("0\n");
-        } else if sq(sum_r) > d2 && d2 > sq(diff_r) {
-            out.push_str("1\n");
-        } else if d2 < sq(diff_r) {
-            if ar > br {
-                out.push_str("2\n");
-            } else {
-                out.push_str("-2\n");
-            }
+        // Classification per spec/C:
+        // 0: externally disjoint
+        // 1: at least one common point but neither strictly contains the other
+        // 2: first strictly contains second (no common points)
+        // -2: second strictly contains first (no common points)
+        let code = if d2 > sum2 {
+            0
+        } else if sum2 > d2 && d2 > diff2 {
+            1
+        } else if d2 < diff2 {
+            if ar > br { 2 } else { -2 }
         } else {
-            out.push_str("1\n");
-        }
+            // Includes tangency and coincident cases, matching the C code and spec's "at least one common point".
+            1
+        };
+
+        out.push_str(&format!("{code}\n"));
     }
 
     print!("{out}");

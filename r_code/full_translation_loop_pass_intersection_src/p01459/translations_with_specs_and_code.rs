@@ -1,185 +1,192 @@
-use std::cmp::min;
 use std::io::{self, Read};
 
-const HMAX: usize = 103;
-const WMAX: usize = 103;
-const LMAX: usize = 10;
-
 fn main() {
-    // Read entire stdin (AOJ-style input).
+    // Read entire stdin (preconditions guarantee well-formed enough input).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let h: usize = match it.next() {
-        Some(v) => v.parse().unwrap(),
-        None => return,
-    };
+    let h: usize = it.next().unwrap().parse().unwrap();
     let w: usize = it.next().unwrap().parse().unwrap();
     let a_lim: usize = it.next().unwrap().parse().unwrap();
     let b_lim: usize = a_lim;
 
-    // Grid
-    let mut grid = vec![vec![' '; w]; h];
+    let mut grid: Vec<Vec<u8>> = vec![vec![b'#'; w]; h];
     let (mut sr, mut sc) = (0usize, 0usize);
     let (mut gr, mut gc) = (0usize, 0usize);
 
     for r in 0..h {
-        let row = it.next().unwrap();
-        // The C code reads a line and uses first W chars; we do the same.
-        for (c, ch) in row.chars().take(w).enumerate() {
+        let row = it.next().unwrap().as_bytes().to_vec();
+        // Spec says each line provides at least W columns.
+        for c in 0..w {
+            let ch = row[c];
             grid[r][c] = ch;
-            if ch == 'S' {
+            if ch == b'S' {
                 sr = r;
                 sc = c;
-            } else if ch == 'G' {
+            } else if ch == b'G' {
                 gr = r;
                 gc = c;
             }
         }
     }
 
-    // Postcondition: if cell below start is outside or blocked => -1.
-    if sr + 1 >= h || grid[sr + 1][sc] == '#' {
+    // Postcondition: if cell immediately below start is outside grid or obstacle => -1.
+    if sr + 1 >= h || grid[sr + 1][sc] == b'#' {
         print!("-1\n");
         return;
     }
 
-    // Movement deltas: up, right, down, left
-    let mv: [(isize, isize); 4] = [(-1, 0), (0, 1), (1, 0), (0, -1)];
-
-    // Turn allowance / resource consumption tables (from C).
-    // ma[d][nd] > 0 => consume resource1
-    // mb[d][nd] > 0 => consume resource2
-    // both < 0 => disallowed
-    // ma == 0 => allowed, no resource
-    let ma: [[i8; 4]; 4] = [
+    // Directions: 0=up,1=right,2=down,3=left (matches C).
+    const MV: [(i32, i32); 4] = [(-1, 0), (0, 1), (1, 0), (0, -1)];
+    // Turn-type matrices from C (ma, mb). Values: -1 disallowed, 0 allowed no cost, 1 costs that type.
+    const MA: [[i8; 4]; 4] = [
         [0, -1, -1, 1],
         [-1, 0, 1, -1],
         [-1, 1, 0, -1],
         [1, -1, -1, 0],
     ];
-    let mb: [[i8; 4]; 4] = [
+    const MB: [[i8; 4]; 4] = [
         [0, 1, -1, -1],
         [1, 0, -1, -1],
         [-1, -1, 0, 1],
         [-1, -1, 1, 0],
     ];
 
-    // Visited marker: [r][c][d][a][b]
-    // The C code uses fixed arrays sized [103][103][4][11][11].
-    // We allocate dynamically but keep the same bounds assumptions from the spec.
-    let mut mk = vec![vec![vec![vec![vec![false; b_lim + 1]; a_lim + 1]; 4]; w]; h];
+    // Visited: [H][W][4][A+1][B+1]
+    let mut visited = vec![vec![vec![vec![vec![false; b_lim + 1]; a_lim + 1]; 4]; w]; h];
 
-    // C code pre-marks all states at the start cell (sr,sc) for direction 0 and all a,b.
-    // This is a quirk of the original program; it doesn't affect correctness for the
-    // specified initial state (which starts below S), but we preserve it.
+    // C code pre-marks all states at the start cell as visited for d=0 only, for all a,b.
+    // This is a quirk of the original; it helps enforce "never perform a turn while on S"
+    // together with the explicit check `map[r][c] == 'S'` before charging a turn.
     for a in 0..=a_lim {
         for b in 0..=b_lim {
-            mk[sr][sc][0][a][b] = true;
+            visited[sr][sc][0][a][b] = true;
         }
     }
 
-    // BFS-like queue (ring buffer) with fixed capacity in C.
-    // We use VecDeque to avoid overflow/undefined behavior; this does not change
-    // the intended semantics under the spec's bounded state space.
-    use std::collections::VecDeque;
-    #[derive(Clone, Copy)]
+    // Queue: fixed capacity ring buffer, as in C (behavior unspecified if exceeded).
+    const QMAX: usize = 51000;
+    #[derive(Copy, Clone)]
     struct State {
-        r: usize,
-        c: usize,
-        d: usize,
-        a: usize,
-        b: usize,
+        r: u8,
+        c: u8,
+        d: u8,
+        a: u8,
+        b: u8,
     }
+    let mut que = vec![
+        State {
+            r: 0,
+            c: 0,
+            d: 0,
+            a: 0,
+            b: 0
+        };
+        QMAX + 2
+    ];
+    let mut top: usize = 0;
+    let mut end: usize = 1;
 
-    let mut q = VecDeque::new();
-    // Initial state: one cell below start, facing down (2), resources (0,0).
-    q.push_back(State {
-        r: sr + 1,
-        c: sc,
+    // Initial state: one step below S, orientation down (2), a=b=0.
+    que[0] = State {
+        r: (sr + 1) as u8,
+        c: sc as u8,
         d: 2,
         a: 0,
         b: 0,
-    });
+    };
 
     let mut ans: i32 = 100;
 
-    while let Some(st) = q.pop_front() {
-        let (r, c, d, a, b) = (st.r, st.c, st.d, st.a, st.b);
+    while top != end {
+        let st = que[top];
+        top += 1;
+        if top == QMAX {
+            top = 0;
+        }
+
+        let r = st.r as usize;
+        let c = st.c as usize;
+        let d = st.d as usize;
+        let a = st.a as usize;
+        let b = st.b as usize;
 
         if r == gr && c == gc {
-            ans = min(ans, (a + b) as i32);
+            let s = (a + b) as i32;
+            if s < ans {
+                ans = s;
+            }
             continue;
         }
 
-        if mk[r][c][d][a][b] {
+        if visited[r][c][d][a][b] {
             continue;
         }
-        mk[r][c][d][a][b] = true;
+        visited[r][c][d][a][b] = true;
 
         for nd in 0..4usize {
-            let (dr, dc) = mv[nd];
-            let nr_i = r as isize + dr;
-            let nc_i = c as isize + dc;
+            let (dr, dc) = MV[nd];
+            let nr_i = r as i32 + dr;
+            let nc_i = c as i32 + dc;
 
-            let na = ma[d][nd];
-            let nb = mb[d][nd];
+            let na = MA[d][nd];
+            let nb = MB[d][nd];
             if na < 0 && nb < 0 {
-                continue; // disallowed turn
+                continue; // disallowed direction change
             }
 
-            if nr_i < 0 || nr_i >= h as isize || nc_i < 0 || nc_i >= w as isize {
+            if nr_i < 0 || nr_i >= h as i32 || nc_i < 0 || nc_i >= w as i32 {
                 continue;
             }
             let nr = nr_i as usize;
             let nc = nc_i as usize;
-            if grid[nr][nc] == '#' {
+            if grid[nr][nc] == b'#' {
                 continue;
             }
 
-            // Resource-consuming moves from the start cell are disallowed.
-            // (In this program, we never start at S, but we preserve the rule.)
+            // Prepare enqueue; may be skipped by budget/visited/turn-on-start checks.
+            let mut next_a = a;
+            let mut next_b = b;
+
             if na > 0 {
-                if a + 1 > a_lim || grid[r][c] == 'S' {
+                // Turn type A
+                if a + 1 > a_lim || grid[r][c] == b'S' {
                     continue;
                 }
-                if mk[nr][nc][nd][a + 1][b] {
+                next_a = a + 1;
+                if visited[nr][nc][nd][next_a][next_b] {
                     continue;
                 }
-                q.push_back(State {
-                    r: nr,
-                    c: nc,
-                    d: nd,
-                    a: a + 1,
-                    b,
-                });
             } else if nb > 0 {
-                if b + 1 > b_lim || grid[r][c] == 'S' {
+                // Turn type B
+                if b + 1 > b_lim || grid[r][c] == b'S' {
                     continue;
                 }
-                if mk[nr][nc][nd][a][b + 1] {
+                next_b = b + 1;
+                if visited[nr][nc][nd][next_a][next_b] {
                     continue;
                 }
-                q.push_back(State {
-                    r: nr,
-                    c: nc,
-                    d: nd,
-                    a,
-                    b: b + 1,
-                });
             } else if na == 0 {
-                // Allowed, no resource.
-                if mk[nr][nc][nd][a][b] {
+                // No turn cost
+                if visited[nr][nc][nd][next_a][next_b] {
                     continue;
                 }
-                q.push_back(State {
-                    r: nr,
-                    c: nc,
-                    d: nd,
-                    a,
-                    b,
-                });
+            } else {
+                // This case shouldn't occur given the tables, but keep semantics conservative.
+                continue;
+            }
+
+            que[end] = State {
+                r: nr as u8,
+                c: nc as u8,
+                d: nd as u8,
+                a: next_a as u8,
+                b: next_b as u8,
+            };
+            end += 1;
+            if end == QMAX {
+                end = 0;
             }
         }
     }
@@ -187,10 +194,6 @@ fn main() {
     if ans > 20 {
         print!("-1\n");
     } else {
-        print!("{ans}\n");
+        print!("{}\n", ans);
     }
-
-    // Note: The spec mentions fixed internal maxima (H,W<=103, limit<=10).
-    // This implementation assumes those preconditions hold, matching the C program.
-    let _ = (HMAX, WMAX, LMAX); // keep constants referenced
 }

@@ -6,9 +6,10 @@ fn main() {
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    // In the C code, failing scanf would leave variables uninitialized (UB),
-    // but we assume valid input as typical for such problems.
-    let n: i32 = it.next().unwrap().parse().unwrap();
+    let n: i32 = match it.next() {
+        Some(tok) => tok.parse().unwrap(),
+        None => return, // No input: C would have undefined behavior; we just exit.
+    };
 
     let mut ca: i32 = 0;
     let mut cb: i32 = 0;
@@ -35,7 +36,7 @@ fn main() {
         }
     }
 
-    // Build output exactly matching the C program's formatting.
+    // Build output exactly as the C code prints it.
     let mut out = String::new();
 
     out.push_str("1:");

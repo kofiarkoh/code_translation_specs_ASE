@@ -19,22 +19,22 @@ fn getdip(r: usize, d: i32, tree: &[Node], dipth: &mut [i32]) {
     }
 }
 
-fn printtree(i: usize, tree: &[Node], dipth: &[i32], out: &mut String) {
-    let node = tree[i];
+fn printtree(i: usize, tree: &[Node], dipth: &[i32]) {
+    let mut out = String::new();
     out.push_str(&format!(
         "node {}: parent = {}, depth = {}, ",
-        i, node.parent, dipth[i]
+        i, tree[i].parent, dipth[i]
     ));
 
-    if node.parent == -1 {
+    if tree[i].parent == -1 {
         out.push_str("root, [");
-    } else if node.left == -1 {
+    } else if tree[i].left == -1 {
         out.push_str("leaf, [");
     } else {
         out.push_str("internal node, [");
     }
 
-    let mut m = node.left;
+    let mut m = tree[i].left;
     let mut j = 0;
     while m != -1 {
         if j != 0 {
@@ -45,6 +45,7 @@ fn printtree(i: usize, tree: &[Node], dipth: &[i32], out: &mut String) {
         j += 1;
     }
     out.push_str("]\n");
+    print!("{}", out);
 }
 
 fn main() {
@@ -54,24 +55,25 @@ fn main() {
     let mut it = input.split_whitespace();
 
     let n: usize = match it.next() {
-        Some(x) => x.parse().unwrap(),
+        Some(v) => v.parse().unwrap(),
         None => return,
     };
 
+    // C uses fixed-size arrays of 100000; we mirror that to preserve indexing behavior.
     let mut tree = vec![
         Node {
             parent: -1,
             left: -1,
             right: -1
         };
-        n
+        100000
     ];
-    let mut dipth = vec![0i32; n];
+    let mut dipth = vec![0i32; 100000];
 
     for _ in 0..n {
         let id: usize = it.next().unwrap().parse().unwrap();
         let num: usize = it.next().unwrap().parse().unwrap();
-        let mut l: i32 = 0; // will be set after first child, matches C's usage pattern
+        let mut l: i32 = 0; // will be set after first child when num > 0
         for j in 0..num {
             let p: i32 = it.next().unwrap().parse().unwrap();
             if j == 0 {
@@ -84,7 +86,6 @@ fn main() {
         }
     }
 
-    // In C, root is set to the last node with parent == -1.
     let mut root: usize = 0;
     for i in 0..n {
         if tree[i].parent == -1 {
@@ -94,9 +95,7 @@ fn main() {
 
     getdip(root, 0, &tree, &mut dipth);
 
-    let mut out = String::new();
     for i in 0..n {
-        printtree(i, &tree, &dipth, &mut out);
+        printtree(i, &tree, &dipth);
     }
-    print!("{}", out);
 }

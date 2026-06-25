@@ -18,17 +18,16 @@ fn find_root(a: &mut [i32], mut x: usize) -> usize {
     while a[x] >= 1 {
         k += 1;
         // If k exceeds L_MAX, the C code would write out of bounds (UB).
-        // We clamp to preserve memory safety; behavior in that UB case is unspecified anyway.
+        // We clamp to preserve memory safety; behavior in such cases is unspecified in C anyway.
         if k <= L_MAX {
             s[k] = x;
         }
         x = a[x] as usize;
     }
 
-    while k != 0 {
+    while k > 0 {
         if k <= L_MAX {
-            let idx = s[k];
-            a[idx] = x as i32;
+            a[s[k]] = x as i32;
         }
         k -= 1;
     }
@@ -62,7 +61,7 @@ fn main() {
     let mut m: i32 = it.next().unwrap().parse::<i32>().unwrap();
     let mut k: i32 = it.next().unwrap().parse::<i32>().unwrap();
 
-    // Arrays sized exactly as in C (N_MAX + 1), but we only use 1..=n.
+    // Arrays sized exactly as in C (N_MAX + 1), but we only use indices 1..=n.
     let mut s = vec![0i32; N_MAX + 1];
     fill(&mut s, 1, n, -1);
 
@@ -88,7 +87,9 @@ fn main() {
         let c: usize = it.next().unwrap().parse::<i32>().unwrap() as usize;
         let d: usize = it.next().unwrap().parse::<i32>().unwrap() as usize;
 
-        if find_root(&mut s, c) == find_root(&mut s, d) {
+        let rc = find_root(&mut s, c);
+        let rd = find_root(&mut s, d);
+        if rc == rd {
             rmv[c] += 1;
             rmv[d] += 1;
         }
@@ -98,9 +99,9 @@ fn main() {
     for i in 1..=n {
         let val = set_size(&mut s, i) - rmv[i];
         if i == n {
-            out.push_str(&format!("{val}\n"));
+            out.push_str(&format!("{}\n", val));
         } else {
-            out.push_str(&format!("{val} "));
+            out.push_str(&format!("{} ", val));
         }
     }
     print!("{out}");

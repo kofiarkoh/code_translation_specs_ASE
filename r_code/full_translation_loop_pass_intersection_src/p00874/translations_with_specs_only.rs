@@ -1,47 +1,49 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin; specification assumes well-formed input.
+    // Read entire stdin; behavior on malformed/short input is unspecified by the spec.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
+
     let mut it = input.split_whitespace();
 
     let mut out = String::new();
 
     loop {
         let n1: i64 = match it.next() {
-            Some(tok) => tok.parse().unwrap(),
-            None => break, // No more input; unspecified, but terminate quietly.
+            Some(s) => s.parse().unwrap(),
+            None => break, // Unspecified by spec; just stop if no more tokens.
         };
-        if n1 == 0 {
-            break;
-        }
-        let n2: i64 = it.next().unwrap().parse().unwrap();
+        let n2: i64 = match it.next() {
+            Some(s) => s.parse().unwrap(),
+            None => break, // Unspecified by spec.
+        };
 
-        // Counts for values 1..=20; index 0 unused.
+        if n1 == 0 {
+            break; // Terminating case is not processed.
+        }
+
+        // Fixed, bounded storage for counts of values 1..20.
+        // Index 0 unused; values are guaranteed (by preconditions) to be in 1..20.
         let mut c1 = [0i64; 21];
         let mut c2 = [0i64; 21];
 
         for _ in 0..n1 {
-            let v: usize = it.next().unwrap().parse().unwrap();
-            // Values are specified to be in 1..=20; otherwise behavior is undefined.
+            let v: usize = it.next().unwrap().parse::<usize>().unwrap();
             c1[v] += 1;
         }
         for _ in 0..n2 {
-            let v: usize = it.next().unwrap().parse().unwrap();
+            let v: usize = it.next().unwrap().parse::<usize>().unwrap();
             c2[v] += 1;
         }
 
-        // Sum over 1..=20: v * max(count1(v), count2(v))
-        // Overflow behavior is not constrained by the specification; use i64 as a reasonable
-        // narrow interpretation of "integer" without inventing big-integer semantics.
-        let mut sum: i64 = 0;
-        for v in 1..=20usize {
+        let mut total: i64 = 0;
+        for v in 1..=20 {
             let m = if c1[v] > c2[v] { c1[v] } else { c2[v] };
-            sum += (v as i64) * m;
+            total += (v as i64) * m;
         }
 
-        out.push_str(&sum.to_string());
+        out.push_str(&total.to_string());
         out.push('\n');
     }
 

@@ -1,57 +1,21 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Fast byte-based parser to avoid potential timeouts from split_whitespace on large inputs.
-    let mut data = Vec::new();
-    io::stdin().read_to_end(&mut data).unwrap();
-    let mut idx: usize = 0;
-
-    fn next_i32(data: &[u8], idx: &mut usize) -> Option<i32> {
-        let n = data.len();
-        // Skip whitespace
-        while *idx < n && data[*idx].is_ascii_whitespace() {
-            *idx += 1;
-        }
-        if *idx >= n {
-            return None;
-        }
-        // Parse sign
-        let mut sign: i32 = 1;
-        if data[*idx] == b'-' {
-            sign = -1;
-            *idx += 1;
-        }
-        // Parse digits
-        let mut val: i32 = 0;
-        let mut any = false;
-        while *idx < n {
-            let c = data[*idx];
-            if c.is_ascii_digit() {
-                any = true;
-                val = val.wrapping_mul(10).wrapping_add((c - b'0') as i32);
-                *idx += 1;
-            } else {
-                break;
-            }
-        }
-        if !any {
-            // Malformed input; mimic "no token" rather than looping forever.
-            return None;
-        }
-        Some(val.wrapping_mul(sign))
-    }
-
-    let mut out = String::new();
+    // Read entire stdin, then parse as whitespace-separated integers (like scanf("%d")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
     loop {
-        let w = match next_i32(&data, &mut idx) {
-            Some(v) => v,
-            None => break,
-        };
-        let d = match next_i32(&data, &mut idx) {
-            Some(v) => v,
-            None => break,
-        };
+        let w_opt = it.next();
+        if w_opt.is_none() {
+            break; // no more input
+        }
+        let w: i32 = w_opt.unwrap().parse().unwrap();
+
+        // The C code does: while (scanf("%d%d", &w, &d), w) { ... }
+        // It ignores scanf's return value; we emulate by requiring d to exist if w exists.
+        let d: i32 = it.next().unwrap().parse().unwrap();
 
         if w == 0 {
             break;
@@ -61,35 +25,22 @@ fn main() {
         let mut b = [0i32; 21];
 
         for _ in 0..w {
-            if let Some(t) = next_i32(&data, &mut idx) {
-                let tu = t as usize; // C would be UB if out of range; assume valid input.
-                if tu < a.len() {
-                    a[tu] = a[tu].wrapping_add(1);
-                }
-            } else {
-                break;
-            }
+            let t: usize = it.next().unwrap().parse::<i32>().unwrap() as usize;
+            // C would have undefined behavior if t is out of 0..=20; assume input is valid.
+            a[t] += 1;
         }
         for _ in 0..d {
-            if let Some(t) = next_i32(&data, &mut idx) {
-                let tu = t as usize;
-                if tu < b.len() {
-                    b[tu] = b[tu].wrapping_add(1);
-                }
-            } else {
-                break;
-            }
+            let t: usize = it.next().unwrap().parse::<i32>().unwrap() as usize;
+            b[t] += 1;
         }
 
         let mut res: i32 = 0;
-        for i in 1..=20usize {
+        for i in 1..=20 {
             let m = if a[i] > b[i] { a[i] } else { b[i] };
-            // Use wrapping arithmetic to approximate C signed overflow behavior.
+            // Use wrapping arithmetic to mimic typical C int overflow behavior.
             res = res.wrapping_add((i as i32).wrapping_mul(m));
         }
 
-        out.push_str(&format!("{}\n", res));
+        println!("{res}");
     }
-
-    print!("{}", out);
 }

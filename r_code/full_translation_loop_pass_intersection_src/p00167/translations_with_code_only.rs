@@ -6,43 +6,44 @@ fn main() {
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let mut a = [0i32; 100];
+    let mut out = String::new();
 
     loop {
-        let n_opt = it.next().and_then(|s| s.parse::<i32>().ok());
-        let n = match n_opt {
-            Some(v) => v,
-            None => break, // scanf failed / EOF
-        };
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: i32 = n_opt.unwrap().parse().unwrap();
         if n == 0 {
-            break; // matches `&& n` in the while condition
+            break;
         }
 
-        // The C code assumes n <= 100; we preserve behavior for valid inputs.
+        // C code uses int a[100]; and reads n values into it.
+        // We'll store exactly n values; behavior is defined by the given C code assuming n <= 100.
         let n_usize = n as usize;
-
-        for i in 0..n_usize {
-            if let Some(tok) = it.next() {
-                a[i] = tok.parse::<i32>().unwrap();
-            } else {
-                // If input is malformed/short, C's behavior is undefined; we stop.
-                return;
-            }
+        let mut a: Vec<i32> = Vec::with_capacity(n_usize);
+        for _ in 0..n_usize {
+            let v: i32 = it.next().unwrap().parse().unwrap();
+            a.push(v);
         }
 
         let mut swap_count: i32 = 0;
+
+        // Bubble sort counting swaps, matching the C loops.
+        // for (u = n - 1; u > 0; u--)
         for u in (1..n_usize).rev() {
+            // for (i = 0; i < u; i++)
             for i in 0..u {
                 if a[i] > a[i + 1] {
-                    let t = a[i];
-                    a[i] = a[i + 1];
-                    a[i + 1] = t;
-                    // In C, signed overflow is UB; assume counts fit in i32 for valid inputs.
+                    a.swap(i, i + 1);
+                    // In C, signed overflow is UB; we assume swap_count fits in int for given inputs.
                     swap_count += 1;
                 }
             }
         }
 
-        print!("{swap_count}\n");
+        out.push_str(&format!("{}\n", swap_count));
     }
+
+    print!("{}", out);
 }

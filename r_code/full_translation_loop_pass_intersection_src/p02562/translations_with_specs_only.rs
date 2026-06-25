@@ -1,4 +1,4 @@
-use std::cmp::{max, min};
+use std::cmp::min;
 use std::collections::VecDeque;
 use std::io::{self, Read};
 
@@ -17,38 +17,57 @@ struct MinCostMaxFlow {
 
 impl MinCostMaxFlow {
     fn new(n: usize) -> Self {
-        Self { g: vec![Vec::new(); n] }
+        Self {
+            g: vec![Vec::new(); n],
+        }
     }
 
     fn add_edge(&mut self, fr: usize, to: usize, cap: i64, cost: i64) {
-        let rev_to = self.g[to].len();
-        let rev_fr = self.g[fr].len();
-        self.g[fr].push(Edge { to, rev: rev_to, cap, cost });
-        self.g[to].push(Edge { to: fr, rev: rev_fr, cap: 0, cost: -cost });
+        let fwd = Edge {
+            to,
+            rev: self.g[to].len(),
+            cap,
+            cost,
+        };
+        let rev = Edge {
+            to: fr,
+            rev: self.g[fr].len(),
+            cap: 0,
+            cost: -cost,
+        };
+        self.g[fr].push(fwd);
+        self.g[to].push(rev);
     }
 
-    // Returns (flow, cost). If it cannot send `maxf`, it returns the achieved flow (< maxf).
+    // Successive shortest augmenting path with SPFA (handles negative costs).
+    // Returns (flow_sent, total_cost). If cannot send requested flow, flow_sent < maxf.
     fn min_cost_flow(&mut self, s: usize, t: usize, maxf: i64) -> (i64, i64) {
         let n = self.g.len();
         let mut flow = 0i64;
         let mut cost = 0i64;
 
-        // Successive shortest augmenting path with SPFA (handles negative costs).
-        while flow < maxf {
-            let mut dist = vec![i64::MAX / 4; n];
-            let mut inq = vec![false; n];
-            let mut pv_v = vec![usize::MAX; n];
-            let mut pv_e = vec![usize::MAX; n];
+        let mut dist = vec![0i64; n];
+        let mut inq = vec![false; n];
+        let mut pv_v = vec![0usize; n];
+        let mut pv_e = vec![0usize; n];
 
-            let mut q = VecDeque::new();
+        while flow < maxf {
+            // Initialize distances
+            for d in dist.iter_mut() {
+                *d = i64::MAX / 4;
+            }
             dist[s] = 0;
+            let mut q = VecDeque::new();
             q.push_back(s);
             inq[s] = true;
 
             while let Some(v) = q.pop_front() {
                 inq[v] = false;
                 let dv = dist[v];
-                for (ei, e) in self.g[v].iter().enumerate() {
+                if dv == i64::MAX / 4 {
+                    continue;
+                }
+                for (i, e) in self.g[v].iter().enumerate() {
                     if e.cap <= 0 {
                         continue;
                     }
@@ -56,7 +75,7 @@ impl MinCostMaxFlow {
                     if nd < dist[e.to] {
                         dist[e.to] = nd;
                         pv_v[e.to] = v;
-                        pv_e[e.to] = ei;
+                        pv_e[e.to] = i;
                         if !inq[e.to] {
                             inq[e.to] = true;
                             q.push_back(e.to);
@@ -65,40 +84,35 @@ impl MinCostMaxFlow {
                 }
             }
 
-            if dist[t] >= i64::MAX / 8 {
+            if dist[t] == i64::MAX / 4 {
                 break; // cannot augment further
             }
 
+            // Find bottleneck
             let mut addf = maxf - flow;
             let mut v = t;
             while v != s {
-                let p = pv_v[v];
-                let ei = pv_e[v];
-                if p == usize::MAX || ei == usize::MAX {
-                    addf = 0;
-                    break;
-                }
-                let cap = self.g[p][ei].cap;
+                let pv = pv_v[v];
+                let pe = pv_e[v];
+                let cap = self.g[pv][pe].cap;
                 addf = min(addf, cap);
-                v = p;
-            }
-            if addf <= 0 {
-                break;
+                v = pv;
             }
 
+            // Apply augmentation
             v = t;
             while v != s {
-                let p = pv_v[v];
-                let ei = pv_e[v];
-                let rev = self.g[p][ei].rev;
-                let to = self.g[p][ei].to;
+                let pv = pv_v[v];
+                let pe = pv_e[v];
+                let rev = self.g[pv][pe].rev;
+                let to = self.g[pv][pe].to;
 
-                // update forward
-                self.g[p][ei].cap -= addf;
-                // update reverse
+                // Decrease forward cap
+                self.g[pv][pe].cap -= addf;
+                // Increase reverse cap
                 self.g[to][rev].cap += addf;
 
-                v = p;
+                v = pv;
             }
 
             flow += addf;
@@ -109,105 +123,103 @@ impl MinCostMaxFlow {
     }
 }
 
+fn build_and_solve(n: usize, k: i64, a: &Vec<Vec<i64>>, t: i64) -> Option<(i64, Vec<Vec<bool>>)> {
+    // Model as min-cost flow:
+    // source -> row_i (cap K, cost 0)
+    // row_i -> col_j (cap 1, cost = -a[i][j])
+    // col_j -> sink (cap K, cost 0)
+    // Send exactly T units. If impossible, treat as invalid candidate.
+    let s = 2 * n;
+    let sink = 2 * n + 1;
+    let mut mcmf = MinCostMaxFlow::new(2 * n + 2);
+
+    for i in 0..n {
+        mcmf.add_edge(s, i, k, 0);
+    }
+    for j in 0..n {
+        mcmf.add_edge(n + j, sink, k, 0);
+    }
+    for i in 0..n {
+        for j in 0..n {
+            mcmf.add_edge(i, n + j, 1, -a[i][j]);
+        }
+    }
+
+    let (flow, cost) = mcmf.min_cost_flow(s, sink, t);
+    if flow != t {
+        return None;
+    }
+
+    // Reconstruct selection: an edge row_i -> col_j is selected iff its cap became 0 (was 1).
+    let mut mark = vec![vec![false; n]; n];
+    for i in 0..n {
+        for e in mcmf.g[i].iter() {
+            if e.to >= n && e.to < 2 * n {
+                let j = e.to - n;
+                // Original cap was 1; if now 0, it carried 1 unit.
+                if e.cap == 0 {
+                    mark[i][j] = true;
+                }
+            }
+        }
+    }
+
+    // Total cost is sum of (-a) over selected, so maximum sum is -cost.
+    Some((-cost, mark))
+}
+
 fn main() {
-    // Input
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let n: usize = match it.next() {
-        Some(x) => x.parse().unwrap(),
-        None => return,
-    };
-    let k: i64 = it.next().unwrap().parse().unwrap();
-
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let k_in: i64 = it.next().unwrap().parse().unwrap();
     let mut a = vec![vec![0i64; n]; n];
-    for r in 0..n {
-        for c in 0..n {
-            a[r][c] = it.next().unwrap().parse().unwrap();
+    for i in 0..n {
+        for j in 0..n {
+            a[i][j] = it.next().unwrap().parse().unwrap();
         }
     }
 
-    // If K == 0, only feasible is i=0 => sum 0, empty grid.
-    if k <= 0 {
-        println!("0");
-        for _ in 0..n {
-            println!("{}", ".".repeat(n));
-        }
-        return;
-    }
+    let k = k_in;
+    let max_t = (n as i64).saturating_mul(k);
 
-    // We solve, for each i in [0, N*K], the maximum weight placement with row/col capacities K.
-    // This is a maximum-cost flow in a bipartite graph:
-    // source -> rows (cap K), rows -> cols (cap 1, cost = -A[r][c]), cols -> sink (cap K).
-    // For a fixed i, we send i units of flow with minimum total cost, which corresponds to
-    // maximum total weight. Then we take the best over i.
-    let max_i = (n as i64).saturating_mul(k);
-
+    // Evaluate candidate totals T from 1..=N*K, track best sum and best T.
+    // If a T is infeasible/ill-posed, treat as invalid candidate.
     let mut best_sum: i64 = 0;
-    let mut best_marks: Vec<(usize, usize)> = Vec::new();
+    let mut best_t: i64 = 0;
 
-    // Candidate i=0 is always feasible with sum 0.
-    // For i>=1, if infeasible (cannot send i flow), treat as non-improving.
-    for i in 1..=max_i {
-        let s = 0usize;
-        let row_base = 1usize;
-        let col_base = row_base + n;
-        let t = col_base + n;
-        let nodes = t + 1;
-
-        let mut mcmf = MinCostMaxFlow::new(nodes);
-
-        for r in 0..n {
-            mcmf.add_edge(s, row_base + r, k, 0);
-        }
-        for c in 0..n {
-            mcmf.add_edge(col_base + c, t, k, 0);
-        }
-        for r in 0..n {
-            for c in 0..n {
-                // cap 1 ensures at most one mark per cell.
-                // cost is negative weight so that min-cost corresponds to max-sum.
-                mcmf.add_edge(row_base + r, col_base + c, 1, -a[r][c]);
-            }
-        }
-
-        let (flow, cost) = mcmf.min_cost_flow(s, t, i);
-        if flow != i {
-            continue; // treat as non-improving
-        }
-
-        let sum = -cost;
-        if sum > best_sum {
-            best_sum = sum;
-
-            // Recover marks: edges row->col with cap==0 (used) in the residual graph.
-            let mut marks = Vec::with_capacity(i as usize);
-            for r in 0..n {
-                let v = row_base + r;
-                for e in &mcmf.g[v] {
-                    if e.to >= col_base && e.to < col_base + n {
-                        // Original cap was 1; if now 0, it was used.
-                        if e.cap == 0 {
-                            let c = e.to - col_base;
-                            marks.push((r, c));
-                        }
-                    }
+    if max_t > 0 {
+        for t in 1..=max_t {
+            if let Some((sum, _mark)) = build_and_solve(n, k, &a, t) {
+                if sum > best_sum {
+                    best_sum = sum;
+                    best_t = t;
                 }
             }
-            best_marks = marks;
+        }
+    }
+
+    // Recompute selection for best T; if best_t == 0 or recomputation fails, output empty marking.
+    let mut mark = vec![vec![false; n]; n];
+    if best_t > 0 {
+        if let Some((_sum, m)) = build_and_solve(n, k, &a, best_t) {
+            mark = m;
+        } else {
+            // As per spec, if treated invalid, fall back to selecting zero positions.
+            best_sum = 0;
+            best_t = 0;
         }
     }
 
     // Output
-    let mut grid = vec![vec!['.'; n]; n];
-    for (r, c) in best_marks {
-        grid[r][c] = 'X';
-    }
-
     println!("{}", best_sum);
-    for r in 0..n {
-        let line: String = grid[r].iter().collect();
+    for i in 0..n {
+        let mut line = String::with_capacity(n);
+        for j in 0..n {
+            line.push(if mark[i][j] { 'X' } else { '.' });
+        }
         println!("{}", line);
     }
 }

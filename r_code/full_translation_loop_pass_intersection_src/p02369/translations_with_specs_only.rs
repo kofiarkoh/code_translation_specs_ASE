@@ -1,58 +1,60 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin.
+    // Read all input as whitespace-separated integers.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    // Preconditions say inputs are valid; no explicit error handling required.
     let n: usize = it.next().unwrap().parse().unwrap();
     let m: usize = it.next().unwrap().parse().unwrap();
 
-    // Graph: adjacency list of outgoing edges.
+    // Graph representation: adjacency list of outgoing edges.
+    // Duplicates and self-loops are preserved by pushing all targets as given.
     let mut adj: Vec<Vec<usize>> = vec![Vec::new(); n];
+    let mut indeg: Vec<usize> = vec![0; n];
+
     for _ in 0..m {
         let u: usize = it.next().unwrap().parse().unwrap();
         let v: usize = it.next().unwrap().parse().unwrap();
         adj[u].push(v);
+        indeg[v] = indeg[v].wrapping_add(1); // preserve wraparound if it ever occurs
     }
 
-    // Directed cycle detection via DFS with 3-color marking:
-    // 0 = unvisited, 1 = visiting (in recursion stack), 2 = done.
-    let mut color: Vec<u8> = vec![0; n];
+    // Cycle detection via repeated scan for a vertex with indegree 0 (Kahn-like),
+    // but implemented with O(n^2 + m) behavior as described (vertex-scan step).
+    let mut removed: Vec<bool> = vec![false; n];
+    let mut removed_count: usize = 0;
 
-    fn dfs(u: usize, adj: &Vec<Vec<usize>>, color: &mut [u8]) -> bool {
-        color[u] = 1;
-        for &v in &adj[u] {
-            match color[v] {
-                0 => {
-                    if dfs(v, adj, color) {
-                        return true;
-                    }
-                }
-                1 => {
-                    // Back-edge to a node in the current recursion stack => cycle.
-                    return true;
-                }
-                _ => {}
+    loop {
+        // Find an unremoved vertex with indegree 0.
+        let mut found: Option<usize> = None;
+        for i in 0..n {
+            if !removed[i] && indeg[i] == 0 {
+                found = Some(i);
+                break;
             }
         }
-        color[u] = 2;
-        false
-    }
 
-    let mut has_cycle = false;
-    for u in 0..n {
-        if color[u] == 0 && dfs(u, &adj, &mut color) {
-            has_cycle = true;
-            break;
+        let v = match found {
+            Some(v) => v,
+            None => break,
+        };
+
+        removed[v] = true;
+        removed_count = removed_count.wrapping_add(1);
+
+        // "Remove" v: decrement indegree of its outgoing neighbors.
+        for &to in &adj[v] {
+            indeg[to] = indeg[to].wrapping_sub(1); // preserve wraparound if it ever occurs
         }
     }
 
+    // If not all vertices were removed, remaining subgraph has a directed cycle.
+    let has_cycle = removed_count != n;
     if has_cycle {
-        println!("1");
+        print!("1");
     } else {
-        println!("0");
+        print!("0");
     }
 }

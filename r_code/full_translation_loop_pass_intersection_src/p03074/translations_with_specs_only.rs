@@ -1,7 +1,7 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin; no validation per specification.
+    // Read entire stdin
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -10,95 +10,57 @@ fn main() {
     let k: usize = it.next().unwrap().parse().unwrap();
     let s = it.next().unwrap_or("");
 
-    // Treat '1' as true, any other char as false; only first n chars are considered.
+    // Build run-length representation over the first N bits.
+    // We follow the invariant that candidate segments start/end with a run of '1'.
+    // To make this uniform, we add a leading/trailing zero-length '1' run when needed.
     let bytes = s.as_bytes();
+
     let mut runs: Vec<usize> = Vec::new();
-    runs.reserve(n + 2);
 
-    // Build run-length encoding of the first n characters.
-    // runs alternates between '1'-run and '0'-run depending on the first character.
-    if n == 0 {
-        println!("0");
-        return;
+    // Leading adjustment: if the first bit is '0', prepend a zero-length '1' run.
+    if n > 0 && bytes[0] == b'0' {
+        runs.push(0);
     }
 
-    let first_is_one = bytes.get(0).copied().unwrap_or(b'0') == b'1';
-    let mut cur_is_one = first_is_one;
-    let mut cur_len: usize = 0;
-
-    for i in 0..n {
-        let c = *bytes.get(i).unwrap_or(&b'0');
-        let is_one = c == b'1';
-        if is_one == cur_is_one {
-            cur_len += 1;
-        } else {
-            runs.push(cur_len);
-            cur_is_one = is_one;
-            cur_len = 1;
+    // Count runs
+    let mut i = 0usize;
+    while i < n {
+        let c = bytes[i];
+        let mut j = i + 1;
+        while j < n && bytes[j] == c {
+            j += 1;
         }
+        runs.push(j - i);
+        i = j;
     }
-    runs.push(cur_len);
 
-    // Ensure runs start with a '1'-run boundary by padding a leading 0-length '1'-run if needed.
-    // This matches the invariant that segments are considered from '1'-run boundaries.
-    if !first_is_one {
-        runs.insert(0, 0);
+    // Trailing adjustment: if the last bit is '0', append a zero-length '1' run.
+    if n > 0 && bytes[n - 1] == b'0' {
+        runs.push(0);
     }
-    // Pad to make indexing safe for windows that may extend beyond the last run.
-    runs.push(0);
 
-    // Now runs[0] is a '1'-run, runs[1] is a '0'-run, etc.
-    // Converting up to k contiguous '0'-runs means we can take windows of length (2*k + 1) runs
-    // starting at even indices (a '1'-run boundary), summing their lengths.
-    let window_runs = 2 * k + 1;
+    // Prefix sums over run lengths for O(1) range sum.
+    let mut pref = vec![0usize; runs.len() + 1];
+    for (idx, &len) in runs.iter().enumerate() {
+        pref[idx + 1] = pref[idx] + len;
+    }
 
-    let mut ans: usize = 0;
-    let mut sum: usize = 0;
+    // Sliding window over runs:
+    // Consider windows of at most (2K+1) consecutive runs, starting at even indices
+    // (which correspond to '1' runs due to the leading adjustment).
+    let window = 2 * k + 1;
+    let mut ans = 0usize;
 
-    // Sliding window over run indices, but only consider windows starting at even indices.
-    // We'll maintain a window [l, r) in run-index space, where l is even and r = l + window_runs.
-    // If r exceeds runs.len(), we just sum what's available (due to padding, this is safe).
     let m = runs.len();
-
-    // Initialize first window.
-    let mut l: usize = 0;
-    let mut r: usize = 0;
-    while r < m && r < window_runs {
-        sum += runs[r];
-        r += 1;
-    }
-    ans = ans.max(sum);
-
-    // Advance l by 2 each time to keep l at '1'-run boundaries (even indices).
-    while l + 2 < m {
-        // Remove runs[l] and runs[l+1] from the sum if they are currently included.
-        // Since r is always >= l, and we move l forward by 2, these are in the window.
-        if l < r {
-            sum = sum.saturating_sub(runs[l]);
+    let mut l = 0usize;
+    while l < m {
+        let r = (l + window).min(m);
+        let sum = pref[r] - pref[l];
+        if sum > ans {
+            ans = sum;
         }
-        if l + 1 < r {
-            sum = sum.saturating_sub(runs[l + 1]);
-        }
-        l += 2;
-
-        // Extend r to maintain window size l..l+window_runs.
-        let target_r = l + window_runs;
-        while r < m && r < target_r {
-            sum += runs[r];
-            r += 1;
-        }
-
-        ans = ans.max(sum);
-
-        // If l has moved beyond r (can happen near the end), realign.
-        if l > r {
-            r = l;
-            sum = 0;
-        }
+        l += 2; // move to next '1' run start
     }
 
-    if ans > n {
-        ans = n;
-    }
     println!("{}", ans);
 }

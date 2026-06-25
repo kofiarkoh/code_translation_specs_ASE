@@ -6,6 +6,7 @@ struct Scanner {
     buf: Vec<u8>,
     idx: usize,
 }
+
 impl Scanner {
     fn new() -> Self {
         let mut input = String::new();
@@ -13,9 +14,8 @@ impl Scanner {
         Self { buf: input.into_bytes(), idx: 0 }
     }
 
-    // Mimics the C in(): reads a non-negative integer, assuming input is well-formed.
-    // It does not skip non-digits explicitly; it starts from current position and
-    // accumulates digits until a non-digit (< '0') is seen.
+    // Mimic the C in(): assumes next non-consumed byte is a digit and reads until c < '0'.
+    // This matches the original behavior for valid AOJ inputs (space/newline separated non-negative ints).
     fn in_i32(&mut self) -> i32 {
         let mut n: i32 = 0;
         if self.idx >= self.buf.len() {
@@ -23,8 +23,9 @@ impl Scanner {
         }
         let mut c = self.buf[self.idx];
         self.idx += 1;
+
         loop {
-            n = n * 10 + ((c & 0x0f) as i32);
+            n = n.wrapping_mul(10).wrapping_add((c & 0x0f) as i32);
             if self.idx >= self.buf.len() {
                 break;
             }
@@ -55,7 +56,7 @@ fn main() {
         a[i] = sc.in_i32();
     }
 
-    // f is indexed by value t in [0..=K]; C code uses f[t] with t<=K.
+    // f indexed by value; only values 0..=K are used (C code uses t<=K).
     // Allocate MAX_N to match original bounds.
     let mut f = vec![0i32; MAX_N];
 
@@ -80,8 +81,7 @@ fn main() {
         return;
     }
 
-    // Shrink from left
-    loop {
+    while i < n {
         let t = a[i];
         if t > k_i32 {
             i += 1;
@@ -105,7 +105,7 @@ fn main() {
             f[t as usize] += 1;
         }
 
-        loop {
+        while i < n {
             let t2 = a[i];
             if t2 > k_i32 {
                 i += 1;
@@ -126,5 +126,5 @@ fn main() {
         }
     }
 
-    print!("{}\n", ans);
+    print!("{ans}\n");
 }

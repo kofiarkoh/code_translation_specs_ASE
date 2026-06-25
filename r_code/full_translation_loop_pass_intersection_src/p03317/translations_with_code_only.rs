@@ -1,7 +1,7 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, parse as signed 64-bit integers (like scanf("%lld")).
+    // Read entire stdin, parse as signed 64-bit integers (like scanf("%lld"))
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -12,28 +12,26 @@ fn main() {
     };
     let k: i64 = it.next().unwrap().parse().unwrap();
 
-    // C uses a VLA `long long int a[n];` and reads n values, but never uses them.
-    // We still consume exactly n integers from input to preserve I/O behavior.
+    // C uses a VLA: long long int a[n];
+    // In Rust, allocate a Vec with length n (if n <= 0, this would be invalid in C anyway).
+    let mut a: Vec<i64> = Vec::with_capacity(n.max(0) as usize);
     for _ in 0..n {
-        let _x: i64 = it.next().unwrap().parse().unwrap();
+        if let Some(v) = it.next() {
+            a.push(v.parse().unwrap());
+        } else {
+            // If input is short, C's scanf would leave elements uninitialized (UB if used),
+            // but the array is never used afterward, so we can stop.
+            break;
+        }
     }
 
-    // Compute t with C-like integer arithmetic.
-    // Note: In C, if k == 1, (k-1) is 0 and division by zero is UB.
-    // Here we let Rust panic similarly (via checked division unwrap) to avoid
-    // silently changing behavior.
-    let denom = k - 1;
-    let t0 = (n - k)
-        .checked_div(denom)
-        .expect("division by zero (matches C UB for k==1)")
-        + 1;
-
-    let mut t = t0;
-    // if (k + ((t-1)*(k-1)) < n) t++;
-    let lhs = k + (t - 1) * (k - 1);
-    if lhs < n {
+    // Preserve C's signed integer arithmetic behavior as closely as possible.
+    // Note: In C, division by zero (k-1 == 0) is undefined; Rust would panic.
+    // We keep the direct computation; if k == 1, this will panic similarly to "bad behavior".
+    let mut t: i64 = ((n - k) / (k - 1)) + 1;
+    if k + ((t - 1) * (k - 1)) < n {
         t += 1;
     }
 
-    print!("{t}\n");
+    print!("{}\n", t);
 }

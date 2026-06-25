@@ -1,24 +1,30 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, parse as i64 (C: long long)
+    // Read entire stdin (matches scanf behavior for a single integer token).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
-    let n: i64 = input.split_whitespace().next().unwrap().parse().unwrap();
+    let mut it = input.split_whitespace();
 
-    // Preserve C semantics for % and / on signed integers (Rust matches C99+ trunc toward zero).
+    let n: i64 = match it.next() {
+        Some(tok) => tok.parse::<i64>().unwrap(),
+        None => return, // No input: C would have undefined behavior; we just exit.
+    };
+
+    // Preserve C's signed remainder semantics (Rust's % on i64 matches C for typical platforms).
     let r = n % 11;
-    let res: i64;
-    if r == 0 {
-        res = 0;
-    } else if r >= 1 && r <= 6 {
-        res = 1;
+
+    let res: i64 = if r == 0 {
+        0
+    } else if (1..=6).contains(&r) {
+        1
     } else {
-        res = 2;
-    }
+        2
+    };
 
-    let ans = (n / 11) * 2 + res;
+    // Use wrapping ops to emulate potential signed overflow behavior (C is UB, but this is closest).
+    let ans = (n / 11).wrapping_mul(2).wrapping_add(res);
 
-    // Match C output: no trailing newline.
+    // Match printf("%lld", ans): no trailing newline.
     print!("{}", ans);
 }

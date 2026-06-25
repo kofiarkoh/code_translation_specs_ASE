@@ -1,85 +1,75 @@
 use std::io::{self, Read};
 
-#[derive(Clone, Copy, Default)]
+const MAXQ: usize = 5000;
+
+#[derive(Copy, Clone, Default)]
 struct Que {
     t: i32,
     k: i32,
     c: i32,
 }
 
-const MAX: usize = 5000;
+static mut QUE: [Que; MAXQ] = [Que { t: 0, k: 0, c: 0 }; MAXQ];
+static mut QSIZE: usize = 0;
 
-struct MinHeap {
-    que: [Que; MAX],
-    qsize: usize,
+#[inline]
+fn parent(i: usize) -> usize {
+    i >> 1
+}
+#[inline]
+fn left(i: usize) -> usize {
+    i << 1
+}
+#[inline]
+fn right(i: usize) -> usize {
+    (i << 1) + 1
 }
 
-impl MinHeap {
-    fn new() -> Self {
-        Self {
-            que: [Que::default(); MAX],
-            qsize: 0,
-        }
-    }
-
-    #[inline]
-    fn parent(i: usize) -> usize {
-        i >> 1
-    }
-    #[inline]
-    fn left(i: usize) -> usize {
-        i << 1
-    }
-    #[inline]
-    fn right(i: usize) -> usize {
-        (i << 1) + 1
-    }
-
-    fn min_heapify(&mut self, i: usize) {
-        let l = Self::left(i);
-        let r = Self::right(i);
-        let mut smallest = i;
-
-        if l < self.qsize && self.que[l].t < self.que[i].t {
-            smallest = l;
-        }
-        if r < self.qsize && self.que[r].t < self.que[smallest].t {
+// Uses global heap arrays like the C code. This is safe here because the program is single-threaded.
+fn min_heapify(i: usize) {
+    unsafe {
+        let l = left(i);
+        let r = right(i);
+        let mut smallest = if l < QSIZE && QUE[l].t < QUE[i].t { l } else { i };
+        if r < QSIZE && QUE[r].t < QUE[smallest].t {
             smallest = r;
         }
         if smallest != i {
-            let tmp = self.que[i];
-            self.que[i] = self.que[smallest];
-            self.que[smallest] = tmp;
-            self.min_heapify(smallest);
+            let tmp = QUE[i];
+            QUE[i] = QUE[smallest];
+            QUE[smallest] = tmp;
+            min_heapify(smallest);
         }
     }
+}
 
-    fn deq(&mut self) -> Option<(i32, i32)> {
-        if self.qsize == 0 {
+fn deq() -> Option<(i32, i32)> {
+    unsafe {
+        if QSIZE == 0 {
             return None;
         }
-        let k = self.que[0].k;
-        let c = self.que[0].c;
-        self.qsize -= 1;
-        self.que[0] = self.que[self.qsize];
-        if self.qsize > 0 {
-            self.min_heapify(0);
+        let k = QUE[0].k;
+        let c = QUE[0].c;
+        QSIZE -= 1;
+        QUE[0] = QUE[QSIZE];
+        if QSIZE > 0 {
+            min_heapify(0);
         }
         Some((k, c))
     }
+}
 
-    fn enq(&mut self, k: i32, t: i32, c: i32) {
-        // C code assumes qsize never exceeds MAX.
-        let mut i = self.qsize;
-        self.qsize += 1;
-        self.que[i] = Que { t, k, c };
-
+fn enq(k: i32, t: i32, c: i32) {
+    unsafe {
+        let mut i = QSIZE;
+        QSIZE += 1;
+        QUE[i] = Que { t, k, c };
         while i > 0 {
-            let ii = Self::parent(i);
-            if self.que[ii].t > self.que[i].t {
-                let tmp = self.que[i];
-                self.que[i] = self.que[ii];
-                self.que[ii] = tmp;
+            let ii = parent(i);
+            if QUE[ii].t > QUE[i].t {
+                let tmp = QUE[i];
+                QUE[i] = QUE[ii];
+                QUE[ii] = tmp;
                 i = ii;
             } else {
                 break;
@@ -88,13 +78,12 @@ impl MinHeap {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 struct Tbl {
     len: usize,
     to: [i32; 102],
     c: [i32; 102],
 }
-
 impl Default for Tbl {
     fn default() -> Self {
         Self {
@@ -106,15 +95,13 @@ impl Default for Tbl {
 }
 
 fn search(tbl: &[Tbl], size: usize, start: usize, goal: usize) -> i32 {
-    let mut heap = MinHeap::new();
-
-    // node[102][3], initialized to -1 like memset(..., -1, ...)
     let mut node = [[-1i32; 3]; 102];
 
+    unsafe { QSIZE = 0; }
     node[start][2] = 0;
-    heap.enq(start as i32, 0, 2);
+    enq(start as i32, 0, 2);
 
-    while let Some((s_i32, c_i32)) = heap.deq() {
+    while let Some((s_i32, c_i32)) = deq() {
         let s = s_i32 as usize;
         let c = c_i32 as usize;
 
@@ -129,12 +116,12 @@ fn search(tbl: &[Tbl], size: usize, start: usize, goal: usize) -> i32 {
             let s2 = p.to[i] as usize;
             let f2 = p.c[i];
 
-            // k = node[s][c] + f2; (i32 arithmetic; assume no overflow in inputs)
-            let k1 = node[s][c] + f2;
+            // k = node[s][c] + f2; (i32 arithmetic like C)
+            let k1 = node[s][c].wrapping_add(f2);
             if c != 1 {
                 if node[s2][c] < 0 || k1 < node[s2][c] {
                     node[s2][c] = k1;
-                    heap.enq(s2 as i32, k1, c as i32);
+                    enq(s2 as i32, k1, c as i32);
                 }
             }
 
@@ -143,7 +130,7 @@ fn search(tbl: &[Tbl], size: usize, start: usize, goal: usize) -> i32 {
                 let k2 = node[s][c];
                 if node[s2][c2] < 0 || k2 < node[s2][c2] {
                     node[s2][c2] = k2;
-                    heap.enq(s2 as i32, k2, c2 as i32);
+                    enq(s2 as i32, k2, c2 as i32);
                 }
             }
         }
@@ -174,8 +161,10 @@ fn main() {
             break;
         }
         let size: usize = size_opt.unwrap().parse::<i32>().unwrap() as usize;
-        let m: i32 = it.next().unwrap().parse().unwrap();
-
+        let m: i32 = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => break,
+        };
         if size == 0 {
             break;
         }
@@ -184,9 +173,7 @@ fn main() {
         let start = 0usize;
         let goal = size - 1;
 
-        let mut mm = m;
-        while mm > 0 {
-            mm -= 1;
+        for _ in 0..m {
             let mut a: i32 = it.next().unwrap().parse().unwrap();
             let mut b: i32 = it.next().unwrap().parse().unwrap();
             let c: i32 = it.next().unwrap().parse().unwrap();

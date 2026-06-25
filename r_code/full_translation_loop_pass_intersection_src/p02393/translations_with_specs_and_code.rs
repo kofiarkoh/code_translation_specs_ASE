@@ -1,8 +1,7 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, parse three integers.
-    // Per spec, behavior is undefined if fewer than three integers are provided.
+    // Read entire stdin (no explicit error handling per spec).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
 
@@ -11,7 +10,7 @@ fn main() {
     let b: i32 = it.next().unwrap().parse().unwrap();
     let c: i32 = it.next().unwrap().parse().unwrap();
 
-    // Preserve semantics: output the three values in nondecreasing order.
+    // Preserve semantics: output is a permutation of inputs, sorted non-decreasing.
     let mut v = [a, b, c];
     v.sort();
 

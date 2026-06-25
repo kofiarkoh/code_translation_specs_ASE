@@ -1,61 +1,55 @@
 use std::io::{self, Read};
 
-fn format_hms(total_seconds: i64) -> String {
-    // Preserve signed arithmetic and truncation toward zero like C integer division.
-    let h = total_seconds / 3600;
-    let m = (total_seconds / 60) % 60;
-    let s = total_seconds % 60;
-    format!("{:02}:{:02}:{:02}", h, m, s)
-}
-
 fn main() {
     let mut input = String::new();
-    io::stdin().read_to_string(&mut input).ok();
+    io::stdin().read_to_string(&mut input).unwrap();
 
     let mut it = input.split_whitespace();
 
-    let mut out = String::new();
-
     loop {
         let h = match it.next() {
-            Some(t) => match t.parse::<i64>() {
-                Ok(v) => v,
-                Err(_) => break, // non-integer prevents reading a complete triple
+            Some(v) => match v.parse::<i32>() {
+                Ok(n) => n,
+                Err(_) => break, // inability to read an integer => terminate
             },
-            None => break, // input exhausted
+            None => break, // end-of-input
         };
         let m = match it.next() {
-            Some(t) => match t.parse::<i64>() {
-                Ok(v) => v,
+            Some(v) => match v.parse::<i32>() {
+                Ok(n) => n,
                 Err(_) => break,
             },
-            None => break,
+            None => break, // incomplete triple
         };
         let s = match it.next() {
-            Some(t) => match t.parse::<i64>() {
-                Ok(v) => v,
+            Some(v) => match v.parse::<i32>() {
+                Ok(n) => n,
                 Err(_) => break,
             },
-            None => break,
+            None => break, // incomplete triple
         };
 
         if h == -1 && m == -1 && s == -1 {
             break;
         }
 
-        // Total seconds for input time; no range validation per spec.
-        let t = h * 3600 + m * 60 + s;
+        // Use i32 to mirror C int assumptions; computations are assumed to fit.
+        let t: i32 = 3600i32 * h + 60i32 * m + s;
+        let r: i32 = 7200i32 - t;
 
-        // Remaining time until 2-hour mark (7200 seconds).
-        let rem = 7200 - t;
-        out.push_str(&format_hms(rem));
-        out.push('\n');
-
-        // Three times the remaining duration.
-        let thrice = rem * 3;
-        out.push_str(&format_hms(thrice));
-        out.push('\n');
+        print_hms(r);
+        print_hms(3i32 * r);
     }
+}
 
-    print!("{out}");
+fn print_hms(x: i32) {
+    // Rust's / and % on i32 match C99+ semantics: truncation toward zero,
+    // remainder has the same sign as the dividend.
+    let hh = x / 3600;
+    let mm = (x % 3600) / 60;
+    let ss = x % 60;
+
+    // "at least two digits with leading zeros if necessary"
+    // (negative values will include '-' and still be width>=2, matching intent).
+    println!("{:02}:{:02}:{:02}", hh, mm, ss);
 }

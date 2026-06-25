@@ -1,25 +1,28 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, then split by whitespace into tokens (like scanf("%s")).
+    // Read entire stdin, then split by whitespace into tokens (matches scanf("%s")).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
 
     let mut out = String::new();
 
     for token in input.split_whitespace() {
-        // Spec: if token length < 3 => both counts 0.
-        // We count overlapping occurrences by checking every starting position.
-        let bytes = token.as_bytes();
-        let mut joi: i32 = 0;
-        let mut ioi: i32 = 0;
+        // The C code operates on bytes/ASCII; the spec describes text tokens but uses exact
+        // 3-character substrings "JOI"/"IOI". We count on UTF-8 bytes; for non-ASCII this
+        // differs from "characters", but the intended problem uses ASCII.
+        let b = token.as_bytes();
+        let n = b.len();
 
-        if bytes.len() >= 3 {
-            for i in 0..=bytes.len() - 3 {
-                if &bytes[i..i + 3] == b"JOI" {
+        let mut joi = 0i32;
+        let mut ioi = 0i32;
+
+        if n >= 3 {
+            for i in 0..=(n - 3) {
+                if &b[i..i + 3] == b"JOI" {
                     joi += 1;
                 }
-                if &bytes[i..i + 3] == b"IOI" {
+                if &b[i..i + 3] == b"IOI" {
                     ioi += 1;
                 }
             }

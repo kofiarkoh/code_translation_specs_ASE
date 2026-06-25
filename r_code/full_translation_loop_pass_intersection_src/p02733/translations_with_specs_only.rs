@@ -6,101 +6,93 @@ fn main() {
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let h: usize = match it.next() {
-        Some(v) => v.parse().unwrap(),
-        None => return,
-    };
+    let h: usize = it.next().unwrap().parse().unwrap();
     let w: usize = it.next().unwrap().parse().unwrap();
     let k: i32 = it.next().unwrap().parse().unwrap();
 
-    let mut grid: Vec<Vec<u8>> = Vec::with_capacity(h);
+    let mut grid: Vec<Vec<i32>> = Vec::with_capacity(h);
     for _ in 0..h {
         let s = it.next().unwrap();
-        let bytes = s.as_bytes();
-        // Preconditions say length == w and only '0'/'1'; no extra validation.
         let mut row = Vec::with_capacity(w);
-        for &b in bytes.iter().take(w) {
-            row.push(if b == b'1' { 1 } else { 0 });
+        for b in s.as_bytes().iter().take(w) {
+            row.push((b - b'0') as i32);
         }
         grid.push(row);
     }
 
-    // Sentinel-like large value if no feasible partition exists.
-    let mut best: i32 = 1_000_000_000;
+    // Enumerate all horizontal cut configurations via bitmask over (h-1) gaps.
+    // For each configuration, compute minimal vertical cuts greedily.
+    let mut best: i32 = i32::MAX;
 
-    // Enumerate all horizontal cut configurations between rows: (h-1) positions.
-    // mask bit i indicates a cut between row i and i+1.
     let max_mask = if h >= 2 { 1usize << (h - 1) } else { 1usize };
     for mask in 0..max_mask {
-        // Build group id per row based on cuts.
+        // Build group id per row based on horizontal cuts.
+        // group_count = number of horizontal blocks.
         let mut group_id = vec![0usize; h];
-        let mut groups = 1usize;
+        let mut g = 0usize;
         for r in 0..h {
-            if r > 0 {
-                if ((mask >> (r - 1)) & 1) != 0 {
-                    groups += 1;
+            group_id[r] = g;
+            if r + 1 < h {
+                if ((mask >> r) & 1) == 1 {
+                    g += 1;
                 }
             }
-            group_id[r] = groups - 1;
         }
+        let group_count = g + 1;
 
-        // Precompute per-column counts of '1' for each horizontal group.
-        let mut col_group = vec![vec![0i32; groups]; w];
-        for c in 0..w {
-            let mut counts = vec![0i32; groups];
-            for r in 0..h {
-                if grid[r][c] == 1 {
-                    counts[group_id[r]] += 1;
-                }
-            }
-            col_group[c] = counts;
-        }
+        // Horizontal cuts count is number of set bits in mask.
+        let horizontal_cuts = mask.count_ones() as i32;
 
-        // Greedily place vertical cuts left-to-right for this horizontal partition.
-        let mut acc = vec![0i32; groups];
-        let mut vcuts: i32 = 0;
+        // Greedy vertical cuts:
+        // Maintain current accumulated ones per horizontal group for the current vertical segment.
+        let mut acc = vec![0i32; group_count];
+        let mut vertical_cuts = 0i32;
+
+        // If at any column a single-column contribution exceeds k for some group,
+        // this horizontal partition is infeasible; skip (spec allows unspecified behavior,
+        // but we keep it narrow and just ignore this partition).
         let mut feasible = true;
 
         for c in 0..w {
-            // If a single-column piece already violates the limit in any group, infeasible.
-            for g in 0..groups {
-                if col_group[c][g] > k {
-                    feasible = false;
-                    break;
-                }
+            // Count ones in this column per group.
+            let mut add = vec![0i32; group_count];
+            for r in 0..h {
+                add[group_id[r]] += grid[r][c];
             }
-            if !feasible {
+
+            // If any group has more than k ones in this single column, impossible for this mask.
+            if add.iter().any(|&x| x > k) {
+                feasible = false;
                 break;
             }
 
-            // Check if adding this column would violate the limit in any group.
+            // If adding this column would violate k in any group, we must cut before this column.
             let mut need_cut = false;
-            for g in 0..groups {
-                if acc[g] + col_group[c][g] > k {
+            for i in 0..group_count {
+                if acc[i] + add[i] > k {
                     need_cut = true;
                     break;
                 }
             }
 
             if need_cut {
-                vcuts += 1;
-                // Start a new vertical segment at this column.
-                for g in 0..groups {
-                    acc[g] = col_group[c][g];
-                }
+                vertical_cuts += 1;
+                // Start new segment at this column.
+                acc.clone_from(&add);
             } else {
-                for g in 0..groups {
-                    acc[g] += col_group[c][g];
+                for i in 0..group_count {
+                    acc[i] += add[i];
                 }
             }
         }
 
-        if feasible {
-            let hcuts = (groups as i32) - 1;
-            let total = hcuts + vcuts;
-            if total < best {
-                best = total;
-            }
+        if !feasible {
+            continue;
+        }
+
+        let total = horizontal_cuts + vertical_cuts;
+        if total < best {
+            best = total;
         }
     }
 

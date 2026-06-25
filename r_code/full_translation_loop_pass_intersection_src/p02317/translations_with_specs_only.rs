@@ -1,34 +1,37 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin; specification guarantees parseable integers when preconditions hold.
+    // Read entire stdin; no explicit error handling per specification.
     let mut input = String::new();
-    io::stdin().read_to_string(&mut input).unwrap();
+    io::stdin().read_to_string(&mut input).ok();
+
     let mut it = input.split_whitespace();
 
-    let n: usize = it.next().unwrap().parse().unwrap();
+    let n: usize = match it.next() {
+        Some(s) => s.parse().unwrap_or(0),
+        None => return, // Missing input: unspecified behavior; exit quietly.
+    };
 
-    // Fixed-size storage up to 100000 elements as per constraints.
-    // We allocate exactly n, which is still O(n) and within the bound when preconditions hold.
+    // Maintain candidate tail values for increasing subsequences of each length.
+    // Invariant: tails is in non-decreasing order.
     let mut tails: Vec<i64> = Vec::with_capacity(n);
 
-    // The original behavior note about "first element must be >= -1" suggests a sentinel-based
-    // approach in some implementations. Here we implement standard LIS tails with no sentinel,
-    // which is correct for arbitrary integers; however, the spec states behavior is not guaranteed
-    // if that precondition is violated, so we do not add extra handling.
     for _ in 0..n {
-        let x: i64 = it.next().unwrap().parse().unwrap();
+        let x: i64 = match it.next() {
+            Some(s) => s.parse().unwrap_or(0),
+            None => break, // Missing elements: unspecified behavior; proceed with what we have.
+        };
 
-        // Find the first index where tails[idx] >= x (lower_bound).
-        // Replacing that position maintains non-decreasing order of tails.
+        // For strictly increasing subsequence length, we use lower_bound (first >= x)
+        // and replace it with x; if none, append.
         let mut lo = 0usize;
         let mut hi = tails.len();
         while lo < hi {
             let mid = lo + (hi - lo) / 2;
-            if tails[mid] < x {
-                lo = mid + 1;
-            } else {
+            if tails[mid] >= x {
                 hi = mid;
+            } else {
+                lo = mid + 1;
             }
         }
 
@@ -39,6 +42,7 @@ fn main() {
         }
     }
 
-    // Length is between 1 and n inclusive when preconditions hold (n >= 1).
-    println!("{}", tails.len());
+    // Output the length of the longest strictly increasing subsequence.
+    // Under stated assumptions, 1 <= L <= n.
+    print!("{}", tails.len());
 }

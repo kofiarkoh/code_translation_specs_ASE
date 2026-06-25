@@ -6,20 +6,32 @@ fn main() {
 
     let mut it = input.split_whitespace();
 
-    let step_count: i64 = it.next().unwrap().parse().unwrap();
-    let mut a: i64 = it.next().unwrap().parse().unwrap();
-    let mut b: i64 = it.next().unwrap().parse().unwrap();
+    // Specification: exactly three integers are provided; otherwise output is unspecified.
+    // We keep parsing minimal and do not add extra behavior.
+    let n: i64 = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
+    let mut a: i64 = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
+    let mut b: i64 = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
 
-    // Preserve the language remainder behavior: in Rust, % keeps the sign of the dividend.
-    // The spec assumes non-negative step_count, but we do not add extra handling.
-    let k: i64 = step_count % 12;
+    // Preconditions say N is non-negative. We compute k = N mod 12 in [0, 11].
+    // Using Euclidean remainder to ensure the range even if input violates the precondition.
+    let k: i64 = n.rem_euclid(12);
 
-    // Apply exactly k sequential steps (1-based), alternating updates.
-    // If k == 0, no steps are applied and the input pair is output unchanged.
+    // Apply exactly k transitions, with step index t = 1..k.
     for t in 1..=k {
         if t % 2 == 1 {
+            // Odd t: (A, B) -> (A - B, B)
             a = a - b;
         } else {
+            // Even t: (A, B) -> (A, A + B) using A_{t-1} + B_{t-1}
             b = a + b;
         }
     }

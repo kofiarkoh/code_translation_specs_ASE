@@ -1,7 +1,7 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin as whitespace-separated tokens (matches scanf("%d") / scanf("%s")).
+    // Read entire stdin, token-scan like scanf("%d %s ...")
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -18,28 +18,27 @@ fn main() {
         t.push(it.next().unwrap().to_string());
     }
 
-    // Semantics per spec/C: for each string appearing in the first list (including duplicates),
-    // compute (# in first) - (# in second), take maximum, clamp at >= 0.
-    let mut max_diff: i32 = 0;
-
+    // Per spec: max over strings in first list of (count in first - count in second), lower-bounded by 0.
+    // Matches the C code's O(N*(N+M)) approach.
+    let mut max_net: i32 = 0;
     for i in 0..n {
-        let mut diff: i32 = 0;
+        let mut net: i32 = 0;
 
         for j in 0..n {
             if s[i] == s[j] {
-                diff += 1;
+                net += 1;
             }
         }
         for j in 0..m {
             if s[i] == t[j] {
-                diff -= 1;
+                net -= 1;
             }
         }
 
-        if diff > max_diff {
-            max_diff = diff;
+        if net > max_net {
+            max_net = net;
         }
     }
 
-    println!("{}", max_diff);
+    println!("{}", max_net);
 }

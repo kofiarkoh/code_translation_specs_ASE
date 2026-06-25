@@ -5,31 +5,18 @@ fn main() {
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
 
-    let token = match input.split_whitespace().next() {
-        Some(t) => t,
-        None => return, // Spec: if input reading fails, output not inferable; we emit nothing.
-    };
+    let token = input.split_whitespace().next().unwrap_or("");
 
-    // Apply the per-character transformation.
-    // Spec assumes uppercase letters, but defines behavior for other characters via the same rule.
+    // Apply the same arithmetic as the C code:
+    // if 'D'..='Z' => -3, else +23 (wrap for 'A','B','C' under intended precondition).
     let mut out = String::with_capacity(token.len());
-    for ch in token.chars() {
-        // C code operates on bytes; for non-ASCII Unicode, C behavior doesn't apply.
-        // We preserve intended semantics for ASCII; for non-ASCII, we apply the same rule
-        // only when it can be represented as a single byte, otherwise leave unchanged.
-        if ch.is_ascii() {
-            let b = ch as u8;
-            let transformed = if (b'D'..=b'Z').contains(&b) {
-                b.wrapping_sub(3)
-            } else {
-                b.wrapping_add(23)
-            };
-            out.push(transformed as char);
+    for b in token.bytes() {
+        let transformed = if b >= b'D' && b <= b'Z' {
+            b.wrapping_sub(3)
         } else {
-            // Outside ASCII, the C program's byte-wise behavior is not meaningfully defined.
-            // Keep the character unchanged to avoid producing invalid UTF-8.
-            out.push(ch);
-        }
+            b.wrapping_add(23)
+        };
+        out.push(transformed as char);
     }
 
     print!("{out}\n");

@@ -16,14 +16,46 @@ struct Scanner {
 
 impl Scanner {
     fn new() -> Self {
-        let mut input = String::new();
-        io::stdin().read_to_string(&mut input).unwrap();
-        Self { buf: input.into_bytes(), idx: 0 }
+        let mut input = Vec::new();
+        io::stdin().read_to_end(&mut input).unwrap();
+        Self { buf: input, idx: 0 }
     }
 
-    #[inline]
-    fn next_byte(&mut self) -> u8 {
+    // Emulates the C in()/big() behavior:
+    // - Reads the first byte (no skipping of whitespace).
+    // - Then keeps consuming while c >= '0' (i.e., byte >= 48), not while isdigit.
+    // - Uses (c & 0xf) to form digits.
+    // This matches the original code's corner-case behavior.
+    fn read_i32_like_c_in(&mut self) -> i32 {
+        let mut n: i32 = 0;
+        let mut c: u8 = self.get_byte();
+        loop {
+            n = n.wrapping_mul(10).wrapping_add((c & 0x0f) as i32);
+            c = self.get_byte();
+            if c < b'0' {
+                break;
+            }
+        }
+        n
+    }
+
+    fn read_i64_like_c_big(&mut self) -> i64 {
+        let mut n: i64 = 0;
+        let mut c: u8 = self.get_byte();
+        loop {
+            n = n.wrapping_mul(10).wrapping_add((c & 0x0f) as i64);
+            c = self.get_byte();
+            if c < b'0' {
+                break;
+            }
+        }
+        n
+    }
+
+    fn get_byte(&mut self) -> u8 {
         if self.idx >= self.buf.len() {
+            // If input is exhausted, behave like reading EOF; C's getchar_unlocked()
+            // would return EOF (-1). Here we return 0, which is < '0' and stops loops.
             0
         } else {
             let b = self.buf[self.idx];
@@ -31,58 +63,31 @@ impl Scanner {
             b
         }
     }
-
-    // Emulates the C in(): reads first byte as-is (no skipping),
-    // then accumulates digits while c >= '0' (note: this also includes ':'.. etc,
-    // but matches the C code's condition).
-    #[inline]
-    fn in_i32(&mut self) -> i32 {
-        let mut n: i32 = 0;
-        let mut c = self.next_byte();
-        loop {
-            n = n.wrapping_mul(10).wrapping_add((c & 0x0f) as i32);
-            c = self.next_byte();
-            if c < b'0' {
-                break;
-            }
-        }
-        n
-    }
-
-    // Emulates the C big(): same logic but long long.
-    #[inline]
-    fn in_i64(&mut self) -> i64 {
-        let mut n: i64 = 0;
-        let mut c = self.next_byte();
-        loop {
-            n = n.wrapping_mul(10).wrapping_add((c & 0x0f) as i64);
-            c = self.next_byte();
-            if c < b'0' {
-                break;
-            }
-        }
-        n
-    }
 }
 
 fn main() {
     let mut sc = Scanner::new();
 
-    let n = sc.in_i32() as usize;
+    let n = sc.read_i32_like_c_in() as usize;
 
-    // 1-based like the C code; index 0 is unused for tbl, and s[0]=0.
+    // tbl[0] unused; use 1..=N like the C code.
     let mut tbl = vec![T { a: 0, b: 0 }; n + 1];
     let mut s = vec![0i64; n + 1];
 
     for i in 1..=n {
-        tbl[i].a = sc.in_i64();
-        tbl[i].b = sc.in_i32();
+        tbl[i].a = sc.read_i64_like_c_big();
+        tbl[i].b = sc.read_i32_like_c_in();
     }
 
-    // qsort(tbl+1, N, ...) with cmp: by a asc, then b asc.
-    tbl[1..=n].sort_unstable_by(|x, y| match x.a.cmp(&y.a) {
-        Ordering::Equal => x.b.cmp(&y.b),
-        other => other,
+    // qsort with cmp: primary by a ascending, tie by b ascending.
+    tbl[1..=n].sort_by(|x, y| {
+        if x.a == y.a {
+            x.b.cmp(&y.b)
+        } else if x.a < y.a {
+            Ordering::Less
+        } else {
+            Ordering::Greater
+        }
     });
 
     let mut minv: i64 = INF;
@@ -102,5 +107,5 @@ fn main() {
         }
     }
 
-    print!("{maxv}\n");
+    print!("{}\n", maxv);
 }

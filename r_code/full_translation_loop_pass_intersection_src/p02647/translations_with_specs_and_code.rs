@@ -1,60 +1,53 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read all input as whitespace-separated integers.
-    let mut input = String::new();
-    io::stdin().read_to_string(&mut input).unwrap();
-    let mut it = input.split_whitespace();
+    // Read all input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
 
     let n: usize = it.next().unwrap().parse().unwrap();
     let k: usize = it.next().unwrap().parse().unwrap();
 
-    // 1-based arrays to mirror the C code and avoid off-by-one differences.
-    // A[1..=N], B[1..=N+1]
+    // Use 1-based indexing to mirror the C code and avoid off-by-one mistakes.
     let mut a = vec![0i32; n + 1];
     for i in 1..=n {
         a[i] = it.next().unwrap().parse().unwrap();
     }
 
-    let mut b = vec![0i32; n + 2]; // indices 0..=n+1, we use 1..=n+1
+    // Early termination condition per spec: stop when all values are N.
+    // The C code uses `min < N` as a proxy; we preserve that behavior.
     let mut min_val: i32 = 0;
 
-    // Apply up to K transformations, stop early if after a transformation all values are N.
+    // Difference array B is sized N+2 so we can safely access B[N+1].
+    let mut b = vec![0i32; n + 2];
+
     for _step in 1..=k {
         if min_val >= n as i32 {
             break;
         }
-        min_val = n as i32;
 
-        // Reset B[1..=N+1] to 0
-        for i in 1..=n + 1 {
-            b[i] = 0;
+        min_val = n as i32;
+        // Reset B[1..=N+1] to 0 (C resets 1..=N+1; index 0 unused).
+        for x in b.iter_mut().take(n + 2).skip(1) {
+            *x = 0;
         }
 
-        // Difference array updates for influence ranges.
+        // Build range-add difference array:
+        // each position j contributes +1 to i in [j - A[j], j + A[j]] clipped to [1, N].
         for i in 1..=n {
-            let ai = a[i] as i64;
+            let ai = a[i] as i64; // precondition: non-negative, but keep wide for arithmetic
             let ii = i as i64;
             let nn = n as i64;
 
-            // Left boundary: max(1, i - A[i])
-            if ai >= ii {
-                b[1] += 1;
-            } else {
-                let idx = (ii - ai) as usize;
-                b[idx] += 1;
-            }
+            let l = (ii - ai).max(1);
+            let r = (ii + ai).min(nn);
 
-            // Right boundary: min(N, i + A[i]); we decrement at (right + 1), i.e., min(N, i+A[i]) + 1
-            if ai >= nn - ii {
-                b[n + 1] -= 1;
-            } else {
-                let idx = (ii + ai + 1) as usize;
-                b[idx] -= 1;
-            }
+            b[l as usize] += 1;
+            b[(r + 1) as usize] -= 1; // r+1 is in [2..=N+1]
         }
 
-        // Prefix sum to build next A, track minimum element.
+        // Prefix sum to obtain new A, track minimum.
         let mut tmp: i32 = 0;
         for i in 1..=n {
             tmp += b[i];
@@ -65,7 +58,7 @@ fn main() {
         }
     }
 
-    // Output: N integers separated by spaces, newline at end.
+    // Output exactly as C: values separated by single spaces, newline at end.
     let mut out = String::new();
     for i in 1..n {
         out.push_str(&format!("{} ", a[i]));

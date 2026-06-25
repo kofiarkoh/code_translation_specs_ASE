@@ -1,7 +1,7 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read all input as whitespace-separated integers.
+    // Read all input as whitespace-separated tokens.
     let mut s = String::new();
     io::stdin().read_to_string(&mut s).unwrap();
     let mut it = s.split_whitespace();
@@ -9,124 +9,131 @@ fn main() {
     let n: usize = it.next().unwrap().parse().unwrap();
     let k: i64 = it.next().unwrap().parse().unwrap();
 
-    // next-position mapping (1-based in input, convert to 0-based)
+    // Transitions: each node has exactly one outgoing edge.
+    // The specification does not define whether indices are 0-based or 1-based.
+    // We choose the narrowest reasonable interpretation commonly used in such problems:
+    // input is 1-based; convert to 0-based.
     let mut next = vec![0usize; n];
     for i in 0..n {
         let v: i64 = it.next().unwrap().parse().unwrap();
         next[i] = (v - 1) as usize;
     }
 
-    // score for each position
+    // Scores per node (i64).
     let mut score = vec![0i64; n];
     for i in 0..n {
         score[i] = it.next().unwrap().parse().unwrap();
     }
 
-    // Assumption from spec: initialization bound around -2^30.
-    // If the true maximum is less than this, result may be incorrect; we preserve that behavior.
-    let mut ans: i64 = -(1i64 << 30);
+    // For each start node, follow the functional graph until a cycle is detected.
+    // Compute the maximum prefix sum achievable with 1..=k moves.
+    let mut global_best: i64 = i64::MIN;
 
-    // For each starting position, follow the deterministic mapping to find the cycle reachable.
     for start in 0..n {
-        // Discover the cycle by walking until we revisit a node.
-        let mut seen_step = vec![-1i32; n];
-        let mut path: Vec<usize> = Vec::new();
+        // Map node -> first step index when visited in this walk (0-based step index).
+        let mut first_seen = vec![-1i32; n];
+
+        // Sequence of landed nodes (destinations of each move) and their scores.
+        let mut landed_nodes: Vec<usize> = Vec::new();
+        let mut landed_scores: Vec<i64> = Vec::new();
 
         let mut cur = start;
         let mut step: i32 = 0;
-        while seen_step[cur] == -1 {
-            seen_step[cur] = step;
-            path.push(cur);
-            cur = next[cur];
+
+        // Build the walk until we revisit a node (cycle found).
+        loop {
+            let nxt = next[cur];
+            cur = nxt;
+
+            if first_seen[cur] != -1 {
+                // Cycle begins at first_seen[cur] in the landed sequence.
+                break;
+            }
+            first_seen[cur] = step;
+            landed_nodes.push(cur);
+            landed_scores.push(score[cur]);
             step += 1;
-        }
 
-        let cycle_start_idx = seen_step[cur] as usize;
-        let cycle_nodes = &path[cycle_start_idx..];
-        let cycle_len = cycle_nodes.len();
-
-        // Compute cycle sum: sum of scores of nodes in the cycle (score gained when entering them).
-        let mut cycle_sum: i64 = 0;
-        for &v in cycle_nodes {
-            cycle_sum += score[v];
-        }
-
-        // Build the sequence of scores gained by successive moves starting from `start`.
-        // Move t (1-based) enters node after t transitions; gain score of that node.
-        // We only need up to min(k, cycle_start_idx + cycle_len) moves to cover:
-        // - the tail before cycle
-        // - one full cycle
-        // Additional cycles are handled via cycle_sum arithmetic.
-        let max_base_moves = {
-            let m = (cycle_start_idx + cycle_len) as i64;
-            if k < m { k } else { m }
-        } as usize;
-
-        let mut gains: Vec<i64> = Vec::with_capacity(max_base_moves);
-        cur = start;
-        for _ in 0..max_base_moves {
-            cur = next[cur];
-            gains.push(score[cur]);
-        }
-
-        // Prefix sums of gains for quick sum of first t moves.
-        let mut pref: Vec<i64> = Vec::with_capacity(gains.len() + 1);
-        pref.push(0);
-        for &g in &gains {
-            let last = *pref.last().unwrap();
-            pref.push(last + g);
-        }
-
-        // Evaluate best total for move counts 1..=k.
-        // For move counts within pref length, use direct prefix sum.
-        // For larger move counts, only meaningful to consider if cycle_sum > 0, because repeating
-        // the cycle can increase total; otherwise best is within first (tail + one cycle).
-        let base_limit = pref.len() - 1; // number of moves covered by pref
-        for t in 1..=base_limit {
-            let total = pref[t];
-            if total > ans {
-                ans = total;
+            // In a functional graph, a cycle must appear within n steps.
+            if step as usize >= n {
+                break;
             }
         }
 
-        if k as usize > base_limit && cycle_sum > 0 {
-            // For t > base_limit, we are already in the cycle after cycle_start_idx moves.
-            // Let tail_moves = cycle_start_idx (moves before first entering cycle region in path terms).
-            // Our pref includes tail + one cycle worth of moves (at most).
-            // We maximize over:
-            // total(t) = sum_first(tail + r) + q * cycle_sum
-            // where r is moves into the cycle within one cycle, and q is number of extra full cycles.
+        // Determine cycle start index and cycle length.
+        let cycle_start = first_seen[cur] as usize;
+        let cycle_len = landed_nodes.len() - cycle_start;
+
+        // Prefix sums over landed_scores: pref[i] = sum of first i scores (i from 0..=m).
+        let m = landed_scores.len();
+        let mut pref = vec![0i64; m + 1];
+        for i in 0..m {
+            pref[i + 1] = pref[i] + landed_scores[i];
+        }
+
+        // Best within the pre-cycle part (including possibly some of the cycle before repeating),
+        // but limited by k moves.
+        let max_direct = std::cmp::min(k as usize, m);
+        for t in 1..=max_direct {
+            global_best = global_best.max(pref[t]);
+        }
+
+        // If k exceeds m, we can take additional moves by looping the cycle.
+        if k as usize > m && cycle_len > 0 {
+            let cycle_sum = pref[cycle_start + cycle_len] - pref[cycle_start];
+
+            // For each possible remainder r (number of steps taken into the cycle after reaching it),
+            // compute the best total using as many full cycles as allowed.
             //
-            // We can maximize by trying each r in [1..=cycle_len] (or 0..=cycle_len depending on t),
-            // and taking as many full cycles as possible within k.
-            let tail_moves = cycle_start_idx as i64;
+            // Total steps = cycle_start + r + q * cycle_len, with 0 <= r < cycle_len, q >= 0.
+            // Must satisfy total steps <= k and total steps >= 1.
+            //
+            // Base sum for reaching cycle_start + r steps:
+            // base = pref[cycle_start + r]
+            //
+            // Then add q * cycle_sum.
+            //
+            // If cycle_sum > 0, take maximum q; otherwise take q = 0.
+            for r in 0..cycle_len {
+                let base_steps = cycle_start + r;
+                if base_steps == 0 {
+                    // Zero moves are not allowed; but base_steps==0 implies r==0 and cycle_start==0.
+                    // We'll handle totals with at least one move via q or by considering r>0 elsewhere.
+                }
+                if (base_steps as i64) > k {
+                    continue;
+                }
 
-            // We consider taking x moves where x is within [tail_moves+1 .. tail_moves+cycle_len]
-            // (i.e., up to one cycle after reaching it), then add extra full cycles.
-            // Note: pref is built from start, so pref[m] is sum of first m moves.
-            let max_r = cycle_len as i64;
-            for r in 1..=max_r {
-                let base_moves = tail_moves + r;
-                if base_moves <= 0 {
-                    continue;
+                let remaining = k - base_steps as i64;
+                let max_q = remaining / cycle_len as i64;
+
+                let base_sum = pref[base_steps];
+
+                if cycle_sum > 0 {
+                    // Taking more full cycles increases the sum.
+                    // Ensure at least one move overall.
+                    let q = max_q;
+                    let total_steps = base_steps as i64 + q * cycle_len as i64;
+                    if total_steps >= 1 {
+                        let total_sum = base_sum + q * cycle_sum;
+                        global_best = global_best.max(total_sum);
+                    }
+                } else {
+                    // Best is with q = 0 (taking cycles doesn't help).
+                    if base_steps >= 1 {
+                        global_best = global_best.max(base_sum);
+                    }
                 }
-                if base_moves > k {
-                    continue;
-                }
-                // base_moves is within tail+one-cycle; ensure we have it in pref.
-                if base_moves as usize > base_limit {
-                    continue;
-                }
-                let base_sum = pref[base_moves as usize];
-                let remaining = k - base_moves;
-                let extra_cycles = remaining / (cycle_len as i64);
-                let total = base_sum + extra_cycles * cycle_sum;
-                if total > ans {
-                    ans = total;
-                }
+
+                // Also consider the case where cycle_sum > 0 but taking one fewer cycle might allow
+                // a different remainder to be better; since we iterate all remainders, this is covered.
             }
+
+            // Additionally, if cycle_sum > 0, the best might be achieved by taking some steps into
+            // the cycle after doing the maximum number of full cycles from cycle_start.
+            // The remainder loop above already accounts for all r with q chosen as max_q for that r.
         }
     }
 
-    println!("{}", ans);
+    println!("{}", global_best);
 }

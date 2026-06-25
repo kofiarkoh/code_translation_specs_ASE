@@ -1,9 +1,8 @@
 use std::io::{self, Read};
 
-const CVAL: i64 = 200000000000000000;
+const CVAL: i64 = 200_000_000_000_000_000;
 
 fn ncr_bit(n: i64, r: i64) -> i64 {
-    // Mirrors the C logic exactly.
     if n < 0 || r < 0 {
         return 0;
     }
@@ -19,7 +18,8 @@ fn ncr_bit(n: i64, r: i64) -> i64 {
 
 fn findcol(a: i64, b: i64, xs: &[i64], ys: &[i64]) -> i64 {
     let mut r: i64 = 0;
-    for i in 0..xs.len() {
+    let n = xs.len();
+    for i in 0..n {
         let dx = a - xs[i];
         let dy = b - ys[i];
         if dx < 0 || dy < 0 {
@@ -33,31 +33,30 @@ fn findcol(a: i64, b: i64, xs: &[i64], ys: &[i64]) -> i64 {
 }
 
 fn main() {
-    // Read all input (scanf-like whitespace handling).
-    let mut s = String::new();
-    io::stdin().read_to_string(&mut s).unwrap();
-    let mut it = s.split_whitespace();
+    // Read all input (scanf-like whitespace parsing)
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
     let n: usize = match it.next() {
         Some(v) => v.parse().unwrap(),
         None => return,
     };
 
-    let mut xs = vec![0i64; n];
-    let mut ys = vec![0i64; n];
+    let mut x = vec![0i64; n];
+    let mut y = vec![0i64; n];
     for i in 0..n {
-        xs[i] = it.next().unwrap().parse().unwrap();
-        ys[i] = it.next().unwrap().parse().unwrap();
+        x[i] = it.next().unwrap().parse().unwrap();
+        y[i] = it.next().unwrap().parse().unwrap();
     }
 
     let mut r: i64 = 0;
     for k in (0..=60).rev() {
         let w: i64 = 1i64 << k;
-        // In the C code, all values stay within i64 range; use normal arithmetic.
-        if findcol(CVAL - (r + w), r + w, &xs, &ys) == 1 {
+        if findcol(CVAL - (r + w), r + w, &x, &y) == 1 {
             r += w;
         }
     }
 
-    print!("{}\n", CVAL - r);
+    println!("{}", CVAL - r);
 }

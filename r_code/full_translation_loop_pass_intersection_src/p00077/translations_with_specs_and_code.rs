@@ -1,7 +1,5 @@
 use std::io::{self, Read};
 
-const MAX: usize = 100;
-
 fn main() {
     // Read entire stdin, then split into whitespace-delimited tokens (like scanf("%s")).
     let mut input = String::new();
@@ -10,32 +8,21 @@ fn main() {
     let mut out = String::new();
 
     for token in input.split_whitespace() {
-        // Spec precondition: token fits within MAX (including terminator in C).
-        // In C, str has size MAX and scanf("%s") would overflow if longer; behavior undefined.
-        // We do not attempt to emulate UB; we just proceed.
-        if token.len() >= MAX {
-            // Undefined behavior in the original; we keep behavior unspecified.
-            // Proceeding may differ from C in overflow cases.
-        }
-
+        // SPEC preconditions guarantee:
+        // - token length <= 99
+        // - every '@' is followed by a digit and then a character
+        // We implement accordingly; if violated, behavior is unspecified by the spec.
         let bytes = token.as_bytes();
         let mut i: usize = 0;
 
         while i < bytes.len() {
             if bytes[i] == b'@' {
-                // Spec precondition: well-formed marker: at least two more chars exist.
-                // C code:
-                //   for(++i, j=0; j<str[i]-'0'; ++j) putchar(str[i+1]);
-                //   i += 1;
-                i += 1; // move to digit
-                if i >= bytes.len() {
-                    // Would be UB in C; stop to avoid panic.
-                    break;
-                }
-                let count = bytes[i].wrapping_sub(b'0') as usize;
-                let ch = if i + 1 < bytes.len() { bytes[i + 1] } else { b'\0' };
+                // C code does: for(++i, j=0; j<str[i]-'0'; ++j) print str[i+1]; i += 1;
+                i += 1; // now at digit
+                let count = (bytes[i] - b'0') as usize;
+                let ch = bytes[i + 1] as char;
                 for _ in 0..count {
-                    out.push(ch as char);
+                    out.push(ch);
                 }
                 i += 2; // skip digit and repeated character
             } else {

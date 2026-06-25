@@ -4,7 +4,7 @@ type Ll = i64;
 const MOD: Ll = 1_000_000_007;
 
 fn pom(mut a: Ll, mut n: Ll, m: Ll) -> Ll {
-    // Modular exponentiation, mirroring the C loop structure.
+    // Modular exponentiation mirroring the C loop structure.
     let mut x: Ll = 1;
     a %= m;
     while n != 0 {
@@ -25,7 +25,7 @@ fn invp(a: Ll, p: Ll) -> Ll {
 fn makefact(n: usize, m: Ll, fact: &mut [Ll], invfact: &mut [Ll]) {
     fact[0] = 1;
     for i in 0..n {
-        fact[i + 1] = (fact[i] * ((i as Ll) + 1)) % m;
+        fact[i + 1] = (fact[i] * (i as Ll + 1)) % m;
     }
     invfact[n] = invp(fact[n], m);
     for i in (1..=n).rev() {
@@ -44,12 +44,16 @@ fn choose(n: i32, r: i32, m: Ll, fact: &[Ll], invfact: &[Ll]) -> Ll {
 }
 
 fn main() {
-    // Read all input (scanf("%d%d",...)).
+    // Read all input (scanf-like whitespace handling).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
-    let n: i32 = it.next().unwrap().parse().unwrap();
-    let m: i32 = it.next().unwrap().parse().unwrap();
+
+    let n: i32 = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let m_in: i32 = it.next().unwrap().parse().unwrap();
 
     // C code precomputes up to 2000.
     let max_n: usize = 2000;
@@ -58,15 +62,16 @@ fn main() {
     makefact(max_n, MOD, &mut fact, &mut invfact);
 
     let mut s: Ll = 0;
-    for i in 0..=(m as i64) {
-        let c = choose(m, i as i32, MOD, &fact, &invfact);
-        let p = pom(i, n as Ll, MOD);
-        let sign: Ll = if ((m as i64 - i) % 2) == 0 { 1 } else { -1 };
-        // Keep C's behavior: intermediate may go negative; then % MOD keeps sign in C.
-        s = (s + (c * p % MOD) * sign) % MOD;
+    // rep(i,0,m+1) with ll i; i < m+1
+    // Here m is int; we mirror by iterating i as i64 from 0..=m.
+    for i in 0..=(m_in as i64) {
+        let c = choose(m_in, i as i32, MOD, &fact, &invfact);
+        let p = pom(i, n as i64, MOD);
+        let sign: Ll = if ((m_in as i64 - i) % 2) == 0 { 1 } else { -1 };
+        s = (s + (c * p) % MOD * sign) % MOD;
     }
 
-    // Print (s+MOD)%MOD with newline.
+    // Print (s+MOD)%MOD exactly like C.
     let ans = (s + MOD) % MOD;
     println!("{}", ans);
 }

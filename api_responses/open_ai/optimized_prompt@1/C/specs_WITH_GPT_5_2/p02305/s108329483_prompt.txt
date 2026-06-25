@@ -1,0 +1,53 @@
+You are an expert senior software engineer.
+Given source code, generate a precise, structured behavioral specification that states WHAT the code guarantees, not HOW it achieves it.
+
+Output must use exactly these sections and headings:
+1. Functional Description
+2. Inputs
+3. Outputs
+4. Preconditions
+5. Postconditions
+6. Invariants
+7. Error Handling / Exceptional Behavior
+8. State Transitions (if applicable)
+9. Non-functional Constraints (if inferable)
+
+Content requirements:
+- Be concise and contract-focused; omit incidental or low-level details.
+- Do not reference language/library APIs, format strings, or identifiers.
+- Describe I/O abstractly; never cite exact parsing patterns or format specifiers.
+- Do not restate implementation structure or control flow.
+- If behavior is ambiguous, state explicit assumptions.
+- Avoid extreme assumptions. Capture only behavior implied by the code's observable contract.
+- Return only the nine sections with the exact headings and numbering specified.
+
+Now generate the specification for the code below:
+
+```C
+
+#include <stdio.h>
+
+int main(){
+
+  int i=0, x[2], y[2], r[2], rplus, rminus,rdistance;
+
+  while(i<2){
+    scanf("%d%d%d", &x[i],&y[i],&r[i]);
+    i++;
+  }
+
+  rdistance = (x[0]-x[1])*(x[0]-x[1]) +	(y[0]-y[1])*(y[0]-y[1]); //２乗すればsqrtが不要               
+  rplus = (r[0]+r[1])*(r[0]+r[1]);
+  rminus = (r[0]-r[1])*(r[0]-r[1]); //２乗して、|r1-r2|の絶対値を必要なくしている.他も２乗する.       
+
+  if(rdistance > rplus)	printf("4\n");
+  else if(rdistance == rplus) printf("3\n");
+  else if(rminus < rdistance &&	rdistance < rplus) printf("2\n");
+  else if(rdistance == rminus) printf("1\n");
+  else if(rdistance < rminus) printf("0\n");
+
+
+
+  return 0;
+}
+```

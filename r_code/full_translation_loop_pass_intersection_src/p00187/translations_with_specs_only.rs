@@ -7,81 +7,82 @@ struct Point {
 }
 
 #[derive(Clone, Copy, Debug)]
-struct IPoint {
-    x: i64,
-    y: i64,
-}
-
-#[derive(Clone, Copy, Debug)]
 struct Segment {
-    a: IPoint,
-    b: IPoint,
+    x1: i64,
+    y1: i64,
+    x2: i64,
+    y2: i64,
 }
 
-fn cross_i128(ax: i128, ay: i128, bx: i128, by: i128) -> i128 {
-    ax * by - ay * bx
-}
+fn intersection(s1: Segment, s2: Segment) -> Option<Point> {
+    // Compute unique intersection of the infinite lines, then check it lies on both closed segments.
+    // Parallel or collinear => no unique intersection => None.
+    //
+    // Note: Spec says integer overflow during geometric computations is undefined.
+    // We keep integer arithmetic in i128 to reduce overflow risk, but do not attempt to emulate overflow.
+    let x1 = s1.x1 as i128;
+    let y1 = s1.y1 as i128;
+    let x2 = s1.x2 as i128;
+    let y2 = s1.y2 as i128;
 
-fn segment_intersection(s1: Segment, s2: Segment) -> Option<Point> {
-    // Treat parallel/collinear as "no valid intersection" per spec.
-    // Use exact integer arithmetic (i128) for the determinant and bounds checks,
-    // then compute the intersection point in f64.
-    let x1 = s1.a.x as i128;
-    let y1 = s1.a.y as i128;
-    let x2 = s1.b.x as i128;
-    let y2 = s1.b.y as i128;
+    let x3 = s2.x1 as i128;
+    let y3 = s2.y1 as i128;
+    let x4 = s2.x2 as i128;
+    let y4 = s2.y2 as i128;
 
-    let x3 = s2.a.x as i128;
-    let y3 = s2.a.y as i128;
-    let x4 = s2.b.x as i128;
-    let y4 = s2.b.y as i128;
+    let dx1 = x2 - x1;
+    let dy1 = y2 - y1;
+    let dx2 = x4 - x3;
+    let dy2 = y4 - y3;
 
-    let r_x = x2 - x1;
-    let r_y = y2 - y1;
-    let s_x = x4 - x3;
-    let s_y = y4 - y3;
-
-    let denom = cross_i128(r_x, r_y, s_x, s_y);
+    let denom = dx1 * dy2 - dy1 * dx2;
     if denom == 0 {
         return None;
     }
 
-    let qmp_x = x3 - x1;
-    let qmp_y = y3 - y1;
+    // Solve:
+    // (x1, y1) + t*(dx1, dy1) = (x3, y3) + u*(dx2, dy2)
+    // t = cross((x3-x1, y3-y1), (dx2, dy2)) / cross((dx1, dy1), (dx2, dy2))
+    let rx = x3 - x1;
+    let ry = y3 - y1;
+    let t_num = rx * dy2 - ry * dx2;
 
-    let t_num = cross_i128(qmp_x, qmp_y, s_x, s_y);
-    let u_num = cross_i128(qmp_x, qmp_y, r_x, r_y);
+    let t = (t_num as f64) / (denom as f64);
 
-    // Check t in [0,1] and u in [0,1] without division, accounting for denom sign.
-    if denom > 0 {
-        if t_num < 0 || t_num > denom || u_num < 0 || u_num > denom {
-            return None;
-        }
-    } else {
-        if t_num > 0 || t_num < denom || u_num > 0 || u_num < denom {
-            return None;
-        }
+    let ix = (x1 as f64) + t * (dx1 as f64);
+    let iy = (y1 as f64) + t * (dy1 as f64);
+
+    // Check point lies within both segments (inclusive), with a small tolerance.
+    // The spec does not define tolerance for containment; we use a tight epsilon to avoid
+    // rejecting due to floating rounding.
+    let eps = 1e-9;
+
+    fn within(a: f64, b: f64, v: f64, eps: f64) -> bool {
+        let (lo, hi) = if a <= b { (a, b) } else { (b, a) };
+        v + eps >= lo && v - eps <= hi
     }
 
-    // Compute intersection point: p + t*r
-    let t = (t_num as f64) / (denom as f64);
-    let px = (x1 as f64) + t * (r_x as f64);
-    let py = (y1 as f64) + t * (r_y as f64);
-    Some(Point { x: px, y: py })
+    let s1_ok = within(s1.x1 as f64, s1.x2 as f64, ix, eps) && within(s1.y1 as f64, s1.y2 as f64, iy, eps);
+    if !s1_ok {
+        return None;
+    }
+    let s2_ok = within(s2.x1 as f64, s2.x2 as f64, ix, eps) && within(s2.y1 as f64, s2.y2 as f64, iy, eps);
+    if !s2_ok {
+        return None;
+    }
+
+    Some(Point { x: ix, y: iy })
 }
 
-fn triangle_area_abs(a: Point, b: Point, c: Point) -> f64 {
-    // Area = |cross(b-a, c-a)| / 2
-    let abx = b.x - a.x;
-    let aby = b.y - a.y;
-    let acx = c.x - a.x;
-    let acy = c.y - a.y;
-    ((abx * acy) - (aby * acx)).abs() * 0.5
+fn triangle_area(a: Point, b: Point, c: Point) -> f64 {
+    // Absolute area = 0.5 * |cross(b-a, c-a)|
+    let cross = (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+    0.5 * cross.abs()
 }
 
 fn classify(area: f64) -> &'static str {
-    // Thresholds with epsilon margins as specified.
-    let eps = 1e-6_f64;
+    let eps = 1e-6;
+
     if area < eps {
         "kyo"
     } else if area < 100000.0 - eps {
@@ -97,66 +98,58 @@ fn classify(area: f64) -> &'static str {
 
 fn main() {
     let mut input = String::new();
-    io::stdin().read_to_string(&mut input).ok();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
-    let mut nums = Vec::<i64>::new();
-    for tok in input.split_whitespace() {
-        if let Ok(v) = tok.parse::<i64>() {
-            nums.push(v);
-        } else {
-            // Stop processing on non-integer data; ignore any incomplete trailing batch.
-            break;
-        }
-    }
-
+    let mut segs: Vec<Segment> = Vec::with_capacity(3);
     let mut out = String::new();
-    let mut i = 0usize;
-    while i + 12 <= nums.len() {
-        let s1 = Segment {
-            a: IPoint {
-                x: nums[i],
-                y: nums[i + 1],
-            },
-            b: IPoint {
-                x: nums[i + 2],
-                y: nums[i + 3],
-            },
-        };
-        let s2 = Segment {
-            a: IPoint {
-                x: nums[i + 4],
-                y: nums[i + 5],
-            },
-            b: IPoint {
-                x: nums[i + 6],
-                y: nums[i + 7],
-            },
-        };
-        let s3 = Segment {
-            a: IPoint {
-                x: nums[i + 8],
-                y: nums[i + 9],
-            },
-            b: IPoint {
-                x: nums[i + 10],
-                y: nums[i + 11],
-            },
-        };
-        i += 12;
 
-        let p12 = segment_intersection(s1, s2);
-        let p23 = segment_intersection(s2, s3);
-        let p31 = segment_intersection(s3, s1);
-
-        let line = if let (Some(a), Some(b), Some(c)) = (p12, p23, p31) {
-            let area = triangle_area_abs(a, b, c);
-            classify(area)
-        } else {
-            "kyo"
+    loop {
+        let x1 = match it.next() {
+            Some(v) => v,
+            None => break,
+        };
+        let y1 = match it.next() {
+            Some(v) => v,
+            None => break,
+        };
+        let x2 = match it.next() {
+            Some(v) => v,
+            None => break,
+        };
+        let y2 = match it.next() {
+            Some(v) => v,
+            None => break,
         };
 
-        out.push_str(line);
-        out.push('\n');
+        let seg = Segment {
+            x1: x1.parse::<i64>().unwrap(),
+            y1: y1.parse::<i64>().unwrap(),
+            x2: x2.parse::<i64>().unwrap(),
+            y2: y2.parse::<i64>().unwrap(),
+        };
+        segs.push(seg);
+
+        if segs.len() == 3 {
+            let s1 = segs[0];
+            let s2 = segs[1];
+            let s3 = segs[2];
+
+            let p12 = intersection(s1, s2);
+            let p23 = intersection(s2, s3);
+            let p31 = intersection(s3, s1);
+
+            let cat = if let (Some(a), Some(b), Some(c)) = (p12, p23, p31) {
+                let area = triangle_area(a, b, c);
+                classify(area)
+            } else {
+                "kyo"
+            };
+
+            out.push_str(cat);
+            out.push('\n');
+            segs.clear();
+        }
     }
 
     print!("{out}");

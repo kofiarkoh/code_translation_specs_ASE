@@ -8,76 +8,75 @@ fn main() {
 
     let n: usize = match it.next() {
         Some(v) => v.parse().unwrap(),
-        None => return, // No explicit error handling specified; exit quietly if missing.
+        None => return,
     };
     let m: usize = match it.next() {
         Some(v) => v.parse().unwrap(),
         None => return,
     };
 
-    let mut k: Vec<i32> = Vec::with_capacity(n);
+    let mut items: Vec<i32> = Vec::with_capacity(n);
     for _ in 0..n {
-        if let Some(v) = it.next() {
-            k.push(v.parse().unwrap());
-        } else {
-            return;
-        }
+        let v: i32 = it.next().unwrap().parse().unwrap();
+        items.push(v);
     }
 
-    let mut t: Vec<i32> = Vec::with_capacity(m);
+    let mut elems: Vec<i32> = Vec::with_capacity(m);
     for _ in 0..m {
-        if let Some(v) = it.next() {
-            t.push(v.parse().unwrap());
-        } else {
-            return;
-        }
+        let v: i32 = it.next().unwrap().parse().unwrap();
+        elems.push(v);
     }
 
-    // Internal sentinel: specification notes correctness may fail if true minimum exceeds 1_000_000_000.
-    const INF: i32 = 1_000_000_000;
-
-    // DP semantics:
-    // dp[i][j] = minimum cost selecting exactly j items from first i candidates (i in 0..=m, j in 0..=n).
-    // Transition:
-    // dp[i][j] = min(dp[i-1][j], dp[i-1][j-1] + k[j-1]*t[i-1]) for j>=1
-    // dp[i][0] = 0 for all i
+    // DP with O(n*m) time and O(n*m) memory as specified.
+    // dp[j][i] = minimum cost to assign first j items using elements among first i elements,
+    //            with the j-th item assigned to element i (i is 1-based in this definition).
     //
-    // Use O(n) memory (still within constraints; spec says proportional to m*n but does not require it).
-    let mut prev = vec![INF; n + 1];
-    let mut cur = vec![INF; n + 1];
-    prev[0] = 0;
+    // Transition:
+    // dp[j][i] = min_{k < i} dp[j-1][k] + items[j-1] * elems[i-1]
+    //
+    // Sentinel-like large value for unreachable states and for m < n behavior.
+    // Use i32::MAX/4 to reduce risk of overflow when adding (overflow is unspecified anyway).
+    let inf: i32 = i32::MAX / 4;
 
-    for i in 1..=m {
-        cur[0] = 0;
-        let ti = t[i - 1];
+    // Allocate (n+1) x (m+1) initialized to inf.
+    let mut dp = vec![vec![inf; m + 1]; n + 1];
 
-        // j cannot exceed i (can't pick more items than candidates seen), but keep within n.
-        let j_max = std::cmp::min(n, i);
+    // Base: 0 items assigned has cost 0 with "last chosen index" 0.
+    dp[0][0] = 0;
 
-        // For j > j_max, keep as INF (unreachable).
-        for j in 1..=j_max {
-            // Not take candidate i
-            let mut best = prev[j];
-
-            // Take candidate i as the j-th selected item
-            let take_base = prev[j - 1];
-            if take_base != INF {
-                // Specification assumes no overflow; use i32 arithmetic.
-                let cost = take_base + k[j - 1] * ti;
-                if cost < best {
-                    best = cost;
-                }
+    // Fill DP.
+    for j in 1..=n {
+        // Maintain running minimum of dp[j-1][k] for k < i.
+        let mut best_prev = inf;
+        for i in 1..=m {
+            // Update best_prev with dp[j-1][i-1] so it represents min over k in [0, i-1].
+            let prev = dp[j - 1][i - 1];
+            if prev < best_prev {
+                best_prev = prev;
             }
 
-            cur[j] = best;
-        }
-        for j in (j_max + 1)..=n {
-            cur[j] = INF;
-        }
+            // If best_prev is inf, state is unreachable.
+            if best_prev >= inf {
+                dp[j][i] = inf;
+                continue;
+            }
 
-        std::mem::swap(&mut prev, &mut cur);
+            // Cost computation in i32; overflow behavior is unspecified by the spec,
+            // so we use wrapping operations to avoid panics in debug builds.
+            let prod = items[j - 1].wrapping_mul(elems[i - 1]);
+            dp[j][i] = best_prev.wrapping_add(prod);
+        }
     }
 
-    // If m < n, prev[n] will likely remain INF; spec allows output to be non-meaningful then.
-    println!("{}", prev[n]);
+    // Answer: min over dp[n][i] for i in 1..=m.
+    // If m < n, all states for j=n will remain inf, producing the sentinel-like output.
+    let mut ans = inf;
+    for i in 1..=m {
+        let v = dp[n][i];
+        if v < ans {
+            ans = v;
+        }
+    }
+
+    println!("{}", ans);
 }

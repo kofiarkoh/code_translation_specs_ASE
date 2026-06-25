@@ -6,27 +6,30 @@ fn main() {
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let n: usize = it.next().unwrap().parse().unwrap();
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
     let k: i64 = it.next().unwrap().parse().unwrap();
 
-    // 1-based array to match C semantics; a[0] unused.
+    // 1-based array, a[0] unused
     let mut a: Vec<i64> = vec![0; n + 1];
     for i in 1..=n {
         a[i] = it.next().unwrap().parse().unwrap();
     }
 
     if (n as i64) == k {
-        // Uniform cyclic shift check (no mutation).
-        // Spec: exists constant offset such that (a[i] - i) mod n is constant.
-        let x = a[1] - 1; // matches C: x = a[1] - 1
+        // Check uniform cyclic shift: (a[i] - i) mod n is constant
+        let x = a[1] - 1;
         let mut flag = true;
         let nn = n as i64;
         for i in 1..=n {
-            let i64i = i as i64;
-            // (a[i] - i + n) % n == x
-            // Note: precondition implies values are valid 1-based indices, so modulo is well-defined.
-            let lhs = (a[i] - i64i + nn) % nn;
-            flag &= lhs == x;
+            let ii = i as i64;
+            let v = (a[i] - ii + nn).rem_euclid(nn);
+            if v != x {
+                flag = false;
+                break;
+            }
         }
         if flag {
             print!("Yes\n");
@@ -34,11 +37,9 @@ fn main() {
             print!("No\n");
         }
     } else {
-        // Mapping/parity case: destructive marking to sentinel (-1).
-        // C's dfs(n):
-        //   t = a[n];
-        //   while (a[t] != -1) { temp = a[t]; a[t] = -1; t = temp; }
-        // Note: This assumes indices are valid when not sentinel, per preconditions.
+        // Count components/cycles in functional graph by mutating a with sentinel -1.
+        // This follows the C code's behavior: it assumes mapping values are valid in 1..=n
+        // and that -1 is not a legitimate mapping value in this branch.
         fn dfs(start: usize, a: &mut [i64]) {
             let mut t = a[start] as usize;
             while a[t] != -1 {
@@ -56,7 +57,6 @@ fn main() {
             }
         }
 
-        // Output "No" iff (n - cnt) is odd AND k is odd; else "Yes".
         let n_minus_cnt_odd = ((n as i64 - cnt) % 2) != 0;
         let k_odd = (k % 2) != 0;
         if n_minus_cnt_odd && k_odd {

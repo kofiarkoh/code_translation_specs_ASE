@@ -1,51 +1,44 @@
 use std::io::{self, Read};
 
-const A: usize = 0;
-const X: usize = 1;
-const Y: usize = 2;
-const Z: usize = 3;
-const W: usize = 4;
-const B: usize = 5;
-const NA: usize = 6;
-
 fn main() {
-    // Read all input as whitespace-delimited tokens, like repeated scanf("%s", ...).
+    // State indices per spec: S0..S5, with S0 initial and S5 accepting.
+    // Undefined transitions are represented as None.
+    let map: [[Option<usize>; 2]; 6] = [
+        // S0: on 0 -> S1, on 1 -> S2
+        [Some(1), Some(2)],
+        // S1: on 0 -> undefined, on 1 -> S3
+        [None, Some(3)],
+        // S2: on 0 -> S1, on 1 -> undefined
+        [Some(1), None],
+        // S3: on 0 -> S4, on 1 -> S5
+        [Some(4), Some(5)],
+        // S4: on 0 -> S5, on 1 -> S2
+        [Some(5), Some(2)],
+        // S5: on 0 -> S2, on 1 -> S1
+        [Some(2), Some(1)],
+    ];
+
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
 
-    // Transition table per spec/C code.
-    // Indices: [state][digit], where digit is 0 or 1.
-    // NA denotes undefined transition; processing of the current token stops.
-    let map: [[usize; 2]; 6] = [
-        [X, Y],   // A
-        [NA, Z],  // X
-        [X, NA],  // Y
-        [W, B],   // Z
-        [B, Y],   // W
-        [Y, X],   // B (accepting)
-    ];
-
     let mut out = String::new();
 
-    for tok in input.split_whitespace() {
-        if tok.as_bytes().first() == Some(&b'#') {
-            break; // no output for terminating token
+    for token in input.split_whitespace() {
+        if token.as_bytes().first() == Some(&b'#') {
+            break;
         }
 
-        let mut city: usize = A;
-
-        // Preconditions say only '0'/'1' appear; otherwise behavior is undefined in C.
-        // We still index only for '0'/'1' to preserve intended semantics.
-        for &ch in tok.as_bytes() {
-            let digit = (ch - b'0') as usize; // assumes ch is '0' or '1'
-            let next = map[city][digit];
-            if next == NA {
-                break;
+        let mut state: usize = 0; // S0
+        for &b in token.as_bytes() {
+            // Per spec, tokens contain only '0'/'1'; otherwise behavior is undefined.
+            let sym = (b - b'0') as usize; // 0 or 1
+            match map[state][sym] {
+                Some(next) => state = next,
+                None => break, // stop early on undefined transition
             }
-            city = next;
         }
 
-        if city == B {
+        if state == 5 {
             out.push_str("Yes\n");
         } else {
             out.push_str("No\n");

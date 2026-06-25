@@ -1,10 +1,10 @@
-use std::cmp::Ordering;
 use std::io::{self, Read};
 
 #[derive(Clone)]
 struct Team {
     name: String,
-    points: i32,
+    points: i64,
+    idx: usize, // original input order for stable tie handling
 }
 
 fn main() {
@@ -15,37 +15,37 @@ fn main() {
     let mut printed_any_dataset = false;
 
     loop {
-        let n_tok = match it.next() {
-            Some(t) => t,
-            None => break, // stop if input ends unexpectedly
-        };
-        let n: usize = n_tok.parse().unwrap();
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // unspecified; input assumed well-formed, but avoid panic
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+
         if n == 0 {
             break;
         }
 
         let mut teams: Vec<Team> = Vec::with_capacity(n);
-        for _ in 0..n {
+        for idx in 0..n {
             let name = it.next().unwrap().to_string();
-            let wins: i32 = it.next().unwrap().parse().unwrap();
-            let _losses: i32 = it.next().unwrap().parse().unwrap();
-            let draws: i32 = it.next().unwrap().parse().unwrap();
-            let points = wins * 3 + draws;
-            teams.push(Team { name, points });
+            let wins: i64 = it.next().unwrap().parse().unwrap();
+            let _losses: i64 = it.next().unwrap().parse().unwrap();
+            let draws: i64 = it.next().unwrap().parse().unwrap();
+
+            // Points: (3 * wins) + draws. Losses do not affect points.
+            let points = 3i64 * wins + draws;
+
+            teams.push(Team { name, points, idx });
         }
 
-        // Order by descending points; ties need not preserve input order.
-        teams.sort_unstable_by(|a, b| match b.points.cmp(&a.points) {
-            Ordering::Equal => Ordering::Equal,
-            other => other,
-        });
+        // Stable ordering: non-increasing by points; ties keep input order.
+        teams.sort_by(|a, b| b.points.cmp(&a.points).then_with(|| a.idx.cmp(&b.idx)));
 
         if printed_any_dataset {
             print!("\n");
         }
         printed_any_dataset = true;
 
-        // Output format: "TeamName,Points"
         for t in teams {
             println!("{},{}", t.name, t.points);
         }

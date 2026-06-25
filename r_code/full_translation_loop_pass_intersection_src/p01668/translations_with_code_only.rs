@@ -3,7 +3,6 @@ use std::io::{self, Read};
 const MOD_BY: i32 = 1_000_000_007;
 
 fn add(a: i32, b: i32) -> i32 {
-    // C uses signed int; here values are always in [0, MOD_BY).
     let mut r = a + b;
     if r >= MOD_BY {
         r -= MOD_BY;
@@ -19,20 +18,18 @@ struct Solver {
     b: Vec<u8>, // digits 0..9, length n
     c: Vec<u8>, // digits 0..9, length m
 
-    // memo[pos][seqPos][ueFlag][sitaFlag] stores ret+1, 0 means uncomputed
-    memo: Vec<i32>,
-    // number_of_number[pos][ueFlag][sitaFlag] stores ret+1, 0 means uncomputed
-    number_of_number: Vec<i32>,
+    // C uses "0 means uncomputed, else store ret+1" to distinguish from ret==0.
+    memo: Vec<i32>,            // [n+?][m+?][2][2]
+    number_of_number: Vec<i32>, // [n+?][2][2]
 }
 
 impl Solver {
     fn idx_memo(&self, pos: usize, seq_pos: usize, ue: usize, sita: usize) -> usize {
-        // Layout: (((pos * (m+1) + seq_pos) * 2 + ue) * 2 + sita)
+        // Dimensions: pos in [0..=n], seq_pos in [0..=m], ue in [0..2), sita in [0..2)
         (((pos * (self.m + 1) + seq_pos) * 2 + ue) * 2 + sita)
     }
 
     fn idx_non(&self, pos: usize, ue: usize, sita: usize) -> usize {
-        // Layout: ((pos * 2 + ue) * 2 + sita)
         ((pos * 2 + ue) * 2 + sita)
     }
 
@@ -46,8 +43,8 @@ impl Solver {
             return cached - 1;
         }
 
-        let imin = if sita_flag != 0 { self.a[pos] } else { 0 };
-        let imax = if ue_flag != 0 { self.b[pos] } else { 9 };
+        let imin: u8 = if sita_flag != 0 { self.a[pos] } else { 0 };
+        let imax: u8 = if ue_flag != 0 { self.b[pos] } else { 9 };
 
         let mut ret: i32 = 0;
         for i in imin..=imax {
@@ -74,8 +71,8 @@ impl Solver {
             return cached - 1;
         }
 
-        let imin = if sita_flag != 0 { self.a[pos] } else { 0 };
-        let imax = if ue_flag != 0 { self.b[pos] } else { 9 };
+        let imin: u8 = if sita_flag != 0 { self.a[pos] } else { 0 };
+        let imax: u8 = if ue_flag != 0 { self.b[pos] } else { 9 };
 
         let mut ret: i32 = 0;
         for i in imin..=imax {
@@ -102,13 +99,13 @@ impl Solver {
 }
 
 fn main() {
-    // Read all input, split by whitespace like scanf("%s%s%s", ...)
+    // Read all input, then parse three whitespace-separated tokens like scanf("%s%s%s").
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
     let a_str = match it.next() {
         Some(s) => s.to_string(),
-        None => return,
+        None => return, // C would return 1; but no output either way.
     };
     let b_str = match it.next() {
         Some(s) => s.to_string(),
@@ -122,62 +119,50 @@ fn main() {
     let alen = a_str.len();
     let blen = b_str.len();
 
-    // Emulate the C in-place right-alignment and zero-padding of A to length Blen.
-    // In C, A is a fixed buffer; if Alen < Blen, it shifts digits right and fills leading zeros.
+    // Emulate the C in-place right-alignment of A into length Blen with leading zeros if Alen<Blen.
     let mut a_padded = if alen < blen {
-        let mut s = String::with_capacity(blen);
-        for _ in 0..(blen - alen) {
-            s.push('0');
-        }
-        s.push_str(&a_str);
-        s
+        let mut v = vec![b'0'; blen];
+        // Copy A to the right end.
+        v[blen - alen..].copy_from_slice(a_str.as_bytes());
+        v
     } else {
-        // C does nothing if Alen >= Blen; N is set to Blen and only first Blen digits are used.
-        a_str.clone()
+        a_str.as_bytes().to_vec()
     };
 
     let n = blen;
     let m = c_str.len();
-    let exist_pos = blen.saturating_sub(alen); // matches C: existPos=Blen-Alen (only meaningful when alen<=blen)
+    let exist_pos = blen - alen; // In C this is computed even if alen>=blen (can go negative),
+                                 // but that branch doesn't happen; keep usize with same effective use.
 
-    // Convert to digit arrays; only first N digits of A and B are used (as in C).
-    // If A is longer than N, truncate; if shorter (shouldn't happen after padding), pad with zeros.
-    if a_padded.len() < n {
-        let mut s = a_padded.clone();
-        while s.len() < n {
-            s.push('0');
-        }
-        a_padded = s;
+    // Convert to digit arrays by subtracting '0' like C does (assumes valid digits).
+    // Note: C stores in char and subtracts '0' (implementation-defined signedness),
+    // but values are 0..9 so it is safe to model as u8.
+    for ch in &mut a_padded {
+        *ch = ch.wrapping_sub(b'0');
     }
-    let a_bytes = a_padded.as_bytes();
-    let b_bytes = b_str.as_bytes();
-
-    let mut a: Vec<u8> = Vec::with_capacity(n);
-    let mut b: Vec<u8> = Vec::with_capacity(n);
-    for i in 0..n {
-        let da = a_bytes[i].wrapping_sub(b'0'); // mimic C char arithmetic
-        let db = b_bytes[i].wrapping_sub(b'0');
-        a.push(da);
-        b.push(db);
+    let mut b_digits = b_str.as_bytes().to_vec();
+    for ch in &mut b_digits {
+        *ch = ch.wrapping_sub(b'0');
+    }
+    let mut c_digits = c_str.as_bytes().to_vec();
+    for ch in &mut c_digits {
+        *ch = ch.wrapping_sub(b'0');
     }
 
-    let mut c: Vec<u8> = Vec::with_capacity(m);
-    for &ch in c_str.as_bytes() {
-        c.push(ch.wrapping_sub(b'0'));
-    }
-
-    let memo_size = n * (m + 1) * 2 * 2;
-    let non_size = n * 2 * 2;
+    // Allocate memo tables. C sizes are [10002][502][2][2] and [10002][2][2].
+    // Here we size exactly to (n+1)*(m+1)*2*2 and (n+1)*2*2.
+    let memo = vec![0i32; (n + 1) * (m + 1) * 2 * 2];
+    let number_of_number = vec![0i32; (n + 1) * 2 * 2];
 
     let mut solver = Solver {
         n,
         m,
         exist_pos,
-        a,
-        b,
-        c,
-        memo: vec![0; memo_size],
-        number_of_number: vec![0; non_size],
+        a: a_padded,
+        b: b_digits,
+        c: c_digits,
+        memo,
+        number_of_number,
     };
 
     let ans = solver.search(0, 0, 1, 1);

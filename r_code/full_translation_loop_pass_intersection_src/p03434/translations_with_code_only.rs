@@ -6,7 +6,7 @@ fn merge(a: &mut [i64], left: usize, mid: usize, right: usize) {
     let n1 = mid - left;
     let n2 = right - mid;
 
-    // Mirror C's sentinel-based merge: allocate temp arrays with one extra slot.
+    // Allocate temporary arrays with sentinel at the end (as in the C code).
     let mut l = Vec::with_capacity(n1 + 1);
     let mut r = Vec::with_capacity(n2 + 1);
 
@@ -40,7 +40,7 @@ fn merge_sort(a: &mut [i64], left: usize, right: usize) {
 }
 
 fn main() {
-    // Read all input, whitespace-separated, like scanf.
+    // Read all input (scanf-like whitespace handling).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -59,27 +59,32 @@ fn main() {
     merge_sort(&mut a, 0, n);
 
     // Use wrapping arithmetic to emulate C signed overflow behavior as closely as possible.
-    let mut A: i64 = 0;
-    let mut B: i64 = 0;
+    let mut sum_a: i64 = 0;
+    let mut sum_b: i64 = 0;
 
     if n % 2 == 0 {
-        let mut i = n as isize - 1;
-        while i >= 0 {
-            A = A.wrapping_add(a[i as usize]);
-            B = B.wrapping_add(a[(i - 1) as usize]);
+        let mut i = n - 1;
+        loop {
+            sum_a = sum_a.wrapping_add(a[i]);
+            sum_b = sum_b.wrapping_add(a[i - 1]);
+            if i < 2 {
+                break;
+            }
             i -= 2;
         }
-        let ans = A.wrapping_sub(B);
-        print!("{ans}\n");
     } else {
-        let mut i = n as isize - 1;
+        let mut i = n - 1;
         while i >= 1 {
-            A = A.wrapping_add(a[i as usize]);
-            B = B.wrapping_add(a[(i - 1) as usize]);
+            sum_a = sum_a.wrapping_add(a[i]);
+            sum_b = sum_b.wrapping_add(a[i - 1]);
+            if i < 2 {
+                break;
+            }
             i -= 2;
         }
-        A = A.wrapping_add(a[0]);
-        let ans = A.wrapping_sub(B);
-        print!("{ans}\n");
+        sum_a = sum_a.wrapping_add(a[0]);
     }
+
+    let ans = sum_a.wrapping_sub(sum_b);
+    print!("{}\n", ans);
 }

@@ -1,27 +1,41 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin; specification assumes exactly two integers are provided.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
-
     let mut it = input.split_whitespace();
-    let a: i64 = it.next().unwrap().parse().unwrap();
-    let b: i64 = it.next().unwrap().parse().unwrap();
 
-    // Specification: if b is negative, the bounded loop performs no checks and produces no output.
-    // Range is k = 1..=(b+1). For b < 0, b+1 < 1, so the loop is empty.
-    for k in 1..=b + 1 {
-        // Specification precondition: no overflow occurs in multiplication.
-        let v = a * k;
+    // If input is missing/invalid, behavior is unspecified by the spec.
+    // We choose to do nothing in that case.
+    let a: i128 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+    let b: i128 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
 
-        // Specification: divisibility check; if b == 0, behavior is undefined (division by zero).
-        if v % b == 0 {
-            // Output the first (smallest k) qualifying value; at most one value is written.
-            println!("{v}");
+    // Spec precondition: b != 0. If violated, behavior is undefined; we do nothing.
+    if b == 0 {
+        return;
+    }
+
+    // Search i in [1, b+1] (inclusive), considering candidates a*i in order.
+    // Note: If b < 0, the range [1, b+1] is empty; thus no output.
+    let upper = b + 1;
+    if upper < 1 {
+        return;
+    }
+
+    for i in 1..=upper {
+        // Spec precondition: a*i does not overflow the integer range used.
+        let candidate = a * i;
+        if candidate % b == 0 {
+            print!("{}", candidate);
             return;
         }
     }
 
-    // If no qualifying value is found within the bounded search, produce no output.
+    // Otherwise, produce no output.
 }

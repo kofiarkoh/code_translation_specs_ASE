@@ -1,64 +1,60 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, then parse ints like scanf("%d") would (whitespace-separated).
+    // Read entire stdin, then parse ints like repeated scanf("%d", &a).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
 
     let mut out = String::new();
+
+    // Mirrors C locals; keep i32 to match typical C int behavior.
     let mut n = [0i32; 200];
 
-    for tok in input.split_whitespace() {
-        let mut a: i32 = match tok.parse() {
-            Ok(v) => v,
-            Err(_) => continue, // mimic scanf failure loosely by skipping unparsable tokens
-        };
+    loop {
+        let a_opt = it.next();
+        if a_opt.is_none() {
+            break; // EOF: C would stop making progress; we terminate.
+        }
+        let mut a: i32 = a_opt.unwrap().parse().unwrap();
 
         if a == 0 {
             break;
         }
 
         let mut b: i32 = 0;
-        // C code uses while(a) with signed int; for negative values this loops too.
-        // Use truncating division/remainder semantics matching C/Rust for i32.
+
+        // Convert to base-8 digits, least significant first.
+        // Note: For negative a, C's % and / truncate toward zero; Rust matches that.
         while a != 0 {
             let idx = b as usize;
-            if idx < n.len() {
-                n[idx] = a % 8;
-            }
+            n[idx] = a % 8;
             a /= 8;
             b += 1;
         }
 
-        // n[b]=0 sentinel (within bounds in original; keep bounds check to stay safe)
-        if (b as usize) < n.len() {
-            n[b as usize] = 0;
-        }
+        // Sentinel digit as in C.
+        n[b as usize] = 0;
 
         // c is unused in C; omit.
         let mut i: i32 = 0;
         while i <= b {
             let idx = i as usize;
-            if idx < n.len() {
-                if n[idx] > 3 {
-                    n[idx] += 1;
-                }
-                if n[idx] > 5 {
-                    n[idx] += 1;
-                }
+            if n[idx] > 3 {
+                n[idx] += 1;
+            }
+            if n[idx] > 5 {
+                n[idx] += 1;
             }
             i += 1;
         }
 
-        // for(i=b-1;i>=0;i--) in C: if b==0, loop doesn't execute.
-        // Use a while loop to match that behavior.
-        i = b - 1;
-        while i >= 0 {
-            let idx = i as usize;
-            if idx < n.len() {
-                out.push_str(&format!("{}", n[idx]));
+        // Print digits from most significant to least, excluding the sentinel at n[b].
+        // C loop: for(i=b-1;i>=0;i--) with signed int; if b==0, it prints nothing.
+        if b > 0 {
+            for i in (0..(b as usize)).rev() {
+                out.push_str(&format!("{}", n[i]));
             }
-            i -= 1;
         }
         out.push('\n');
     }

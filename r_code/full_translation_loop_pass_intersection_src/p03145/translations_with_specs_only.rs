@@ -6,17 +6,25 @@ fn main() {
 
     let mut it = input.split_whitespace();
 
-    // Specification precondition: at least three integers are present.
-    // No explicit error handling is required; unwrap() matches "not defined" on invalid/missing input.
-    let a: i64 = it.next().unwrap().parse().unwrap();
-    let b: i64 = it.next().unwrap().parse().unwrap();
-    let _c: i64 = it.next().unwrap().parse().unwrap(); // ignored for all observable behavior
+    // Behavior is unspecified if parsing fails or fewer than three integers exist.
+    let a: i128 = it.next().unwrap().parse().unwrap();
+    let b: i128 = it.next().unwrap().parse().unwrap();
+    let _c: i128 = it.next().unwrap().parse().unwrap(); // explicitly ignored
 
-    // Compute (a * b) / 2 using floating-point, then round to nearest integer for display.
-    // Preconditions guarantee no integer overflow in the product and that the floating result is representable.
-    let area = ((a * b) as f64) / 2.0;
-    let out = area.round() as i64;
+    // Preconditions state the product is representable (no overflow in the intended domain).
+    let prod: i128 = a * b;
 
-    // No guaranteed trailing newline.
-    print!("{}", out);
+    // Compute round((a*b)/2) with ties away from zero, matching typical "round" semantics.
+    // For integer prod:
+    // - if prod is even: exact division
+    // - if prod is odd: add/subtract 1 before dividing to round away from zero
+    let result: i128 = if prod % 2 == 0 {
+        prod / 2
+    } else if prod > 0 {
+        (prod + 1) / 2
+    } else {
+        (prod - 1) / 2
+    };
+
+    print!("{result}");
 }

@@ -1,78 +1,122 @@
 use std::io::{self, Read};
 
-fn set_depth(
-    u: usize,
-    d: i32,
-    children: &Vec<Vec<usize>>,
-    depth: &mut Vec<i32>,
-) {
-    depth[u] = d;
-    for &v in &children[u] {
-        set_depth(v, d + 1, children, depth);
-    }
-}
-
 fn main() {
-    // Read entire stdin as whitespace-separated tokens.
+    // Read entire stdin
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
     let n: usize = match it.next() {
-        Some(t) => t.parse().unwrap(),
+        Some(s) => s.parse().unwrap(),
         None => return,
     };
 
-    // Sentinel for "no parent" is -1 (matches typical C implementations and spec's sentinel notion).
+    // Tree representation using left-child / right-sibling.
+    // parent: i32 with sentinel -1
+    // left: i32 index of first child, or -1
+    // right: i32 index of next sibling, or -1
     let mut parent: Vec<i32> = vec![-1; n];
-    let mut children: Vec<Vec<usize>> = vec![Vec::new(); n];
+    let mut left: Vec<i32> = vec![-1; n];
+    let mut right: Vec<i32> = vec![-1; n];
+    let mut depth: Vec<i32> = vec![0; n]; // unspecified for unreachable nodes; keep default 0
 
-    // Incorporate input: establish ordered child lists and last parent assignment.
     for _ in 0..n {
         let id: usize = it.next().unwrap().parse().unwrap();
-        let k: usize = it.next().unwrap().parse().unwrap();
-        let mut ch: Vec<usize> = Vec::with_capacity(k);
-        for _ in 0..k {
-            let c: usize = it.next().unwrap().parse().unwrap();
-            ch.push(c);
-            parent[c] = id as i32; // last assignment wins
+        let num: usize = it.next().unwrap().parse().unwrap();
+
+        let mut prev_child: i32 = -1;
+        for j in 0..num {
+            let c_usize: usize = it.next().unwrap().parse().unwrap();
+            let c: i32 = c_usize as i32;
+
+            if j == 0 {
+                left[id] = c;
+            } else {
+                // Link as right sibling of previous child to preserve order.
+                if prev_child >= 0 {
+                    right[prev_child as usize] = c;
+                }
+            }
+            prev_child = c;
+
+            // Overwrite any previous parent value if repeated under multiple parents.
+            parent[c_usize] = id as i32;
         }
-        children[id] = ch; // last assignment wins for the node's own children list
     }
 
-    // Select root: among nodes with no parent, choose the one with greatest identifier.
-    // If none exist (precondition violation), root remains 0 (narrowest reasonable fallback).
-    let mut root: usize = 0;
+    // Root identification: last index with parent == -1
+    let mut root: i32 = -1;
     for i in 0..n {
         if parent[i] == -1 {
-            root = i;
+            root = i as i32;
         }
     }
 
-    // Depth values: only guaranteed meaningful for nodes reachable from chosen root.
-    // Initialize to 0 to keep code safe; spec allows undefined values for unreachable nodes.
-    let mut depth: Vec<i32> = vec![0; n];
-    if n > 0 {
-        set_depth(root, 0, &children, &mut depth);
-    }
+    // Depth computation:
+    // Recursive semantics: visit right sibling at same depth, then left child at depth+1.
+    // Implement iteratively to avoid recursion depth issues in Rust; preserves traversal order.
+    if root >= 0 {
+        let r = root as usize;
+        depth[r] = 0;
 
-    // Emit per-node summaries.
-    for i in 0..n {
-        let kind = if parent[i] == -1 {
-            "root"
-        } else if children[i].is_empty() {
-            "leaf"
-        } else {
-            "internal node"
-        };
+        // Stack frames: (node, depth, stage)
+        // stage 0: process right sibling first
+        // stage 1: then process left child
+        let mut stack: Vec<(usize, i32, u8)> = Vec::new();
+        stack.push((r, 0, 0));
 
-        print!("node {}: parent = {}, depth = {}, {}, [", i, parent[i], depth[i], kind);
-        for (j, &c) in children[i].iter().enumerate() {
-            if j > 0 {
-                print!(", ");
+        while let Some((u, d, stage)) = stack.pop() {
+            if stage == 0 {
+                // After scheduling right sibling, come back to schedule left child.
+                stack.push((u, d, 1));
+
+                let rs = right[u];
+                if rs >= 0 {
+                    let v = rs as usize;
+                    depth[v] = d;
+                    stack.push((v, d, 0));
+                }
+            } else {
+                let lc = left[u];
+                if lc >= 0 {
+                    let v = lc as usize;
+                    depth[v] = d + 1;
+                    stack.push((v, d + 1, 0));
+                }
             }
-            print!("{}", c);
         }
-        println!("]");
     }
+
+    // Output fixed format for each node index 0..n-1
+    let mut out = String::new();
+    for i in 0..n {
+        let p = parent[i];
+        let d = depth[i];
+
+        out.push_str(&format!("node {}: parent = {}, depth = {}, ", i, p, d));
+
+        if p == -1 {
+            out.push_str("root, [");
+        } else if left[i] == -1 {
+            out.push_str("leaf, [");
+        } else {
+            out.push_str("internal node, [");
+        }
+
+        // Print children in left-to-right order by following left then right-sibling chain.
+        let mut first = true;
+        let mut c = left[i];
+        while c >= 0 {
+            if !first {
+                out.push_str(", ");
+            }
+            first = false;
+            out.push_str(&format!("{}", c));
+            c = right[c as usize];
+        }
+
+        out.push_str("]\n");
+    }
+
+    print!("{}", out);
 }

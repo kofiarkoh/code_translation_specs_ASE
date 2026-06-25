@@ -1,21 +1,20 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, then take the first whitespace-delimited token as the string.
+    // Read entire stdin, then take the first whitespace-delimited token (like scanf("%s")).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let s = input.split_whitespace().next().unwrap();
 
-    // Track parity (odd/even) for each lowercase letter.
-    // Spec guarantees only 'a'..'z' and length <= 1009.
-    let mut odd = [false; 26];
-    for b in s.bytes() {
-        let idx = (b - b'a') as usize;
-        odd[idx] = !odd[idx];
+    // Track parity (even/odd) per letter. Spec says 'a'..'z', but C uses size 30.
+    // We keep 30 to match the original program's fixed-size behavior.
+    let mut parity = [0u8; 30];
+
+    for &b in s.as_bytes() {
+        let idx = (b - b'a') as usize; // Preconditions guarantee lowercase a..z.
+        parity[idx] ^= 1; // toggle parity
     }
 
-    let o = odd.iter().filter(|&&v| v).count();
-    let ans = o / 2;
-
-    print!("{ans}\n");
+    let sum_odds: i32 = parity.iter().map(|&v| v as i32).sum();
+    println!("{}", sum_odds / 2);
 }

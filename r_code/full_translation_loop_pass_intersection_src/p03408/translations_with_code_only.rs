@@ -6,36 +6,40 @@ fn main() {
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let n: usize = it.next().unwrap().parse().unwrap();
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
     let mut s: Vec<String> = Vec::with_capacity(n);
     for _ in 0..n {
-        s.push(it.next().unwrap().to_string());
+        // C uses char[11] with scanf("%s"): token up to whitespace.
+        // We keep the full token as read; no truncation is applied (C would overflow if >10 chars).
+        s.push(it.next().unwrap_or("").to_string());
     }
 
-    let m: usize = it.next().unwrap().parse().unwrap();
-    let mut t: Vec<String> = Vec::with_capacity(m);
-    for _ in 0..m {
-        t.push(it.next().unwrap().to_string());
+    let m_cnt: usize = it.next().unwrap().parse().unwrap();
+    let mut t: Vec<String> = Vec::with_capacity(m_cnt);
+    for _ in 0..m_cnt {
+        t.push(it.next().unwrap_or("").to_string());
     }
 
     let mut max_val: i32 = 0;
 
     for i in 0..n {
-        let mut score: i32 = 0;
-
+        let mut m: i32 = 0;
         for j in 0..n {
             if s[i] == s[j] {
-                score += 1;
+                m += 1;
             }
         }
-        for j in 0..m {
+        for j in 0..m_cnt {
             if s[i] == t[j] {
-                score -= 1;
+                m -= 1;
             }
         }
-
-        if score > max_val {
-            max_val = score;
+        if m > max_val {
+            max_val = m;
         }
     }
 

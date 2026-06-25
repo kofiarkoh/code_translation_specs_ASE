@@ -1,7 +1,7 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, parse as i64 (C long long).
+    // Read entire stdin, parse as i64 (matches C's long long on typical platforms).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -12,58 +12,55 @@ fn main() {
     };
     let a: i64 = it.next().unwrap().parse().unwrap();
 
-    // x is 1-indexed in the C code; x[0] is unused but we keep it.
-    let n_usize = n as usize;
-    let mut x: Vec<i64> = vec![0; n_usize + 1];
+    // C uses VLA: long long x[N+1]; with indices 1..=N.
+    // We'll store x[0]=0 unused to preserve indexing.
+    let n_usize = if n < 0 { 0 } else { n as usize };
+    let mut x = vec![0i64; n_usize + 1];
 
     let mut sum: i64 = 0;
     for i in 1..=n_usize {
         let xi: i64 = it.next().unwrap().parse().unwrap();
         x[i] = xi;
-        // C signed overflow is UB; we use wrapping to emulate typical two's complement behavior.
-        sum = sum.wrapping_add(xi);
+        // In C, signed overflow is UB; we assume inputs avoid it.
+        sum += xi;
     }
 
-    // The C code uses VLA sizes based on sum; if sum is negative, that would be invalid in C.
-    // We mirror the intended domain by requiring sum >= 0 for allocation; otherwise, behave safely.
-    if sum < 0 {
-        // In such a case, the C program would have undefined behavior; we choose a benign output.
-        // (No valid dp indexing possible.)
-        print!("0\n");
-        return;
-    }
+    // dp[j][k][s] where:
+    // j in 0..=N, k in 0..=N, s in 0..=sum
+    // Use a flat Vec for memory; indices are usize.
+    // Note: if sum is negative, the C code's VLA size is invalid/UB.
+    // We emulate typical intended constraints by treating negative sum as 0-sized s-dimension.
+    let sum_usize = if sum < 0 { 0 } else { sum as usize };
+    let dim_j = n_usize + 1;
+    let dim_k = n_usize + 1;
+    let dim_s = sum_usize + 1;
 
-    let sum_usize = sum as usize;
+    let total = dim_j
+        .saturating_mul(dim_k)
+        .saturating_mul(dim_s);
+    let mut dp = vec![0i64; total];
 
-    // dp[j][k][s] for j=0..N, k=0..N, s=0..sum
-    // Use a flat Vec to avoid huge nested Vec overhead.
-    let j_dim = n_usize + 1;
-    let k_dim = n_usize + 1;
-    let s_dim = sum_usize + 1;
-    let mut dp: Vec<i64> = vec![0; j_dim * k_dim * s_dim];
-
-    let idx = |j: usize, k: usize, s: usize, k_dim: usize, s_dim: usize| -> usize {
-        (j * k_dim + k) * s_dim + s
+    let idx = |j: usize, k: usize, s: usize, dim_k: usize, dim_s: usize| -> usize {
+        (j * dim_k + k) * dim_s + s
     };
 
     for j in 0..=n_usize {
         for k in 0..=n_usize {
             for s in 0..=sum_usize {
                 let val = if j >= 1 && (s as i64) < x[j] {
-                    dp[idx(j - 1, k, s, k_dim, s_dim)]
+                    dp[idx(j - 1, k, s, dim_k, dim_s)]
                 } else if j >= 1 && k >= 1 && (s as i64) >= x[j] {
-                    let s2 = (s as i64).wrapping_sub(x[j]);
-                    // In the C code, s2 is used as an index; it is only valid when s >= x[j].
-                    // Here, we compute it and cast; it should be non-negative.
+                    let s2 = (s as i64) - x[j];
+                    // In C, s2 is non-negative here due to condition.
                     let s2u = s2 as usize;
-                    dp[idx(j - 1, k, s, k_dim, s_dim)]
-                        .wrapping_add(dp[idx(j - 1, k - 1, s2u, k_dim, s_dim)])
+                    dp[idx(j - 1, k, s, dim_k, dim_s)]
+                        + dp[idx(j - 1, k - 1, s2u, dim_k, dim_s)]
                 } else if j == 0 && k == 0 && s == 0 {
                     1
                 } else {
                     0
                 };
-                let p = idx(j, k, s, k_dim, s_dim);
+                let p = idx(j, k, s, dim_k, dim_s);
                 dp[p] = val;
             }
         }
@@ -72,22 +69,28 @@ fn main() {
     let mut ans: i64 = 0;
 
     // C: if(sum/A < N) max = sum/A else max = N;
-    // Note: division by zero in C is UB; we avoid panic and choose a benign output.
-    if a == 0 {
-        print!("0\n");
-        return;
-    }
-    let sum_div_a = sum / a; // truncates toward zero like C
-    let max_k: i64 = if sum_div_a < n { sum_div_a } else { n };
+    // This uses C's signed division truncating toward zero.
+    // Also note: division by zero would be UB in C; we mirror by panicking.
+    let max_k: i64 = {
+        let q = sum / a;
+        if q < n { q } else { n }
+    };
 
+    // for k=1..=max: ans += dp[N][k][k*A];
+    // If k*A is out of [0..=sum], C would index out of bounds (UB).
+    // We assume inputs keep it in range; otherwise we avoid panic by skipping.
     for k in 1..=max_k {
-        // C indexes dp[N][k][k*A]; if k*A is out of [0,sum], C would be OOB (UB).
-        // We emulate typical intended behavior by only adding when in range.
-        let target = k.wrapping_mul(a);
-        if target >= 0 && target <= sum {
-            ans = ans.wrapping_add(dp[idx(n_usize, k as usize, target as usize, k_dim, s_dim)]);
+        if k < 0 {
+            continue;
         }
+        let ku = k as usize;
+        let s = k * a;
+        if s < 0 || s > sum {
+            continue;
+        }
+        let su = s as usize;
+        ans += dp[idx(n_usize, ku, su, dim_k, dim_s)];
     }
 
-    print!("{}\n", ans);
+    print!("{ans}\n");
 }

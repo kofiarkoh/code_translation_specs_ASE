@@ -1,20 +1,20 @@
 use std::io::{self, Read};
 
+const MAX_N: usize = 114_513;
+
 fn main() {
-    // Read entire stdin.
+    // Read all input; on any parse failure, exit with nonzero status and no defined output.
     let mut input = String::new();
     if io::stdin().read_to_string(&mut input).is_err() {
         std::process::exit(1);
     }
     let mut it = input.split_whitespace();
 
-    // If reading Q fails: terminate non-zero, no further guaranteed output.
     let q: usize = match it.next().and_then(|s| s.parse::<usize>().ok()) {
         Some(v) => v,
         None => std::process::exit(1),
     };
 
-    // Read Q queries; if any fails: terminate non-zero.
     let mut queries: Vec<usize> = Vec::with_capacity(q);
     let mut max_n: usize = 0;
     for _ in 0..q {
@@ -28,80 +28,67 @@ fn main() {
         queries.push(n);
     }
 
-    // Precompute cumulative counts up to max_n.
-    // For n < 2, output must be 0; we keep table sized max_n+1 and define table[0]=table[1]=0.
-    let mut cum: Vec<u32> = vec![0; max_n.saturating_add(1)];
+    // Behavior is only defined when max_n <= MAX_N; we do not invent behavior beyond that.
+    let limit = max_n.min(MAX_N);
 
-    if max_n >= 2 {
-        for k in 2..=max_n {
-            let prev = cum[k - 1];
+    // Precompute cumulative counts up to `limit`.
+    // For each k, we need to decide whether:
+    //   prod_{d|k, d<k} d >= 2k
+    // The product is treated as capped above by 2k for comparison purposes.
+    //
+    // We compute the product of proper divisors by multiplying all divisors d < k.
+    // To avoid overflow and to respect the "cap", we maintain a capped product:
+    //   prod = min(actual_product, 2k)
+    // and stop early once prod reaches 2k.
+    let mut prefix: Vec<u32> = vec![0; limit + 1];
+    for k in 2..=limit {
+        let cap: u128 = 2u128 * (k as u128);
+        let mut prod: u128 = 1;
 
-            // Evaluate product of all positive divisors of k except k itself (including 1),
-            // with saturation/capping: any value > 2k is treated as 2k for subsequent steps.
-            let cap: i64 = (2_i64).saturating_mul(k as i64);
+        // Enumerate proper divisors via i up to sqrt(k), adding i and k/i when appropriate.
+        // Ensure we never include k itself.
+        let mut i: usize = 1;
+        while i * i <= k {
+            if k % i == 0 {
+                let d1 = i;
+                let d2 = k / i;
 
-            // Start with multiplicative identity; divisor 1 is included but multiplying by 1 is a no-op.
-            let mut prod: i64 = 1;
-
-            // Enumerate divisors via i up to sqrt(k).
-            let mut i: usize = 1;
-            while i * i <= k {
-                if k % i == 0 {
-                    let d1 = i;
-                    let d2 = k / i;
-
-                    // Include d1 if it's a proper divisor (d1 != k).
-                    if d1 != k {
-                        prod = mul_capped(prod, d1 as i64, cap);
-                    }
-                    // Include d2 if it's distinct and a proper divisor (d2 != k).
-                    if d2 != d1 && d2 != k {
-                        prod = mul_capped(prod, d2 as i64, cap);
-                    }
-
-                    // Early stop if already at cap; further multiplications remain at cap.
+                if d1 < k {
+                    prod = prod.saturating_mul(d1 as u128);
                     if prod >= cap {
                         prod = cap;
                         break;
                     }
                 }
-                i += 1;
+                if d2 != d1 && d2 < k {
+                    prod = prod.saturating_mul(d2 as u128);
+                    if prod >= cap {
+                        prod = cap;
+                        break;
+                    }
+                }
             }
-
-            let add = if prod >= cap { 1 } else { 0 };
-            cum[k] = prev + add;
+            i += 1;
         }
+
+        let ok = prod >= cap;
+        prefix[k] = prefix[k - 1] + if ok { 1 } else { 0 };
     }
 
-    // Answer queries by lookup.
+    // Answer queries by lookup; for n < 2 output 0.
+    // For n > limit (only possible if input exceeds supported bounds), behavior is undefined;
+    // we clamp to limit to keep the program total without inventing extra semantics.
     let mut out = String::new();
     for n in queries {
-        let ans: u32 = if n < 2 { 0 } else { cum[n] };
+        let ans = if n < 2 {
+            0u32
+        } else {
+            let idx = n.min(limit);
+            prefix[idx]
+        };
         out.push_str(&ans.to_string());
         out.push('\n');
     }
-    print!("{out}");
-}
 
-// Multiply a*b with saturation/capping at cap.
-// This emulates the specified behavior: values larger than 2k are treated as 2k for subsequent
-// multiplication and comparison, and avoids overflow by using checked multiplication.
-fn mul_capped(a: i64, b: i64, cap: i64) -> i64 {
-    if a >= cap {
-        return cap;
-    }
-    if b <= 1 {
-        // b==1 is common (divisor 1); b==0 cannot occur for positive divisors.
-        return a;
-    }
-    match a.checked_mul(b) {
-        Some(v) => {
-            if v >= cap {
-                cap
-            } else {
-                v
-            }
-        }
-        None => cap,
-    }
+    print!("{out}");
 }

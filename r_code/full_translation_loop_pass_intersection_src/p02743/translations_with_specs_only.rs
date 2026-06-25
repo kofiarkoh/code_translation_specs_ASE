@@ -9,11 +9,17 @@ fn main() {
     let b: f64 = it.next().unwrap().parse().unwrap();
     let c: f64 = it.next().unwrap().parse().unwrap();
 
-    let d = c - a - b;
-    let affirmative = d > 0.0 && (d * d) > (4.0 * a * b);
+    // Specification:
+    // Output "Yes" iff:
+    // 1) c > a + b
+    // 2) (c - a - b)^2 > 4 * (a * b)
+    let sum = a + b;
+    let diff = c - sum;
 
-    // Output format is case-sensitive per observed tests.
-    if affirmative {
+    let cond1 = c > sum;
+    let cond2 = diff * diff > 4.0 * (a * b);
+
+    if cond1 && cond2 {
         println!("Yes");
     } else {
         println!("No");

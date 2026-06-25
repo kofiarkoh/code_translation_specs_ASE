@@ -1,33 +1,38 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, then take the first whitespace-delimited token.
-    // Specification: if input reading fails, output is not inferable; we do no explicit handling.
+    // Fixed-size buffer constraint: at most 999 characters (as per specification).
+    // We read a single whitespace-delimited token; no explicit error handling.
     let mut input = String::new();
     let _ = io::stdin().read_to_string(&mut input);
 
-    let token = match input.split_whitespace().next() {
-        Some(t) => t,
-        None => return, // No token; unspecified behavior, so produce no output.
-    };
+    let token = input.split_whitespace().next().unwrap_or("");
 
-    // Specification implies a fixed-size buffer (< 1000) in the original.
-    // In Rust we won't overflow memory, but we keep behavior narrow by not adding extra handling.
-    // If token length >= 1000, the spec says behavior is undefined; we do not emulate UB.
-    let mut out = String::with_capacity(token.len());
+    // Emulate fixed buffer behavior: if oversized, behavior is undefined in the spec.
+    // We choose the narrowest reasonable interpretation: do not handle it.
+    // (We still proceed; this does not add explicit error handling.)
+    let bytes = token.as_bytes();
 
-    for &b in token.as_bytes() {
-        // Apply transformation per character, independently.
-        // For 'D'..='Z': shift back by 3.
-        // Otherwise: shift forward by 23 in the character encoding.
-        // Use wrapping arithmetic to emulate byte-sized overflow behavior.
-        let transformed = if (b'D'..=b'Z').contains(&b) {
-            b.wrapping_sub(3)
+    let mut out = Vec::with_capacity(bytes.len());
+    for &b in bytes {
+        // Apply a fixed arithmetic adjustment: shift 3 positions backward.
+        // For 'A'..'Z', wrap-around is required. For other bytes, output is unspecified;
+        // we still apply the same arithmetic adjustment in a byte-wise manner.
+        let ob = if (b'A'..=b'Z').contains(&b) {
+            let idx = b - b'A';
+            let shifted = (idx + 26 - 3) % 26;
+            b'A' + shifted
         } else {
-            b.wrapping_add(23)
+            b.wrapping_sub(3)
         };
-        out.push(transformed as char);
+        out.push(ob);
     }
 
-    println!("{out}");
+    // Output followed by a line terminator.
+    // The "null-terminated string" postcondition is a C-level notion; Rust strings are not
+    // null-terminated. We preserve observable I/O by printing the transformed bytes.
+    let _ = io::stdout().write_all(&out);
+    let _ = io::stdout().write_all(b"\n");
 }
+
+use std::io::Write;

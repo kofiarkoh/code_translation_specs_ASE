@@ -1,8 +1,7 @@
 use std::io::{self, Read};
 
 fn digit_sum(mut x: i64) -> i64 {
-    // SPEC invariant: argument is positive, so digit sum is non-zero.
-    let mut r: i64 = 0;
+    let mut r = 0i64;
     while x > 0 {
         r += x % 10;
         x /= 10;
@@ -11,28 +10,32 @@ fn digit_sum(mut x: i64) -> i64 {
 }
 
 fn main() {
-    // Read one integer count from stdin.
+    // Read entire stdin, parse n as i64 (matching C's long int intent on typical platforms).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
-    let n: i64 = input.split_whitespace().next().unwrap().parse().unwrap();
+    let n: i64 = match input.split_whitespace().next() {
+        Some(tok) => tok.parse().unwrap(),
+        None => return, // unspecified behavior in spec; we just exit quietly
+    };
 
     let mut x: i64 = 1;
 
     for _ in 0..n {
-        // Output current value.
+        // Output current value
         println!("{x}");
 
-        // Candidate set evaluation order matches C:
-        // 1) p+1 (via pre-increment), then
-        // 2) for s = 10, 100, ..., 10^15: y = s*(x/s + 1) - 1
-        x += 1; // ++x in C; now x is p+1
+        // C code does: r = ++x; m = (double)x/S(x);
+        x += 1;
         let mut r: i64 = x;
         let mut m: f64 = (x as f64) / (digit_sum(x) as f64);
 
+        // Candidates: for scales 10..10^15 (15 iterations), compute y and compare ratio.
         let mut s: i64 = 10;
         for _j in 0..15 {
+            // y = s*(x/s+1)-1
             let y: i64 = s * (x / s + 1) - 1;
             let o: f64 = (y as f64) / (digit_sum(y) as f64);
+            // Tie-breaking: only update on strict improvement, matching C's `if(o<m)`.
             if o < m {
                 m = o;
                 r = y;

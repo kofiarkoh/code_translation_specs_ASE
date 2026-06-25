@@ -1,5 +1,20 @@
 use std::io::{self, Read};
 
+fn derived_scores(seq: &[i64], score_by_greater: &[i64]) -> Vec<i64> {
+    let n = seq.len();
+    let mut out = vec![0i64; n];
+    for i in 0..n {
+        let mut greater = 0usize;
+        for j in 0..n {
+            if seq[j] > seq[i] {
+                greater += 1;
+            }
+        }
+        out[i] = score_by_greater[greater];
+    }
+    out
+}
+
 fn main() {
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
@@ -10,81 +25,100 @@ fn main() {
         None => return,
     };
 
-    let mut score_map: Vec<i64> = Vec::with_capacity(n);
-    for _ in 0..n {
-        score_map.push(it.next().unwrap().parse::<i64>().unwrap());
+    // Score list indexed by "number of strictly greater elements" in [0, n-1].
+    let mut score_by_greater = vec![0i64; n];
+    for i in 0..n {
+        score_by_greater[i] = it.next().unwrap().parse().unwrap();
     }
 
-    let mut a = vec![vec![0i64; n]; 3];
-    for c in 0..3 {
-        for i in 0..n {
-            a[c][i] = it.next().unwrap().parse::<i64>().unwrap();
-        }
+    let mut a = vec![0i64; n];
+    let mut b = vec![0i64; n];
+    let mut c = vec![0i64; n];
+
+    for i in 0..n {
+        a[i] = it.next().unwrap().parse().unwrap();
+    }
+    for i in 0..n {
+        b[i] = it.next().unwrap().parse().unwrap();
+    }
+    for i in 0..n {
+        c[i] = it.next().unwrap().parse().unwrap();
     }
 
-    fn compute_totals(a: &[Vec<i64>], score_map: &[i64], n: usize) -> Vec<i64> {
-        let mut total = vec![0i64; n];
-        for c in 0..3 {
-            for i in 0..n {
-                let vi = a[c][i];
-                let mut cnt = 0usize;
-                for j in 0..n {
-                    if a[c][j] > vi {
-                        cnt += 1;
-                    }
-                }
-                total[i] = total[i].wrapping_add(score_map[cnt]);
-            }
-        }
-        total
+    // If n == 0, there is no "first element" to modify; no candidates exist.
+    if n == 0 {
+        println!("No qualifying increase found");
+        return;
     }
 
-    fn ahead_count(a: &[Vec<i64>], score_map: &[i64], n: usize) -> usize {
-        let total = compute_totals(a, score_map, n);
-        let t0 = total[0];
-        let mut ahead = 0usize;
-        for i in 0..n {
-            if total[i] > t0 {
-                ahead += 1;
-            }
-        }
-        ahead
-    }
+    // Precompute derived scores for the two sequences that are not modified in a given trial.
+    let a_base = derived_scores(&a, &score_by_greater);
+    let b_base = derived_scores(&b, &score_by_greater);
+    let c_base = derived_scores(&c, &score_by_greater);
 
-    // The required increase must be nonnegative and must be applied (i.e., strictly positive).
-    // Even if the current state already satisfies the ranking condition, the minimum "increase"
-    // is the smallest positive delta that still satisfies it.
     let mut best: Option<i64> = None;
 
-    for cat in 0..3 {
-        let orig = a[cat][0];
+    // Evaluate modifications for one chosen sequence at a time.
+    // Candidate new values for the first element are:
+    // - match another element in that same sequence, or
+    // - that value plus one,
+    // but must be strictly greater than the original first element.
+    for which in 0..3 {
+        let (seq, other1, other2) = match which {
+            0 => (&mut a, &b_base, &c_base),
+            1 => (&mut b, &a_base, &c_base),
+            _ => (&mut c, &a_base, &b_base),
+        };
 
-        // Candidate generation consistent with bounded search:
-        // try setting to each existing value and to (value + 1).
-        for j in 0..n {
-            let base = a[cat][j];
-            let candidates = [base, base.wrapping_add(1)];
+        let orig0 = seq[0];
 
-            for &new_val in &candidates {
-                if new_val <= orig {
-                    continue; // must be a positive increase
-                }
-                a[cat][0] = new_val;
-                if ahead_count(&a, &score_map, n) <= 7 {
-                    let inc = new_val.wrapping_sub(orig);
-                    best = Some(match best {
-                        Some(b) => if inc < b { inc } else { b },
-                        None => inc,
-                    });
+        // Collect candidate target values from this sequence.
+        let mut candidates: Vec<i64> = Vec::with_capacity(2 * n);
+        for &v in seq.iter() {
+            candidates.push(v);
+            candidates.push(v + 1);
+        }
+        candidates.sort_unstable();
+        candidates.dedup();
+
+        for &new0 in candidates.iter() {
+            if new0 <= orig0 {
+                continue;
+            }
+
+            // Temporarily modify first element.
+            seq[0] = new0;
+
+            // Compute derived scores for this modified sequence.
+            let mod_scores = derived_scores(seq, &score_by_greater);
+
+            // Total scores are sum of three derived scores.
+            let mut total0 = mod_scores[0] + other1[0] + other2[0];
+
+            // Count how many elements have strictly greater total score than element 0.
+            let mut strictly_greater = 0usize;
+            for i in 0..n {
+                let tot_i = mod_scores[i] + other1[i] + other2[i];
+                if tot_i > total0 {
+                    strictly_greater += 1;
                 }
             }
-        }
 
-        a[cat][0] = orig;
+            if strictly_greater <= 7 {
+                let inc = new0 - orig0;
+                best = match best {
+                    None => Some(inc),
+                    Some(cur) => Some(cur.min(inc)),
+                };
+            }
+
+            // Restore original first element before next candidate.
+            seq[0] = orig0;
+        }
     }
 
     match best {
         Some(ans) => println!("{}", ans),
-        None => println!("Saiko"),
+        None => println!("No qualifying increase found"),
     }
 }

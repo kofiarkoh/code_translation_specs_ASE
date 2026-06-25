@@ -14,37 +14,42 @@ fn main() {
 
     let mut out = String::new();
 
-    loop {
-        let n_opt = it.next();
-        if n_opt.is_none() {
-            break; // scanf("%d",&n) != 1
-        }
-        let n: usize = n_opt.unwrap().parse::<i32>().unwrap() as usize;
+    while let Some(tok) = it.next() {
+        let n: usize = match tok.parse::<i32>() {
+            Ok(v) => v as usize,
+            Err(_) => break,
+        };
         if n == 0 {
             break;
         }
 
         for i in 0..n {
-            // C code assumes inputs fit; we mirror that and index directly.
-            numline[i] = it.next().unwrap().parse::<i32>().unwrap();
+            if let Some(t) = it.next() {
+                numline[i] = t.parse::<i32>().unwrap();
+            } else {
+                // If input is truncated, mimic scanf failure by stopping.
+                print!("{out}");
+                return;
+            }
         }
 
         let mut flag: i32 = 1;
         let mut cnt: i32 = 0;
 
         while flag != 0 {
-            // num[i] = 0
+            // reset counts
             for v in num.iter_mut() {
                 *v = 0;
             }
 
-            // num[numline[i]]++
+            // count occurrences: num[numline[i]]++
+            // C code assumes indices are within 0..=100; we preserve behavior by indexing directly.
             for i in 0..n {
                 let idx = numline[i] as usize;
                 num[idx] += 1;
             }
 
-            // tmpline[i] = num[numline[i]]
+            // build tmpline[i] = num[numline[i]]
             for i in 0..n {
                 let idx = numline[i] as usize;
                 tmpline[i] = num[idx];
@@ -63,6 +68,7 @@ fn main() {
             if flag == n as i32 {
                 flag = 0;
             } else {
+                // copy tmpline -> numline
                 for i in 0..n {
                     numline[i] = tmpline[i];
                 }
@@ -73,7 +79,7 @@ fn main() {
         out.push_str(&(cnt - 1).to_string());
         out.push('\n');
         for i in 0..n {
-            if i == n - 1 {
+            if i + 1 == n {
                 out.push_str(&tmpline[i].to_string());
                 out.push('\n');
             } else {

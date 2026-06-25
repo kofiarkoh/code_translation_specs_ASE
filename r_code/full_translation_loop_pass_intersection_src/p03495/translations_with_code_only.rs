@@ -6,7 +6,7 @@ fn merge(a: &mut [i64], left: usize, mid: usize, right: usize) {
     let n1 = mid - left;
     let n2 = right - mid;
 
-    // Allocate temporary arrays with one extra slot for the sentinel.
+    // Allocate with sentinel at the end, mirroring the C code.
     let mut l = vec![0i64; n1 + 1];
     let mut r = vec![0i64; n2 + 1];
 
@@ -44,23 +44,23 @@ fn merge_sort(a: &mut [i64], left: usize, right: usize) {
 }
 
 fn main() {
-    // Read all input (scanf-like whitespace parsing).
+    // Read entire stdin, parse as whitespace-separated tokens (like scanf).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
     let n: usize = match it.next() {
-        Some(v) => v.parse().unwrap(),
+        Some(x) => x.parse().unwrap(),
         None => return,
     };
     let k: usize = it.next().unwrap().parse().unwrap();
 
     // C uses VLA: int A[N]; long long c[N+1];
-    // We only need c for the final computation; A is not used after counting.
+    // We only need c for the rest of the program.
     let mut c = vec![0i64; n + 1];
 
-    // C initializes c[1..=N] to 0; c[0] is left uninitialized.
-    // In Rust we must initialize; setting c[0]=0 is the closest safe choice.
+    // C initializes c[1..=N] to 0; c[0] is left uninitialized but never used.
+    // In Rust we zero-initialize all; this does not affect observable behavior.
     for _ in 0..n {
         let ai: usize = it.next().unwrap().parse().unwrap();
         // The C code assumes 0 <= A[i] <= N; otherwise it would be UB.
@@ -71,15 +71,16 @@ fn main() {
     merge_sort(&mut c, 1, n + 1);
 
     let mut ans: i64 = 0;
-    let _t: i32 = 0; // 't' is computed in C but never used; keep structure minimal.
+    let mut _t: i32 = 0;
 
     // for i = 1; i <= N-K; i++
-    // If K > N, the loop doesn't execute in C (since 1 <= negative is false).
+    // If K > N, the loop does not execute in C (since 1 <= negative is false).
+    // In Rust with usize, guard to preserve that behavior.
     if k <= n {
         for i in 1..=(n - k) {
             if c[i] > 0 {
                 ans += c[i];
-                // t++ in C (unused)
+                _t += 1;
             }
         }
     }

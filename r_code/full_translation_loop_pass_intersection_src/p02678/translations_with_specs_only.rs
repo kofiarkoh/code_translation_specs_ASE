@@ -2,61 +2,52 @@ use std::collections::VecDeque;
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, parse as whitespace-separated integers.
+    // Read entire stdin; undefined behavior on invalid input is acceptable per spec.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let n: usize = match it.next() {
-        Some(x) => x.parse().unwrap(),
-        None => return, // No input; unspecified behavior, but exit quietly.
-    };
+    let n: usize = it.next().unwrap().parse().unwrap();
     let m: usize = it.next().unwrap().parse().unwrap();
 
-    // Fixed internal capacity per spec (no explicit handling if exceeded).
-    // We still allocate based on n; if n > 131072, behavior is not guaranteed.
+    // Build adjacency list for an undirected graph.
     let mut adj: Vec<Vec<usize>> = vec![Vec::new(); n + 1];
-
     for _ in 0..m {
         let a: usize = it.next().unwrap().parse().unwrap();
         let b: usize = it.next().unwrap().parse().unwrap();
-        // Undirected edge stored in both directions.
         adj[a].push(b);
         adj[b].push(a);
     }
 
-    // parent[v] is:
-    // - 0 for vertex 1 (per postconditions),
-    // - a predecessor label in 1..=n for reached vertices v != 1,
-    // - -1 for unreached vertices.
-    let mut parent: Vec<i32> = vec![-1; n + 1];
-    let mut dist: Vec<i32> = vec![-1; n + 1];
-
-    // BFS from vertex 1.
+    // predecessor:
+    // -1 => unreached
+    //  0 => vertex 1 (root)
+    // >0 => predecessor vertex id
+    let mut pred: Vec<i32> = vec![-1; n + 1];
     if n >= 1 {
-        parent[1] = 0;
-        dist[1] = 0;
-        let mut q: VecDeque<usize> = VecDeque::new();
-        q.push_back(1);
+        pred[1] = 0;
+    }
 
-        while let Some(v) = q.pop_front() {
-            let dv = dist[v];
-            for &to in &adj[v] {
-                if dist[to] == -1 {
-                    dist[to] = dv + 1;
-                    parent[to] = v as i32; // assign exactly once
-                    q.push_back(to);
-                }
+    // BFS traversal from vertex 1; each vertex enqueued at most once.
+    let mut q: VecDeque<usize> = VecDeque::new();
+    if n >= 1 {
+        q.push_back(1);
+    }
+
+    while let Some(u) = q.pop_front() {
+        for &v in &adj[u] {
+            if pred[v] == -1 {
+                pred[v] = u as i32;
+                q.push_back(v);
             }
         }
     }
 
-    // Output: success line, then exactly N-1 lines for vertices 2..=N.
-    // The spec does not mandate the exact success text; choose a minimal confirmation.
+    // Output: affirmative completion line, then predecessors for vertices 2..N.
     let mut out = String::new();
     out.push_str("Yes\n");
-    for v in 2..=n {
-        out.push_str(&format!("{}\n", parent[v]));
+    for i in 2..=n {
+        out.push_str(&format!("{}\n", pred[i]));
     }
     print!("{out}");
 }

@@ -1,12 +1,6 @@
 use std::io::{self, Read};
 
-#[derive(Clone, Copy)]
-struct Point {
-    x: i64,
-    y: i64,
-}
-
-fn clamp(v: i64, lo: i64, hi: i64) -> i64 {
+fn clamp_i64(v: i64, lo: i64, hi: i64) -> i64 {
     if v < lo {
         lo
     } else if v > hi {
@@ -17,7 +11,6 @@ fn clamp(v: i64, lo: i64, hi: i64) -> i64 {
 }
 
 fn main() {
-    // Read entire stdin as whitespace-separated integers.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -27,74 +20,66 @@ fn main() {
     loop {
         let n_opt = it.next();
         if n_opt.is_none() {
-            break; // Malformed/incomplete input: unspecified behavior; we just stop.
+            break;
         }
         let n: usize = n_opt.unwrap().parse().unwrap();
         if n == 0 {
             break;
         }
 
-        // Fixed-size storage per spec (<= 101). If violated, behavior is unspecified;
-        // we still attempt to read and compute with a Vec.
-        let mut poly: Vec<Point> = Vec::with_capacity(n);
+        // Spec says at most 101 vertices are supported; we just store what we read.
+        let mut xs: Vec<i64> = Vec::with_capacity(n);
+        let mut ys: Vec<i64> = Vec::with_capacity(n);
+
         for _ in 0..n {
             let x: i64 = it.next().unwrap().parse().unwrap();
             let y: i64 = it.next().unwrap().parse().unwrap();
-            poly.push(Point { x, y });
+            xs.push(x);
+            ys.push(y);
         }
 
-        // Read 4 points defining the window; take min/max of x and y.
-        let mut min_x = i64::MAX;
-        let mut max_x = i64::MIN;
-        let mut min_y = i64::MAX;
-        let mut max_y = i64::MIN;
+        // Read 4 points defining the rectangle via extrema.
+        let mut xmin: i64 = i64::MAX;
+        let mut xmax: i64 = i64::MIN;
+        let mut ymin: i64 = i64::MAX;
+        let mut ymax: i64 = i64::MIN;
+
         for _ in 0..4 {
-            let x: i64 = it.next().unwrap().parse().unwrap();
-            let y: i64 = it.next().unwrap().parse().unwrap();
-            if x < min_x {
-                min_x = x;
+            let a: i64 = it.next().unwrap().parse().unwrap();
+            let b: i64 = it.next().unwrap().parse().unwrap();
+            if a < xmin {
+                xmin = a;
             }
-            if x > max_x {
-                max_x = x;
+            if a > xmax {
+                xmax = a;
             }
-            if y < min_y {
-                min_y = y;
+            if b < ymin {
+                ymin = b;
             }
-            if y > max_y {
-                max_y = y;
+            if b > ymax {
+                ymax = b;
             }
         }
 
-        // Accumulate only vertical edges, as specified.
-        // Original: sum x * (y_start - y_end) over vertical edges.
-        // Clipped: clamp x to [min_x,max_x], clamp y endpoints to [min_y,max_y].
-        let mut orig: i64 = 0;
-        let mut clipped: i64 = 0;
+        let mut cur: i64 = 0;
+        let mut win: i64 = 0;
 
         for i in 0..n {
-            let a = poly[i];
-            let b = poly[(i + 1) % n];
+            let j = if i + 1 == n { 0 } else { i + 1 };
 
-            if a.x == b.x {
-                let x0 = a.x;
-                let y0 = a.y;
-                let y1 = b.y;
+            if xs[i] == xs[j] {
+                // Use i64 arithmetic; overflow behavior is unspecified by the spec,
+                // and the spec assumes intermediates fit in signed 64-bit.
+                cur += xs[i] * (ys[i] - ys[j]);
 
-                // Original contribution.
-                orig = orig.wrapping_add(x0.wrapping_mul(y0.wrapping_sub(y1)));
-
-                // Clamped contribution.
-                let cx = clamp(x0, min_x, max_x);
-                let cy0 = clamp(y0, min_y, max_y);
-                let cy1 = clamp(y1, min_y, max_y);
-                clipped = clipped.wrapping_add(cx.wrapping_mul(cy0.wrapping_sub(cy1)));
-            } else {
-                // Non-vertical edges contribute nothing by spec.
-                // (Behavior only fully defined for axis-aligned polygons.)
+                let a = clamp_i64(xs[i], xmin, xmax);
+                let b = clamp_i64(ys[i], ymin, ymax);
+                let c = clamp_i64(ys[j], ymin, ymax);
+                win += a * (b - c);
             }
         }
 
-        let ans = clipped.wrapping_sub(orig);
+        let ans = win - cur;
         out.push_str(&format!("{ans}\n"));
     }
 

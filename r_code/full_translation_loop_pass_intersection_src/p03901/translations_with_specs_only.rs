@@ -2,10 +2,12 @@ use std::io::{self, Read};
 
 fn expected_value(pos: i64, p: f64) -> f64 {
     if pos % 2 == 0 {
-        // Even: E(pos) = (pos/2)/p
+        // Base rule for even positions: (pos/2) / p
+        // Use floating conversion to preserve fractional behavior.
         (pos as f64 / 2.0) / p
     } else {
-        // Odd: E(pos) = 1 + E(pos-1)*p + E(pos+1)*(1-p)
+        // Recursive rule for odd positions:
+        // 1 + E(pos-1)*p + E(pos+1)*(1-p)
         1.0 + expected_value(pos - 1, p) * p + expected_value(pos + 1, p) * (1.0 - p)
     }
 }
@@ -17,10 +19,9 @@ fn main() {
     let mut it = input.split_whitespace();
     let pos: i64 = it.next().unwrap().parse().unwrap();
     let percent: f64 = it.next().unwrap().parse().unwrap();
+
     let p = percent / 100.0;
 
     let ans = expected_value(pos, p);
-
-    // Match expected fixed precision from samples: 7 digits after decimal.
     println!("{:.7}", ans);
 }

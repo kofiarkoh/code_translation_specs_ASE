@@ -1,46 +1,40 @@
 use std::io::{self, Read};
 
 fn main() {
+    // Read entire stdin; if malformed after a positive length, behavior is unspecified by spec.
     let mut input = String::new();
-    io::stdin().read_to_string(&mut input).ok();
+    io::stdin().read_to_string(&mut input).unwrap();
 
     let mut it = input.split_whitespace();
 
-    let mut out = String::new();
+    let mut outputs = Vec::new();
 
     loop {
         let n_opt = it.next();
-        let n_str = match n_opt {
-            Some(s) => s,
-            None => break, // input exhausted
-        };
-
-        let n: usize = match n_str.parse() {
+        if n_opt.is_none() {
+            // If the dataset length cannot be read, stop with no further output.
+            break;
+        }
+        let n: usize = match n_opt.unwrap().parse() {
             Ok(v) => v,
-            Err(_) => break, // invalid integer => terminate immediately
+            Err(_) => break, // length cannot be read as integer => stop
         };
 
         if n == 0 {
-            break; // terminating length
+            // Terminating dataset: stop with no output for this dataset.
+            break;
         }
 
-        // Specification precondition: 1..=100. If outside, behavior is undefined; we do not add checks.
-        // Fixed maximum capacity of 100 integers.
-        let mut a: [i64; 100] = [0; 100];
-
-        for i in 0..n {
-            let v_str = match it.next() {
-                Some(s) => s,
-                None => return, // cannot provide next required integer => terminate immediately
-            };
-            let v: i64 = match v_str.parse() {
-                Ok(v) => v,
-                Err(_) => return, // invalid integer => terminate immediately
-            };
-            a[i] = v;
+        // Preconditions say n <= 100 and exactly n integers follow; otherwise unspecified.
+        let mut a = Vec::with_capacity(n);
+        for _ in 0..n {
+            let tok = it.next().unwrap();
+            let v: i64 = tok.parse().unwrap();
+            a.push(v);
         }
 
-        // O(n^2) inversion count, constant memory.
+        // Count inversions (adjacent swaps needed for stable bubble-sort-like process).
+        // Quadratic time as per constraints.
         let mut inv: i64 = 0;
         for i in 0..n {
             for j in (i + 1)..n {
@@ -50,9 +44,11 @@ fn main() {
             }
         }
 
-        out.push_str(&inv.to_string());
-        out.push('\n');
+        outputs.push(inv.to_string());
     }
 
-    print!("{out}");
+    print!("{}", outputs.join("\n"));
+    if !outputs.is_empty() {
+        print!("\n");
+    }
 }

@@ -1,4 +1,4 @@
-use std::cmp::max;
+use std::cmp::Ordering;
 use std::io::{self, Read};
 
 const LLINF: i64 = 4154118101919364364;
@@ -32,13 +32,13 @@ fn makepl() -> (Vec<i64>, Vec<i64>, Vec<i64>) {
     (pl, dpl, trpl)
 }
 
-// Smallest integer st such that st*st >= x, with st in [1, 1e9] (as in C).
+// Returns the smallest st such that st*st >= x, with st in [1, 1e9+1] per the C logic.
 fn llsqr(x: i64) -> i64 {
     let mut st: i64 = 1;
     let mut fi: i64 = 1_000_000_000;
     while st <= fi {
         let te = (st + fi) / 2;
-        // In the original C, te*te is within i64 range here (<= 1e18).
+        // In C, te*te is within i64 range here (<= 1e18).
         if te * te < x {
             st = te + 1;
         } else {
@@ -49,18 +49,18 @@ fn llsqr(x: i64) -> i64 {
 }
 
 fn main() {
-    // Read all input as whitespace-separated tokens.
+    // Read all input
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let n: i64 = match it.next() {
-        Some(v) => v.parse().unwrap(),
-        None => return,
-    };
-
     let (pl, dpl, trpl) = makepl();
     let ls = pl.len();
+
+    let n: i64 = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
 
     let mut a: Vec<i64> = Vec::new();
     a.reserve(n as usize);
@@ -71,17 +71,17 @@ fn main() {
         let mut w: i64 = t;
 
         for j in 0..ls {
-            let p = pl[j];
-            let tp = trpl[j];
-            while t % p == 0 {
-                t /= p;
+            let pj = pl[j];
+            while t % pj == 0 {
+                t /= pj;
             }
-            while w % tp == 0 {
-                w /= tp;
+            let tr = trpl[j];
+            while w % tr == 0 {
+                w /= tr;
             }
         }
 
-        if t > 100000 {
+        if t > 100_000 {
             let l = llsqr(t);
             if l * l != t {
                 r += 1;
@@ -99,7 +99,7 @@ fn main() {
 
     a.sort_unstable();
 
-    // Build dat: run-length encoding of sorted a.
+    // Build dat: run-length encoding of sorted a
     let mut dat: Vec<Sd> = Vec::new();
     dat.reserve(a.len() + 1);
 
@@ -121,12 +121,16 @@ fn main() {
         val: cur_val,
         node: cur_cnt,
     });
-    let tlen = dat.len();
-    dat.push(Sd { val: LLINF, node: 0 }); // sentinel, as in C
 
-    let mut tfl = vec![false; tlen + 1];
+    let t_len = dat.len();
+    dat.push(Sd {
+        val: LLINF,
+        node: 0,
+    }); // sentinel like C: dat[t].val = llinf
 
-    for i in 0..tlen {
+    let mut tfl = vec![false; t_len];
+
+    for i in 0..t_len {
         if tfl[i] {
             continue;
         }
@@ -141,24 +145,24 @@ fn main() {
         let mut h: i64 = dat[i].val;
 
         for j in 0..ls {
-            let p = pl[j];
-            while h % p == 0 {
-                h /= p;
+            let pj = pl[j];
+            while h % pj == 0 {
+                h /= pj;
             }
-            if dat[i].val % p == 0 {
+            if dat[i].val % pj == 0 {
                 if dat[i].val % dpl[j] == 0 {
-                    w = w.saturating_mul(p);
+                    w = w.saturating_mul(pj);
                     if w > 10_000_000_000 {
                         w = -1;
                         break;
                     }
                 } else {
-                    w = w.saturating_mul(p);
+                    w = w.saturating_mul(pj);
                     if w > 10_000_000_000 {
                         w = -1;
                         break;
                     }
-                    w = w.saturating_mul(p);
+                    w = w.saturating_mul(pj);
                     if w > 10_000_000_000 {
                         w = -1;
                         break;
@@ -172,7 +176,7 @@ fn main() {
             continue;
         }
 
-        if h > 100000 {
+        if h > 100_000 {
             let l = llsqr(h);
             w = w.saturating_mul(l);
             if w > 10_000_000_000 {
@@ -194,9 +198,9 @@ fn main() {
             continue;
         }
 
-        // Lower_bound on dat[0..tlen) by val, using the sentinel at dat[tlen].
+        // Binary search lower_bound for w in dat[0..t_len)
         let mut st: i64 = 0;
-        let mut fi: i64 = (tlen as i64) - 1;
+        let mut fi: i64 = (t_len as i64) - 1;
         while st <= fi {
             let te = (st + fi) / 2;
             if dat[te as usize].val < w {
@@ -205,15 +209,15 @@ fn main() {
                 fi = te - 1;
             }
         }
-        let idx = st as usize;
+        let st_usize = st as usize;
 
-        if dat[idx].val != w {
+        if dat[st_usize].val != w {
             r += dat[i].node;
             continue;
         }
 
-        tfl[idx] = true;
-        r += max(dat[i].node, dat[idx].node);
+        tfl[st_usize] = true;
+        r += dat[i].node.max(dat[st_usize].node);
     }
 
     print!("{r}\n");

@@ -1,31 +1,5 @@
 use std::io::{self, Read};
 
-fn dfs(
-    r: usize,
-    c: usize,
-    h: usize,
-    w: usize,
-    grid: &[Vec<u8>],
-    visited: &mut [Vec<bool>],
-    ch: u8,
-) {
-    visited[r][c] = true;
-
-    // 4-directional adjacency
-    if r > 0 && !visited[r - 1][c] && grid[r - 1][c] == ch {
-        dfs(r - 1, c, h, w, grid, visited, ch);
-    }
-    if r + 1 < h && !visited[r + 1][c] && grid[r + 1][c] == ch {
-        dfs(r + 1, c, h, w, grid, visited, ch);
-    }
-    if c > 0 && !visited[r][c - 1] && grid[r][c - 1] == ch {
-        dfs(r, c - 1, h, w, grid, visited, ch);
-    }
-    if c + 1 < w && !visited[r][c + 1] && grid[r][c + 1] == ch {
-        dfs(r, c + 1, h, w, grid, visited, ch);
-    }
-}
-
 fn main() {
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
@@ -36,35 +10,64 @@ fn main() {
     loop {
         let h_opt = it.next();
         if h_opt.is_none() {
-            break; // unspecified behavior on input failure; we just stop
+            break; // unspecified behavior; choose to stop
         }
         let h: usize = h_opt.unwrap().parse().unwrap();
         let w: usize = it.next().unwrap().parse().unwrap();
 
+        // Terminating size pair: not specified which values; narrowest reasonable choice is (0, 0).
         if h == 0 && w == 0 {
             break;
         }
 
+        // Read exactly `h` rows; each row has at least `w` characters of meaningful data.
+        // Extra characters are ignored by the region definition.
         let mut grid: Vec<Vec<u8>> = Vec::with_capacity(h);
         for _ in 0..h {
-            let token = it.next().unwrap();
-            // Spec: each row contains at least width characters; behavior otherwise undefined.
-            // We take the first w bytes (assumes single-byte characters as in typical grid problems).
-            let bytes = token.as_bytes();
-            let mut row = Vec::with_capacity(w);
-            row.extend_from_slice(&bytes[..w]);
-            grid.push(row);
+            let row = it.next().unwrap();
+            let bytes = row.as_bytes();
+            let mut r = Vec::with_capacity(w);
+            for j in 0..w {
+                r.push(bytes[j]);
+            }
+            grid.push(r);
         }
 
         let mut visited = vec![vec![false; w]; h];
-        let mut regions: u32 = 0;
 
-        for r in 0..h {
-            for c in 0..w {
-                if !visited[r][c] {
-                    regions = regions.wrapping_add(1);
-                    let ch = grid[r][c];
-                    dfs(r, c, h, w, &grid, &mut visited, ch);
+        // Recursive DFS as implied by the specification (stack depth availability is a precondition).
+        fn dfs(
+            i: usize,
+            j: usize,
+            h: usize,
+            w: usize,
+            grid: &Vec<Vec<u8>>,
+            visited: &mut Vec<Vec<bool>>,
+            ch: u8,
+        ) {
+            visited[i][j] = true;
+
+            if i > 0 && !visited[i - 1][j] && grid[i - 1][j] == ch {
+                dfs(i - 1, j, h, w, grid, visited, ch);
+            }
+            if i + 1 < h && !visited[i + 1][j] && grid[i + 1][j] == ch {
+                dfs(i + 1, j, h, w, grid, visited, ch);
+            }
+            if j > 0 && !visited[i][j - 1] && grid[i][j - 1] == ch {
+                dfs(i, j - 1, h, w, grid, visited, ch);
+            }
+            if j + 1 < w && !visited[i][j + 1] && grid[i][j + 1] == ch {
+                dfs(i, j + 1, h, w, grid, visited, ch);
+            }
+        }
+
+        let mut regions: u32 = 0;
+        for i in 0..h {
+            for j in 0..w {
+                if !visited[i][j] {
+                    regions += 1;
+                    let ch = grid[i][j];
+                    dfs(i, j, h, w, &grid, &mut visited, ch);
                 }
             }
         }

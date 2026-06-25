@@ -16,9 +16,7 @@ fn find_not_zero(diff: &[u8], start: usize) -> i32 {
 fn rotate_count(diff: &[u8; 10], acc: i32) {
     let n = unsafe { N };
 
-    let mut pos: i32 = 0;
-    pos = find_not_zero(diff, pos as usize);
-
+    let mut pos: i32 = find_not_zero(diff, 0);
     if pos == -1 {
         unsafe {
             if MIN_ > acc {
@@ -31,11 +29,13 @@ fn rotate_count(diff: &[u8; 10], acc: i32) {
     let pos_usize = pos as usize;
     let offs = diff[pos_usize];
 
-    let mut diff2 = *diff; // memcpy(diff2, diff, 10)
+    // C code uses memcpy(diff2, diff, 10) regardless of n; preserve that.
+    let mut diff2 = *diff;
 
     for i in pos_usize..n {
-        // diff2[i] = (diff2[i] + 10 - offs) % 10; with u8 wrap semantics
-        let v = diff2[i].wrapping_add(10).wrapping_sub(offs) % 10;
+        // Emulate C's char arithmetic but keep it well-defined:
+        // diff2[i] = (diff2[i] + 10 - offs) % 10, with values 0..9.
+        let v = (diff2[i] as i32 + 10 - offs as i32).rem_euclid(10) as u8;
         diff2[i] = v;
         rotate_count(&diff2, acc + 1);
     }
@@ -43,8 +43,9 @@ fn rotate_count(diff: &[u8; 10], acc: i32) {
 
 fn calc_diff(init: &[u8], unlock: &[u8], diff: &mut [u8; 10], n: usize) {
     for i in 0..n {
-        // C uses signed char arithmetic; emulate with i16 then normalize to 0..9.
-        let mut d = (unlock[i] as i16) - (init[i] as i16);
+        // C: d = unlock[i] - init[i]; if(d<0) d+=10; diff[i]=d;
+        // Here init/unlock are ASCII digits; subtraction yields 0..9 or negative.
+        let mut d = unlock[i] as i32 - init[i] as i32;
         if d < 0 {
             d += 10;
         }
@@ -53,54 +54,53 @@ fn calc_diff(init: &[u8], unlock: &[u8], diff: &mut [u8; 10], n: usize) {
 }
 
 fn main() {
-    // Token-based input to mimic scanf("%d") / scanf("%s")
+    // Read entire stdin and tokenize like scanf would (whitespace-separated).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    while let Some(n_tok) = it.next() {
-        let n_val: i32 = match n_tok.parse() {
-            Ok(v) => v,
-            Err(_) => break,
-        };
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n_val: i32 = n_opt.unwrap().parse().unwrap();
         if n_val == 0 {
             break;
         }
         let n = n_val as usize;
         unsafe { N = n; }
 
-        let init_s = match it.next() {
-            Some(s) => s,
-            None => break,
-        };
-        let unlock_s = match it.next() {
-            Some(s) => s,
-            None => break,
-        };
+        let init_s = it.next().unwrap_or("");
+        let unlock_s = it.next().unwrap_or("");
 
-        // C arrays are size 10; strings are read with %s (no bounds check in C).
-        // Here we take bytes; behavior for longer-than-10 inputs is not emulated.
-        let init_b = init_s.as_bytes();
-        let unlock_b = unlock_s.as_bytes();
+        // C uses fixed arrays of size 10; preserve that.
+        let mut init = [0u8; 10];
+        let mut unlock = [0u8; 10];
 
-        // memcmp(init, unlock, n)
-        let mut same = true;
-        for i in 0..n {
-            if init_b[i] != unlock_b[i] {
-                same = false;
-                break;
-            }
+        // Copy bytes; if shorter, remaining bytes stay 0 (matches uninitialized in C
+        // only loosely, but inputs are expected to be length n).
+        for (i, b) in init_s.as_bytes().iter().take(10).enumerate() {
+            init[i] = *b;
+        }
+        for (i, b) in unlock_s.as_bytes().iter().take(10).enumerate() {
+            unlock[i] = *b;
         }
 
-        if same {
-            print!("0\n");
+        // C: if(0==memcmp(init,unlock,n)) printf("0\n");
+        if init[..n] == unlock[..n] {
+            out.push_str("0\n");
         } else {
             unsafe { MIN_ = 99; }
             let mut diff = [0u8; 10];
-            calc_diff(init_b, unlock_b, &mut diff, n);
+            calc_diff(&init, &unlock, &mut diff, n);
             rotate_count(&diff, 0);
             let ans = unsafe { MIN_ };
-            print!("{}\n", ans);
+            out.push_str(&format!("{ans}\n"));
         }
     }
+
+    print!("{out}");
 }

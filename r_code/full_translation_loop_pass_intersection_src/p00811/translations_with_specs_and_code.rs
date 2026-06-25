@@ -1,10 +1,14 @@
 use std::io::{self, Read};
 
-fn compute_primes_under_100000() -> Vec<i32> {
+fn generate_primes_under_100000() -> Vec<i32> {
     const N: usize = 100_000;
     let mut is_prime = vec![true; N];
-    is_prime[0] = false;
-    is_prime[1] = false;
+    if N > 0 {
+        is_prime[0] = false;
+    }
+    if N > 1 {
+        is_prime[1] = false;
+    }
 
     let mut primes = Vec::new();
     for i in 2..N {
@@ -21,12 +25,12 @@ fn compute_primes_under_100000() -> Vec<i32> {
 }
 
 fn main() {
-    // Read all input; terminate silently if fewer than 3 integers are available.
+    // Read entire stdin; stop if we can't read full triples.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let primes = compute_primes_under_100000();
+    let primes = generate_primes_under_100000();
     let primenum = primes.len();
 
     let mut out = String::new();
@@ -36,15 +40,15 @@ fn main() {
         let a_opt = it.next();
         let b_opt = it.next();
         if m_opt.is_none() || a_opt.is_none() || b_opt.is_none() {
-            break;
+            break; // input ended or incomplete record
         }
 
         let m: i64 = m_opt.unwrap().parse::<i64>().unwrap();
         let a: i64 = a_opt.unwrap().parse::<i64>().unwrap();
         let b: i64 = b_opt.unwrap().parse::<i64>().unwrap();
 
-        if (m | a | b) == 0 {
-            break;
+        if ((m as i64) | (a as i64) | (b as i64)) == 0 {
+            break; // terminating triple
         }
 
         let mut best_p: i32 = 0;
@@ -54,8 +58,7 @@ fn main() {
         for i in 0..primenum {
             let pi = primes[i] as i64;
 
-            // Binary search for the largest j such that:
-            // primes[i] * primes[j] <= m AND a * primes[j] <= primes[i] * b
+            // Binary search for the largest j in [i, primenum-1] satisfying both constraints.
             let mut l: isize = i as isize;
             let mut r: isize = (primenum as isize) - 1;
             while l <= r {
@@ -69,12 +72,13 @@ fn main() {
                 }
             }
 
-            // Candidate index is l-1; must also satisfy j >= i (i.e., l > i).
+            // Candidate index is l-1; must be >= i.
             if l > i as isize {
                 let j = (l - 1) as usize;
                 let pj = primes[j] as i64;
-                let prod = pi * pj;
 
+                // Re-check constraints (mirrors C code) and update only on strictly larger product.
+                let prod = pi * pj;
                 if prod <= m && a * pj <= pi * b && prod > best_prod {
                     best_prod = prod;
                     best_p = primes[i];

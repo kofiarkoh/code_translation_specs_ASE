@@ -6,22 +6,17 @@ fn main() {
 
     let mut it = input.split_whitespace();
 
-    // If fewer than three integers are present, behavior is unspecified by the spec.
-    // We choose to produce no output and exit successfully.
-    let _first: i128 = match it.next().and_then(|s| s.parse().ok()) {
-        Some(v) => v,
-        None => return,
-    };
-    let second: i128 = match it.next().and_then(|s| s.parse().ok()) {
-        Some(v) => v,
-        None => return,
-    };
-    let third: i128 = match it.next().and_then(|s| s.parse().ok()) {
-        Some(v) => v,
-        None => return,
-    };
+    // N is read but does not affect the decision.
+    let _n: i32 = it.next().unwrap().parse().unwrap();
+    let a: i32 = it.next().unwrap().parse().unwrap();
+    let b: i32 = it.next().unwrap().parse().unwrap();
 
-    let diff = third - second;
+    // Specification: if overflow occurs in B - A, behavior is unspecified.
+    // In Rust, we use wrapping_sub to avoid panics in debug builds; this keeps
+    // behavior well-defined while still matching the spec's "unspecified on overflow"
+    // in the sense that no particular overflow behavior is required.
+    let diff = b.wrapping_sub(a);
+
     if diff % 2 == 0 {
         println!("Alice");
     } else {

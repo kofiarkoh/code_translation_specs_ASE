@@ -1,7 +1,7 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, parse as i64 (matches C long long on typical platforms).
+    // Read entire stdin, parse as i64 (C long long).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -10,81 +10,75 @@ fn main() {
         Some(v) => v.parse().unwrap(),
         None => return,
     };
+    let n_usize = n as usize;
 
-    // Arrays sized to match C: A[100001], diff[100001]
-    // C writes A[N] = A[0], and uses indices 0..=N, so N must be <= 100000.
-    // We keep the same fixed capacity; if N is out of range, C would have UB.
+    // Arrays sized like the C code (100001), and we will index up to N.
     let mut a = vec![0i64; 100001];
-    for i in 0..n {
-        if let Some(v) = it.next() {
-            a[i as usize] = v.parse().unwrap();
-        } else {
-            a[i as usize] = 0; // if input is short, mimic "whatever" minimally; C would be undefined.
-        }
+    for i in 0..n_usize {
+        a[i] = it.next().unwrap().parse::<i64>().unwrap();
     }
-    a[n as usize] = a[0];
+    a[n_usize] = a[0];
 
     let mut sum: i64 = 0;
     let mut diff = vec![0i64; 100001];
 
-    for i in 1..=n {
-        sum = sum.wrapping_add(a[i as usize]);
-        diff[i as usize] = a[i as usize].wrapping_sub(a[(i - 1) as usize]);
+    // C loop: for (i = 1; i <= N; i++)
+    for i in 1..=n_usize {
+        // Use wrapping to emulate C signed overflow behavior as closely as possible.
+        sum = sum.wrapping_add(a[i]);
+        diff[i] = a[i].wrapping_sub(a[i - 1]);
     }
 
-    // denom = N*(N+1)/2 with C signed overflow semantics (UB in C),
-    // but we use wrapping to emulate typical two's-complement behavior.
+    // denom = N*(N+1)/2 with wrapping like C.
     let denom = n
         .wrapping_mul(n.wrapping_add(1))
         .wrapping_div(2);
 
-    if denom == 0 {
-        // In C, sum % 0 is UB. We choose to avoid panic and follow a conservative "NO".
+    if denom == 0 || sum % denom != 0 {
         print!("NO\n");
+        io::stdout().flush().ok();
         return;
     }
 
-    if sum % denom != 0 {
-        print!("NO\n");
-    } else {
-        sum /= denom;
+    sum = sum.wrapping_div(denom);
 
-        diff[0] = 0;
-        let mut i: i64 = 1;
-        while i <= n {
-            let idx = i as usize;
-            // (sum - diff[i]) / N, using wrapping for subtraction; division by 0 handled below.
-            let numer = sum.wrapping_sub(diff[idx]);
-            if n == 0 {
-                // Would be UB in C; avoid panic.
-                break;
-            }
-            diff[idx] = numer / n;
+    diff[0] = 0;
+    let mut i_idx: usize = 1;
+    while i_idx <= n_usize {
+        // C: diff[i] = (sum - diff[i]) / N;
+        let val = sum.wrapping_sub(diff[i_idx]).wrapping_div(n);
+        diff[i_idx] = val;
 
-            if diff[idx] < 0 || diff[idx] > sum {
-                break;
-            } else {
-                diff[0] = diff[0].wrapping_add(diff[idx]);
-            }
-            i += 1;
-        }
-
-        if i <= n || diff[0] != sum {
-            print!("NO\n");
+        if diff[i_idx] < 0 || diff[i_idx] > sum {
+            break;
         } else {
-            // for (i = 1; i <= N; i++) A[N] -= diff[i] * (N - i + 1);
-            for i in 1..=n {
-                let term = diff[i as usize].wrapping_mul(n.wrapping_sub(i).wrapping_add(1));
-                a[n as usize] = a[n as usize].wrapping_sub(term);
-            }
-            if a[n as usize] != 0 {
-                // Note: C prints "No\n" (lowercase o) here.
-                print!("No\n");
-            } else {
-                print!("YES\n");
-            }
+            diff[0] = diff[0].wrapping_add(diff[i_idx]);
         }
+        i_idx += 1;
     }
 
-    // stdout is line-buffered typically; explicit flush not necessary in Rust for normal exit.
+    if i_idx <= n_usize || diff[0] != sum {
+        print!("NO\n");
+        io::stdout().flush().ok();
+        return;
+    }
+
+    // C: for (i = 1; i <= N; i++) A[N] -= diff[i] * (N - i + 1);
+    for i in 1..=n_usize {
+        let factor = n.wrapping_sub(i as i64).wrapping_add(1);
+        let sub = diff[i].wrapping_mul(factor);
+        a[n_usize] = a[n_usize].wrapping_sub(sub);
+    }
+
+    if a[n_usize] != 0 {
+        // Note: C prints "No\n" (lowercase o) here; preserve exactly.
+        print!("No\n");
+    } else {
+        print!("YES\n");
+    }
+
+    io::stdout().flush().ok();
 }
+
+// Needed for flush()
+use std::io::Write;

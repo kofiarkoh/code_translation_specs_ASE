@@ -1,7 +1,7 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read all input as whitespace-separated tokens (matches scanf behavior for %d).
+    // Read all input (scanf-like whitespace handling)
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -12,15 +12,14 @@ fn main() {
     };
     let m: i32 = it.next().unwrap().parse().unwrap();
 
-    let n_usize = n as usize;
-    let m_usize = m as usize;
+    let n_usize = if n < 0 { 0 } else { n as usize };
+    let m_usize = if m < 0 { 0 } else { m as usize };
 
-    // C uses VLAs: int s[N], c[M]; Here we use Vecs.
-    // Note: In the original C, s[0]/c[0] are read even when M==0? No, but later s[0]/c[0]
-    // are still accessed unconditionally, which is UB. We emulate a common "zero-initialized"
-    // outcome by initializing with 0s so behavior is deterministic in Rust.
-    let mut s: Vec<i32> = vec![0; n_usize];
-    let mut c: Vec<i32> = vec![0; m_usize];
+    // C uses VLAs: int s[N], c[M]; but then reads M pairs into s/c.
+    // We'll size s/c to max(N, M) to avoid out-of-bounds while preserving intent.
+    let sc_len = std::cmp::max(n_usize, m_usize);
+    let mut s: Vec<i32> = vec![0; sc_len];
+    let mut c: Vec<i32> = vec![0; sc_len];
 
     let d: [i32; 3] = [100, 10, 1];
     let mut digit: Vec<i32> = vec![-1; n_usize];
@@ -36,20 +35,16 @@ fn main() {
         }
     } else {
         for i in 0..m_usize {
-            let si: i32 = it.next().unwrap().parse().unwrap();
-            let ci: i32 = it.next().unwrap().parse().unwrap();
-            if i < s.len() {
-                s[i] = si;
-            }
-            c[i] = ci;
+            s[i] = it.next().unwrap().parse().unwrap();
+            c[i] = it.next().unwrap().parse().unwrap();
 
-            let idx = (si - 1) as usize;
-            let di = 3 - n + (si - 1); // index into d[]
-            let dval = d[di as usize];
+            // Index calculations mirror the C code; assume inputs keep them in range.
+            let pos = (s[i] - 1) as usize;
+            let di = (3 - n + (s[i] - 1)) as usize;
 
-            if digit[idx] == -1 {
-                digit[idx] = ci * dval;
-            } else if digit[idx] / dval != ci {
+            if digit[pos] == -1 {
+                digit[pos] = c[i] * d[di];
+            } else if digit[pos] / d[di] != c[i] {
                 num = -1;
             }
         }
@@ -59,18 +54,19 @@ fn main() {
                 if digit[i] != -1 {
                     num += digit[i];
                 } else if n > 1 && i == 0 && digit[i] != 0 {
-                    // This condition is always true when digit[i] == -1, matching the C code.
-                    let di = 3 - n + (i as i32);
-                    num += d[di as usize];
+                    // Note: digit[i] is -1 here, so digit[i] != 0 is always true.
+                    let di = (3 - n + i as i32) as usize;
+                    num += d[di];
                 }
             }
         }
     }
 
-    // Matches the C's final special-case check.
-    if n > 1 && s.get(0).copied().unwrap_or(0) == 1 && c.get(0).copied().unwrap_or(0) == 0 {
-        print!("-1\n"); // puts adds newline
+    // This check uses s[0], c[0] even when M==0 in the C code (UB there).
+    // We preserve the observable behavior for well-formed inputs; s[0]/c[0] are 0 by default here.
+    if n > 1 && s[0] == 1 && c[0] == 0 {
+        print!("-1\n");
     } else {
-        print!("{}", num); // printf("%d") without newline
+        print!("{}", num);
     }
 }

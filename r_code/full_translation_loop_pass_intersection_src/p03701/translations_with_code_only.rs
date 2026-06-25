@@ -11,16 +11,17 @@ fn main() {
         None => return,
     };
 
-    // C uses `int` (typically 32-bit) and relies on its arithmetic.
-    // Use i32 and wrapping ops to emulate potential overflow behavior.
+    // C uses VLA `int s[n]`; in Rust use Vec<i32>.
+    // Use i32 to match typical C `int` behavior; arithmetic uses wrapping to emulate overflow.
     let mut s: Vec<i32> = vec![0; n];
     let mut k: i32 = 0;
     let mut minv: i32 = 101;
 
     for i in 0..n {
-        let mut x: i32 = it.next().unwrap().parse().unwrap();
-        s[i] = x;
+        let val: i32 = it.next().unwrap().parse().unwrap();
+        s[i] = val;
 
+        // Emulate potential signed overflow of C `int` as wrapping.
         k = k.wrapping_add(s[i]);
 
         if s[i] % 10 == 0 {

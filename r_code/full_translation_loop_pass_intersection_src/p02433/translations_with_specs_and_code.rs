@@ -1,10 +1,10 @@
 use std::io::{self, Read};
 use std::process;
 
-/// Internal end marker value (not printed, not erasable).
+/// Internal end-marker value (matches C code).
 const END: i32 = 1_000_000_001;
 
-#[derive(Clone)]
+#[derive(Clone, Copy, Debug)]
 struct Node {
     data: i32,
     prev: Option<usize>,
@@ -18,6 +18,7 @@ struct List {
 
 impl List {
     fn new() -> Self {
+        // Start with only the end-marker node; cursor points to it.
         let mut nodes = Vec::new();
         nodes.push(Node {
             data: END,
@@ -35,29 +36,32 @@ impl List {
         self.nodes[idx].prev.is_none()
     }
 
-    /// Insert `data` immediately before the cursor and move cursor to the new node.
-    fn insert(&mut self, data: i32) {
+    fn insert_before_cursor(&mut self, data: i32) {
         let cur = self.cursor;
         let new_idx = self.nodes.len();
-
-        let prev = self.nodes[cur].prev;
-
         self.nodes.push(Node {
             data,
-            prev,
-            next: Some(cur),
+            prev: None,
+            next: None,
         });
 
-        // Link new node into list
-        self.nodes[cur].prev = Some(new_idx);
-        if let Some(p) = prev {
-            self.nodes[p].next = Some(new_idx);
+        if self.is_front(cur) {
+            // New becomes front, points to current.
+            self.nodes[new_idx].next = Some(cur);
+            self.nodes[cur].prev = Some(new_idx);
+            self.cursor = new_idx;
+            return;
         }
 
+        // Splice between prev and cursor.
+        let prev = self.nodes[cur].prev.expect("cursor not front implies prev exists");
+        self.nodes[new_idx].prev = Some(prev);
+        self.nodes[new_idx].next = Some(cur);
+        self.nodes[prev].next = Some(new_idx);
+        self.nodes[cur].prev = Some(new_idx);
         self.cursor = new_idx;
     }
 
-    /// Move cursor by signed offset; on invalid movement prints diagnostic and exits non-zero.
     fn move_cursor(&mut self, mut d: i32) {
         if d == 0 {
             return;
@@ -67,11 +71,12 @@ impl List {
             while d < 0 {
                 let cur = self.cursor;
                 if self.is_front(cur) {
-                    // Must match C output exactly.
+                    // Exact error message and newline per spec/C.
                     print!("Cursor is already front.\n");
+                    // Terminate immediately with non-zero status.
                     process::exit(1);
                 }
-                self.cursor = self.nodes[cur].prev.expect("non-front must have prev");
+                self.cursor = self.nodes[cur].prev.unwrap();
                 d += 1;
             }
             return;
@@ -83,19 +88,20 @@ impl List {
                 print!("Cursor has no next.\n");
                 process::exit(2);
             }
-            self.cursor = self.nodes[cur].next.expect("has next");
+            self.cursor = self.nodes[cur].next.unwrap();
             d -= 1;
         }
     }
 
-    /// Erase element at cursor if not END marker; cursor becomes next element.
-    fn erase(&mut self) {
+    fn erase_at_cursor(&mut self) {
         let cur = self.cursor;
         if self.is_end(cur) {
-            return;
+            return; // end marker is never removed
         }
 
-        let next = self.nodes[cur].next.expect("non-end nodes always have a next (at least END)");
+        let next = self.nodes[cur]
+            .next
+            .expect("non-end node must have a successor (end marker at least)");
 
         if self.is_front(cur) {
             // Remove front: next becomes new front.
@@ -104,67 +110,120 @@ impl List {
             return;
         }
 
-        let prev = self.nodes[cur].prev.expect("non-front must have prev");
+        let prev = self.nodes[cur].prev.unwrap();
         self.nodes[prev].next = Some(next);
         self.nodes[next].prev = Some(prev);
         self.cursor = next;
     }
 
-    /// Print from front to end, excluding END marker, one integer per line.
-    fn print_all(&self) {
-        // Move to front
+    fn print_from_front(&self) {
+        // Move to front from cursor.
         let mut idx = self.cursor;
         while let Some(p) = self.nodes[idx].prev {
             idx = p;
         }
 
-        // Follow C's do/while structure: it prints current if not END, then advances,
-        // and stops when current->next == NULL (i.e., at last node).
+        // Print all non-marker integers in order.
+        // The C code's loop structure is a bit odd, but intended behavior per spec
+        // is to print all non-marker nodes from front to back.
         loop {
             if self.nodes[idx].data != END {
                 println!("{}", self.nodes[idx].data);
-                idx = self.nodes[idx].next.expect("non-last must have next");
             }
-            if self.nodes[idx].next.is_none() {
-                break;
+            match self.nodes[idx].next {
+                Some(n) => idx = n,
+                None => break,
             }
         }
     }
 }
 
-fn main() {
-    // Read entire stdin; C uses line-based fgets with small buffer, but spec assumes lines fit.
-    let mut input = String::new();
-    io::stdin().read_to_string(&mut input).unwrap();
-    let mut it = input.split_whitespace();
+/// C `atoi`-like parsing: parse optional whitespace, optional sign, then digits.
+/// If no conversion can be performed, returns 0.
+fn atoi_c(s: &str) -> i32 {
+    let bytes = s.as_bytes();
+    let mut i = 0;
 
-    let q: usize = match it.next() {
-        Some(s) => s.parse().unwrap(),
-        None => return,
-    };
+    // Skip leading whitespace (C isspace-like for common ASCII whitespace).
+    while i < bytes.len() && matches!(bytes[i], b' ' | b'\n' | b'\r' | b'\t' | 0x0b | 0x0c) {
+        i += 1;
+    }
 
-    let mut list = List::new();
-
-    for _ in 0..q {
-        let cmd = it.next().unwrap(); // precondition: present and recognized
-        match cmd.as_bytes().get(0).copied() {
-            Some(b'0') => {
-                let v: i32 = it.next().unwrap().parse().unwrap();
-                list.insert(v);
-            }
-            Some(b'1') => {
-                let d: i32 = it.next().unwrap().parse().unwrap();
-                list.move_cursor(d);
-            }
-            Some(b'2') => {
-                list.erase();
-            }
-            _ => {
-                // Spec says input validity is assumed; behavior for unrecognized is not inferable.
-                // We ignore, matching the C code's effective behavior.
-            }
+    let mut sign: i64 = 1;
+    if i < bytes.len() {
+        if bytes[i] == b'+' {
+            i += 1;
+        } else if bytes[i] == b'-' {
+            sign = -1;
+            i += 1;
         }
     }
 
-    list.print_all();
+    let mut any = false;
+    let mut val: i64 = 0;
+    while i < bytes.len() {
+        let c = bytes[i];
+        if (b'0'..=b'9').contains(&c) {
+            any = true;
+            val = val * 10 + (c - b'0') as i64;
+            i += 1;
+        } else {
+            break;
+        }
+    }
+
+    if !any {
+        return 0;
+    }
+
+    // The spec assumes values fit in C int; we clamp to i32 range to avoid panic.
+    let v = sign * val;
+    if v > i32::MAX as i64 {
+        i32::MAX
+    } else if v < i32::MIN as i64 {
+        i32::MIN
+    } else {
+        v as i32
+    }
+}
+
+fn main() {
+    // Read entire stdin; commands are line-based but only a[0] and a[2..] matter.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut lines = input.lines();
+
+    let q_line = lines.next().unwrap_or("");
+    let mut q = atoi_c(q_line);
+
+    let mut list = List::new();
+
+    while q > 0 {
+        let line = lines.next().unwrap_or("");
+        let bytes = line.as_bytes();
+        let cmd = bytes.first().copied().unwrap_or(b'\0') as char;
+
+        // Argument is parsed starting at index 2 (ignoring index 1), like `atoi(a+2)`.
+        let arg_str = if line.len() >= 2 { &line[2..] } else { "" };
+        match cmd {
+            '0' => {
+                let v = atoi_c(arg_str);
+                list.insert_before_cursor(v);
+            }
+            '1' => {
+                let d = atoi_c(arg_str);
+                list.move_cursor(d);
+            }
+            '2' => {
+                list.erase_at_cursor();
+            }
+            _ => {
+                // Unspecified behavior for malformed commands; do nothing (closest benign behavior).
+            }
+        }
+
+        q -= 1;
+    }
+
+    list.print_from_front();
 }

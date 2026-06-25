@@ -1,50 +1,34 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Input is "unsigned decimal integers separated by non-digit characters".
-    // We implement a simple scanner that extracts maximal digit runs as u32.
+    // Read entire stdin as whitespace-separated tokens.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
-    let bytes = input.as_bytes();
-    let mut idx: usize = 0;
+    let mut it = input.split_whitespace();
 
-    fn next_u32(bytes: &[u8], idx: &mut usize) -> u32 {
-        while *idx < bytes.len() && !bytes[*idx].is_ascii_digit() {
-            *idx += 1;
-        }
-        let mut val: u32 = 0;
-        while *idx < bytes.len() && bytes[*idx].is_ascii_digit() {
-            val = val
-                .wrapping_mul(10)
-                .wrapping_add((bytes[*idx] - b'0') as u32);
-            *idx += 1;
-        }
-        val
-    }
+    let n: usize = match it.next() {
+        Some(t) => t.parse().unwrap(),
+        None => return, // No input; unspecified behavior, but exit quietly.
+    };
 
-    let n_u32 = next_u32(bytes, &mut idx);
-    let n = n_u32 as usize;
+    // Adjacency list: for each U, store outgoing edges (V, W).
+    let mut adj: Vec<Vec<(usize, i64)>> = vec![Vec::new(); n];
 
-    // Fixed maximum of 100 outgoing edges stored per vertex.
-    // We store adjacency as Vec<Vec<(v, w)>>; preconditions guarantee k <= 100.
-    let mut adj: Vec<Vec<(usize, i32)>> = vec![Vec::new(); n];
-
+    // Input provides exactly N vertex descriptions, each U exactly once (per spec).
     for _ in 0..n {
-        let u = next_u32(bytes, &mut idx) as usize;
-        let k = next_u32(bytes, &mut idx) as usize;
-        let mut edges: Vec<(usize, i32)> = Vec::with_capacity(k);
+        let u: usize = it.next().unwrap().parse().unwrap();
+        let k: usize = it.next().unwrap().parse().unwrap();
+        let mut edges = Vec::with_capacity(k);
         for _ in 0..k {
-            let v = next_u32(bytes, &mut idx) as usize;
-            let w = next_u32(bytes, &mut idx) as i32; // non-negative per preconditions
+            let v: usize = it.next().unwrap().parse().unwrap();
+            let w: i64 = it.next().unwrap().parse().unwrap();
             edges.push((v, w));
         }
-        // Each vertex’s adjacency description is provided at most once (precondition).
         adj[u] = edges;
     }
 
-    // Dijkstra with O(n^2 + m) selection by scanning all vertices.
-    // Costs are either -1 (unreached) or non-negative i32.
-    let mut dist: Vec<i32> = vec![-1; n];
+    // Dijkstra-like O(N^2 + E) using -1 sentinel for "unknown/unreachable".
+    let mut dist: Vec<i64> = vec![-1; n];
     let mut visited: Vec<bool> = vec![false; n];
 
     if n > 0 {
@@ -52,56 +36,57 @@ fn main() {
     }
 
     for _ in 0..n {
-        // Select unvisited vertex with smallest non-negative dist.
-        let mut min_v: Option<usize> = None;
-        let mut min_d: i32 = 0;
+        // Select unvisited vertex with smallest nonnegative dist.
+        let mut u_opt: Option<usize> = None;
+        let mut best: i64 = 0;
 
-        for v in 0..n {
-            if visited[v] {
+        for i in 0..n {
+            if visited[i] {
                 continue;
             }
-            let d = dist[v];
+            let d = dist[i];
             if d < 0 {
                 continue;
             }
-            match min_v {
+            match u_opt {
                 None => {
-                    min_v = Some(v);
-                    min_d = d;
+                    u_opt = Some(i);
+                    best = d;
                 }
                 Some(_) => {
-                    if d < min_d {
-                        min_v = Some(v);
-                        min_d = d;
+                    if d < best {
+                        u_opt = Some(i);
+                        best = d;
                     }
                 }
             }
         }
 
-        let u = match min_v {
-            None => break, // no more reachable vertices
+        let u = match u_opt {
             Some(u) => u,
+            None => break, // No more reachable unvisited vertices.
         };
 
         visited[u] = true;
 
         // Relax outgoing edges.
-        // Preconditions guarantee no overflow for any reachable shortest-path cost.
         let du = dist[u];
         for &(v, w) in &adj[u] {
             if visited[v] {
                 continue;
             }
-            let cand = du + w;
-            if dist[v] < 0 || cand < dist[v] {
-                dist[v] = cand;
+            // Preconditions guarantee nonnegative weights and no overflow in computed costs.
+            let nd = du + w;
+            if dist[v] < 0 || nd < dist[v] {
+                dist[v] = nd;
             }
         }
     }
 
+    // Output: for each vertex i, "i dist[i]" with -1 for unreachable.
     let mut out = String::new();
     for i in 0..n {
         out.push_str(&format!("{} {}\n", i, dist[i]));
     }
-    print!("{}", out);
+    print!("{out}");
 }

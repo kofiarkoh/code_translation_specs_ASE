@@ -4,7 +4,7 @@ const INF: i32 = 1001001001;
 const QSIZE: usize = 1001001;
 
 fn main() {
-    // Read entire stdin, tokenize like scanf("%d%d") and scanf("%s")
+    // Read entire stdin and tokenize like scanf("%d%d") / scanf("%s")
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -19,7 +19,7 @@ fn main() {
     let mut a: Vec<Vec<u8>> = vec![vec![0u8; w]; h];
     let mut b: Vec<Vec<i32>> = vec![vec![INF; w]; h];
 
-    // Circular queue of encoded positions (x*10000 + y), matching C encoding.
+    // Ring queue storing x*10000 + y, matching the C encoding.
     let mut que: Vec<i32> = vec![0; QSIZE];
     let mut l: usize = 0;
     let mut r: usize = 0;
@@ -27,7 +27,7 @@ fn main() {
     for i in 0..h {
         let s = it.next().unwrap_or("");
         let bytes = s.as_bytes();
-        // C's scanf("%s") would stop at whitespace; we assume input provides at least w chars.
+        // C code assumes the string length is at least w; we mirror by reading what we got.
         for j in 0..w {
             let ch = bytes[j];
             a[i][j] = ch;
@@ -45,10 +45,9 @@ fn main() {
 
     while r != l {
         let v = que[l];
-        l = (l + 1) % QSIZE;
-
         let x = (v / 10000) as i32;
         let y = (v % 10000) as i32;
+        l = (l + 1) % QSIZE;
 
         for k in 0..4 {
             let nx = x + dx[k];

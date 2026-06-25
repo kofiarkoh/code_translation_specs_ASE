@@ -1,0 +1,79 @@
+You are an expert senior software engineer.
+Given source code, generate a precise, structured behavioral specification that states WHAT the code guarantees, not HOW it achieves it.
+
+Output must use exactly these sections and headings:
+1. Functional Description
+2. Inputs
+3. Outputs
+4. Preconditions
+5. Postconditions
+6. Invariants
+7. Error Handling / Exceptional Behavior
+8. State Transitions (if applicable)
+9. Non-functional Constraints (if inferable)
+
+Content requirements:
+- Be concise and contract-focused; omit incidental or low-level details.
+- Do not reference language/library APIs, format strings, or identifiers.
+- Describe I/O abstractly; never cite exact parsing patterns or format specifiers.
+- Do not restate implementation structure or control flow.
+- If behavior is ambiguous, state explicit assumptions.
+- Avoid extreme assumptions. Capture only behavior implied by the code's observable contract.
+- Return only the nine sections with the exact headings and numbering specified.
+
+Now generate the specification for the code below:
+
+```C
+// AOJ 0648 Art Exhibition
+// 2018.3.29 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+
+//#define getchar_unlocked()  getchar()
+int in()	/* 整数値の入力 */
+{
+	int n = 0, c = getchar_unlocked();
+	do n = 10*n + (c & 0xf), c = getchar_unlocked(); while (c >= '0');
+	return n;
+}
+
+long long big()		/* long long 整数値の入力 */
+{
+	long long n = 0, c = getchar_unlocked();
+	do n = 10*n + (c & 0xf), c = getchar_unlocked(); while (c >= '0');
+	return n;
+}
+
+#define INF 0x1010101010101010LL
+typedef struct { long long a; int b; } T;
+T tbl[500002];
+long long s[500002];
+
+int cmp(T *a, T *b) {
+	if (a->a == b->a) return a->b - b->b;
+	if (a->a < b->a) return -1;
+	return 1;
+}
+
+int main()
+{
+	int N, i;
+	long long t, min, max;
+
+	N = in();
+	for (i = 1; i <= N; i++) tbl[i].a = big(), tbl[i].b = in();
+	qsort(tbl+1, N, sizeof(T), cmp);
+
+	min = INF, max = -INF;
+	for (i = 1; i <= N; i++) {
+		t = s[i-1] - tbl[i].a;
+		if (t < min) min = t;
+		s[i] = s[i-1] + tbl[i].b;
+		t = s[i] - tbl[i].a - min;
+		if (t > max) max = t;
+	}
+	printf("%lld\n", max);
+	return 0;
+}
+```

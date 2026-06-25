@@ -1,97 +1,42 @@
 use std::io::{self, Read};
 
-fn search(s: &[i32], key: i32, mut head: i32, mut tail: i32) -> i32 {
+fn search(s: &[i32], key: i32) -> Option<usize> {
+    // Binary search for exact match.
+    let mut head: isize = 0;
+    let mut tail: isize = s.len() as isize - 1;
     while head <= tail {
         let mid = (head + tail) / 2;
         let v = s[mid as usize];
         if v == key {
-            return mid;
+            return Some(mid as usize);
         } else if v > key {
             tail = mid - 1;
         } else {
             head = mid + 1;
         }
     }
-    -1
+    None
 }
 
-// Lower bound: first index i such that s[i] >= key, in the range [0..=tail].
-// Returns tail+1 if all elements < key.
-// Mirrors the C logic, including its preconditions (notably: called only when cnt>0).
-fn get_lb(s: &[i32], key: i32, mut head: i32, mut tail: i32) -> i32 {
-    // These checks match the C code's early returns.
-    if tail < 0 || s[0] > key {
-        return 0;
-    }
-    if s[tail as usize] < key || head > tail {
-        return tail + 1;
-    }
-
-    while head <= tail {
-        let mid = (head + tail) / 2;
-        let v = s[mid as usize];
-        if v < key {
-            head = mid + 1;
+fn lower_bound(s: &[i32], key: i32) -> usize {
+    // First index i such that s[i] >= key, or s.len() if none.
+    // This is the safe/idiomatic equivalent of the C getLB, without relying on
+    // unspecified behavior (like reading s[mid-1] when mid==0).
+    let mut lo: usize = 0;
+    let mut hi: usize = s.len();
+    while lo < hi {
+        let mid = (lo + hi) / 2;
+        if s[mid] < key {
+            lo = mid + 1;
         } else {
-            // v >= key
-            // In C: if (s[mid-1] < key) return mid; else tail = mid-1;
-            // Note: mid==0 would read s[-1] in C (UB), but the C code avoids
-            // reaching this branch when s[0] > key (handled above). If s[0] == key,
-            // then mid can be 0 and the intended lower bound is 0.
-            if mid == 0 {
-                return 0;
-            }
-            if s[(mid - 1) as usize] < key {
-                return mid;
-            } else {
-                tail = mid - 1;
-            }
+            hi = mid;
         }
     }
-    // If the loop ends, head is the insertion point.
-    head
-}
-
-fn insert_vec(s: &mut Vec<i32>, key: i32) {
-    let cnt = s.len() as i32;
-    let d = if cnt == 0 {
-        0
-    } else {
-        get_lb(s, key, 0, cnt - 1)
-    } as usize;
-    s.insert(d, key);
-}
-
-fn delete_vec(s: &mut Vec<i32>, key: i32) -> bool {
-    if s.is_empty() {
-        return false;
-    }
-    let idx = search(s, key, 0, s.len() as i32 - 1);
-    if idx < 0 {
-        return false;
-    }
-    s.remove(idx as usize);
-    true
-}
-
-fn dump(s: &[i32], l: i32, r: i32, out: &mut String) {
-    let cnt = s.len() as i32;
-    // Per spec preconditions, dump is only issued when set is non-empty and
-    // there exists an element >= l, so get_lb is safe and i < cnt holds.
-    let mut i = get_lb(s, l, 0, cnt - 1) as usize;
-
-    // Match C loop condition order: while (s[i] <= r && i < cnt)
-    // In C this can read out of bounds if i==cnt; spec says that won't happen.
-    while s[i] <= r && i < s.len() {
-        out.push_str(&format!("{}\n", s[i]));
-        i += 1;
-        if i >= s.len() {
-            break;
-        }
-    }
+    lo
 }
 
 fn main() {
+    // Read all input, parse as whitespace-separated integers.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -101,6 +46,7 @@ fn main() {
         None => return,
     };
 
+    // Storage sized to number of queries (as per spec's non-functional constraint).
     let mut s: Vec<i32> = Vec::with_capacity(q);
     let mut out = String::new();
 
@@ -108,34 +54,47 @@ fn main() {
         let com: i32 = it.next().unwrap().parse().unwrap();
         match com {
             0 => {
+                // insert
                 let x: i32 = it.next().unwrap().parse().unwrap();
-                if s.is_empty() {
-                    insert_vec(&mut s, x);
-                } else if search(&s, x, 0, s.len() as i32 - 1) == -1 {
-                    insert_vec(&mut s, x);
+                if search(&s, x).is_none() {
+                    let d = lower_bound(&s, x);
+                    s.insert(d, x);
                 }
                 out.push_str(&format!("{}\n", s.len()));
             }
             1 => {
+                // find
                 let x: i32 = it.next().unwrap().parse().unwrap();
-                let found = if s.is_empty() {
-                    false
+                if search(&s, x).is_some() {
+                    out.push_str("1\n");
                 } else {
-                    search(&s, x, 0, s.len() as i32 - 1) != -1
-                };
-                out.push_str(if found { "1\n" } else { "0\n" });
+                    out.push_str("0\n");
+                }
             }
             2 => {
+                // delete
                 let x: i32 = it.next().unwrap().parse().unwrap();
-                let _ = delete_vec(&mut s, x);
+                if let Some(idx) = search(&s, x) {
+                    s.remove(idx);
+                }
             }
             3 => {
-                let x: i32 = it.next().unwrap().parse().unwrap();
-                let y: i32 = it.next().unwrap().parse().unwrap();
-                dump(&s, x, y, &mut out);
+                // dump/range output
+                let l: i32 = it.next().unwrap().parse().unwrap();
+                let r: i32 = it.next().unwrap().parse().unwrap();
+
+                // Spec precondition: dump is only requested when set is non-empty.
+                // We still handle empty safely (no output).
+                if !s.is_empty() {
+                    let mut i = lower_bound(&s, l);
+                    while i < s.len() && s[i] <= r {
+                        out.push_str(&format!("{}\n", s[i]));
+                        i += 1;
+                    }
+                }
             }
             _ => {
-                // Spec: undefined behavior for invalid command codes; no handling.
+                // Spec: behavior unspecified for invalid command codes; do nothing.
             }
         }
     }

@@ -4,10 +4,11 @@ fn solve(n: i32, c: i32, low: i32) -> i32 {
     let mut ret: i32 = 0;
     let mut i: i32 = low;
 
-    // Mirror C loop condition: for(i=low; i*i<=n; i++)
-    // Use i64 for the multiplication to avoid overflow/panic in Rust.
+    // Mirror C loop: for (i=low; i*i<=n; i++)
+    // Use i64 for the multiplication to avoid overflow/panic in Rust;
+    // this matches typical C behavior for AOJ constraints (and keeps semantics stable).
     while (i as i64) * (i as i64) <= n as i64 {
-        let sq = i * i; // safe because i*i <= n and n is i32; still within i32 range
+        let sq = i * i;
         if n == sq {
             ret += 1;
         } else if c < 4 {
@@ -19,20 +20,23 @@ fn solve(n: i32, c: i32, low: i32) -> i32 {
 }
 
 fn main() {
-    // Read entire stdin, then parse ints like scanf("%d", ...)
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
+
     let mut it = input.split_whitespace();
+    let mut out = String::new();
 
     while let Some(tok) = it.next() {
         let n: i32 = match tok.parse() {
             Ok(v) => v,
-            Err(_) => continue, // emulate scanf failing by effectively stopping/ignoring bad tokens
+            Err(_) => continue,
         };
         if n == 0 {
             break;
         }
         let ret = solve(n, 1, 1);
-        println!("{ret}");
+        out.push_str(&format!("{ret}\n"));
     }
+
+    print!("{out}");
 }

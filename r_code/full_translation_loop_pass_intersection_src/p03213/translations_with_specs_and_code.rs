@@ -1,41 +1,49 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read input
-    let mut s = String::new();
-    io::stdin().read_to_string(&mut s).unwrap();
-    let n: usize = s.split_whitespace().next().unwrap().parse().unwrap();
+    // Read entire stdin, parse one integer (behavior unspecified if missing/invalid per spec).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let n: i32 = input.split_whitespace().next().unwrap().parse().unwrap();
 
-    // yaku[p] = exponent of prime p in n!
-    // Fixed-size storage as in the C code (supports n <= 100 per spec precondition).
+    // Fixed storage up to 100 as implied by spec/C code.
     let mut yaku = vec![0i32; 101];
 
-    // Factorize each i in 2..=n and accumulate prime exponents.
-    for i in 2..=n {
-        let mut a = i;
-        let mut waru = 2usize;
-        while a > 1 {
-            while a % waru == 0 {
-                a /= waru;
-                yaku[waru] += 1;
+    // Factorize each i in 2..=n and accumulate prime exponents in n!.
+    // For n < 2, loop does nothing and answer becomes 0 (matches spec).
+    if n >= 2 {
+        for i in 2..=n {
+            let mut a = i;
+            let mut waru = 2;
+            while a > 1 {
+                while a % waru == 0 {
+                    a /= waru;
+                    if (waru as usize) < yaku.len() {
+                        yaku[waru as usize] += 1;
+                    }
+                    // If waru > 100, behavior is unspecified by spec; we simply ignore
+                    // to keep within fixed storage (consistent with implied input bound).
+                }
+                waru += 1;
             }
-            waru += 1;
         }
     }
 
-    // Count primes p with exponent >= (a-1) in n!
+    // Count primes with exponent >= (a-1) in n! (same as C's num()).
     let num = |a: i32| -> i32 {
         let mut c = 0i32;
-        for i in 2..=n {
-            if yaku[i] >= a - 1 {
-                c += 1;
+        if n >= 2 {
+            for i in 2..=n {
+                let idx = i as usize;
+                if idx < yaku.len() && yaku[idx] >= a - 1 {
+                    c += 1;
+                }
             }
         }
         c
     };
 
-    // Combinational counting for divisor-count = 75 = 3*5*5:
-    // patterns: 75, 25*3, 15*5, 5*5*3
+    // Combinational counting for divisors with exactly 75 divisors.
     let ans = num(75)
         + num(25) * (num(3) - 1)
         + num(15) * (num(5) - 1)

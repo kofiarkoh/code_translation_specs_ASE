@@ -1,58 +1,60 @@
 use std::io::{self, Read};
 
 fn main() {
-    let mut s = String::new();
-    io::stdin().read_to_string(&mut s).unwrap();
-    let k: i64 = s.split_whitespace().next().unwrap().parse().unwrap();
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let k: i64 = input.split_whitespace().next().unwrap().parse().unwrap();
 
     if k >= 50 {
-        // Construction matching the expected sample:
-        // n = 50
-        // q = k / 50, r = k % 50
-        // a[i] = 49 + q for all i
-        // for i < r: a[i] += 51 - r
-        // for i >= r: a[i] -= r
-        //
-        // For k=51: q=1, r=1 => base=50
-        // i<1: a[0]=50+(51-1)=100; others: 50-1=49.
         let n: usize = 50;
-        let ku = k as i128;
-        let q = ku / 50;
-        let r = (ku % 50) as usize;
+        let rem: i64 = k / 50;
+        let t: i64 = k % 50;
+        let x: i64 = 49 + rem;
 
-        let mut a = vec![49i128 + q; n];
-        for i in 0..n {
-            if i < r {
-                a[i] += 51 - r as i128;
-            } else {
-                a[i] -= r as i128;
+        let mut a = vec![x; n];
+
+        // Apply the specified transformation for i = 0..t-1.
+        // For k >= 0, t is in 0..49. For k < 0, Rust's % can be negative;
+        // in that case, this loop runs zero times (narrowest reasonable behavior).
+        if t > 0 {
+            for i in 0..(t as usize) {
+                a[i] = a[i].wrapping_add(50);
+                for j in 0..n {
+                    if j != i {
+                        a[j] = a[j].wrapping_sub(1);
+                    }
+                }
             }
         }
 
         print!("{n}\n");
         for i in 0..n {
-            if i + 1 == n {
-                print!("{}", a[i]);
-            } else {
-                print!("{} ", a[i]);
+            if i > 0 {
+                print!(" ");
             }
+            print!("{}", a[i]);
         }
+        // Final newline not required.
     } else if k >= 2 {
         let n = k as usize;
         print!("{n}\n");
         for i in 0..n {
-            if i + 1 == n {
-                print!("{n}");
-            } else {
-                print!("{n} ");
+            if i > 0 {
+                print!(" ");
             }
+            print!("{}", n);
         }
+        // Final newline not required.
     } else if k == 0 {
         print!("4\n3 3 3 3");
+        // Final newline not required.
     } else if k == 1 {
         print!("3\n1 0 3");
+        // Final newline not required.
     } else {
-        // Negative input is outside the meaningful specified domain; keep output well-formed.
-        print!("3\n0 0 0");
+        // For k < 0, behavior is defined only as "same branching logic".
+        // None of the specified cases match; choose the narrowest behavior:
+        // print n=0 and no sequence.
+        print!("0\n");
     }
 }

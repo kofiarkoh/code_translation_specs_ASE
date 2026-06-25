@@ -1,55 +1,62 @@
 use std::io::{self, Read};
 
-fn digit_sum(mut x: i64) -> i64 {
-    // Specification guarantees positive integers for candidates.
-    let mut sum = 0i64;
+fn digit_sum(mut x: u64) -> u64 {
+    let mut s = 0u64;
     while x > 0 {
-        sum += x % 10;
+        s += x % 10;
         x /= 10;
     }
-    sum
+    s
 }
 
 fn main() {
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
-    let count: i64 = input.split_whitespace().next().unwrap().parse().unwrap();
+    let n: u64 = match input.split_whitespace().next() {
+        Some(tok) => tok.parse().unwrap(),
+        None => return, // unspecified by spec; choose to do nothing if missing
+    };
 
-    if count <= 0 {
-        return;
-    }
+    let mut cur: u64 = 1;
 
-    let mut current: i64 = 1;
+    for _ in 0..n {
+        println!("{}", cur);
 
-    for _ in 0..count {
-        println!("{}", current);
+        let p = cur;
 
-        // Compute next current using the specified candidate set and minimization rule.
         // Candidate evaluation order:
-        // 1) current + 1
-        // 2) for powers 10^1 .. 10^15: the largest integer < multiple of 10^k and > current
-        //    which is: ((current / 10^k) + 1) * 10^k - 1
-        let mut best = current + 1;
-        let mut best_ratio = (best as f64) / (digit_sum(best) as f64);
+        // 1) p + 1
+        // 2) for scales 10..=10^15: the largest integer less than the next multiple
+        //    of that scale above (p + 1), i.e., (ceil((p+1)/scale)*scale - 1)
+        let mut best_val: u64 = p + 1;
+        let mut best_ratio: f64 = {
+            let ds = digit_sum(best_val);
+            (best_val as f64) / (ds as f64)
+        };
 
-        let mut pow10: i64 = 10;
-        for _k in 1..=15 {
-            // All overflow behavior is unspecified by the spec; we use normal i64 arithmetic.
-            let candidate = ((current / pow10) + 1) * pow10 - 1;
+        let mut scale: u64 = 10;
+        for _ in 0..15 {
+            let x = p + 1;
 
-            if candidate > current {
-                let ratio = (candidate as f64) / (digit_sum(candidate) as f64);
-                // Ties are resolved by retaining the earliest encountered candidate,
-                // so we only update on strict improvement.
-                if ratio < best_ratio {
-                    best_ratio = ratio;
-                    best = candidate;
-                }
+            // next multiple of `scale` at or above x:
+            // m = ((x + scale - 1) / scale) * scale
+            // candidate = m - 1
+            let m = ((x + scale - 1) / scale) * scale;
+            let cand = m - 1;
+
+            // cand is strictly greater than p for all scales >= 10.
+            let ds = digit_sum(cand);
+            let ratio = (cand as f64) / (ds as f64);
+
+            // Ties resolved by keeping earliest encountered: only update on strict improvement.
+            if ratio < best_ratio {
+                best_ratio = ratio;
+                best_val = cand;
             }
 
-            pow10 *= 10;
+            scale *= 10;
         }
 
-        current = best;
+        cur = best_val;
     }
 }

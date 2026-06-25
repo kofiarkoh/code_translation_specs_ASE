@@ -2,46 +2,48 @@ use std::collections::VecDeque;
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin; behavior is undefined on malformed input per spec.
+    // Read entire stdin as whitespace-separated tokens.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    let n: usize = it.next().unwrap().parse().unwrap();
-    let m: usize = it.next().unwrap().parse().unwrap();
+    // Per spec, malformed input is undefined; we unwrap.
+    let v: usize = it.next().unwrap().parse().unwrap();
+    let e: usize = it.next().unwrap().parse().unwrap();
 
-    // Graph representation: adjacency list and incoming-edge counts.
-    let mut adj: Vec<Vec<usize>> = vec![Vec::new(); n];
-    let mut indeg: Vec<usize> = vec![0; n];
+    // Adjacency lists must preserve, for each source vertex, the relative order
+    // of edges as they appear in the input among edges with the same source.
+    let mut adj: Vec<Vec<usize>> = vec![Vec::new(); v];
 
-    for _ in 0..m {
-        let u: usize = it.next().unwrap().parse().unwrap();
-        let v: usize = it.next().unwrap().parse().unwrap();
-        adj[u].push(v);
-        indeg[v] += 1;
+    // Indegree counts all incoming edges, including duplicates and self-loops.
+    let mut indeg: Vec<i64> = vec![0; v];
+
+    for _ in 0..e {
+        let s: usize = it.next().unwrap().parse().unwrap();
+        let t: usize = it.next().unwrap().parse().unwrap();
+        adj[s].push(t);
+        indeg[t] += 1;
     }
 
-    // Kahn-style process: repeatedly select vertices with no remaining incoming edges.
-    // The spec does not define tie-breaking; we choose FIFO order based on initial scan
-    // and subsequent discovery order.
+    // Initialize FIFO queue by scanning vertices in increasing index order.
     let mut q: VecDeque<usize> = VecDeque::new();
-    for i in 0..n {
+    for i in 0..v {
         if indeg[i] == 0 {
             q.push_back(i);
         }
     }
 
+    // Kahn-style traversal with FIFO tie-breaking.
     let mut out = String::new();
-
     while let Some(u) = q.pop_front() {
         out.push_str(&u.to_string());
         out.push('\n');
 
-        for &v in &adj[u] {
-            // Under preconditions, indeg[v] is positive when decremented.
-            indeg[v] -= 1;
-            if indeg[v] == 0 {
-                q.push_back(v);
+        // Process outgoing edges in stored order.
+        for &to in &adj[u] {
+            indeg[to] -= 1;
+            if indeg[to] == 0 {
+                q.push_back(to);
             }
         }
     }

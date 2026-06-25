@@ -1,34 +1,16 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, parse integers.
+    // Read entire stdin; per spec, exactly five integers are available.
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
 
-    let mut it = input.split_whitespace().filter_map(|s| s.parse::<i64>().ok());
-
-    // Spec precondition: at least five integers are provided.
-    // If fewer are present, behavior is unspecified; we simply do nothing.
-    let a = match it.next() {
-        Some(v) => v,
-        None => return,
-    };
-    let b = match it.next() {
-        Some(v) => v,
-        None => return,
-    };
-    let c = match it.next() {
-        Some(v) => v,
-        None => return,
-    };
-    let d = match it.next() {
-        Some(v) => v,
-        None => return,
-    };
-    let e = match it.next() {
-        Some(v) => v,
-        None => return,
-    };
+    let mut it = input.split_whitespace();
+    let a: i32 = it.next().unwrap().parse().unwrap();
+    let b: i32 = it.next().unwrap().parse().unwrap();
+    let c: i32 = it.next().unwrap().parse().unwrap();
+    let d: i32 = it.next().unwrap().parse().unwrap();
+    let e: i32 = it.next().unwrap().parse().unwrap();
 
     if a == 0 {
         print!("1");
@@ -41,4 +23,5 @@ fn main() {
     } else if e == 0 {
         print!("5");
     }
+    // If none are zero, produce no output (no newline), matching the spec.
 }

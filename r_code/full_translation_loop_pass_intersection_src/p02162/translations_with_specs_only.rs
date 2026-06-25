@@ -9,31 +9,39 @@ fn main() {
 
     let mut it = input.split_whitespace();
 
-    let a1: i64 = match it.next().and_then(|s| s.parse().ok()) {
+    let t1: i64 = match it.next().and_then(|s| s.parse::<i64>().ok()) {
         Some(v) => v,
         None => process::exit(1),
     };
-    let b1: i64 = match it.next().and_then(|s| s.parse().ok()) {
+    let t2: i64 = match it.next().and_then(|s| s.parse::<i64>().ok()) {
         Some(v) => v,
         None => process::exit(1),
     };
-    let a2: i64 = match it.next().and_then(|s| s.parse().ok()) {
+    let r1: i64 = match it.next().and_then(|s| s.parse::<i64>().ok()) {
         Some(v) => v,
         None => process::exit(1),
     };
-    let b2: i64 = match it.next().and_then(|s| s.parse().ok()) {
+    let r2: i64 = match it.next().and_then(|s| s.parse::<i64>().ok()) {
         Some(v) => v,
         None => process::exit(1),
     };
 
-    let (x, y) = if a2 < 0 || b2 < 0 { (a1, b1) } else { (a2, b2) };
-
-    let out = if x > y {
-        "Alice"
-    } else if x < y {
-        "Bob"
+    let out = if r1 < 0 || r2 < 0 {
+        if t1 < t2 {
+            "Alice"
+        } else if t1 > t2 {
+            "Bob"
+        } else {
+            "Draw"
+        }
     } else {
-        "Draw"
+        if r1 > r2 {
+            "Alice"
+        } else if r1 < r2 {
+            "Bob"
+        } else {
+            "Draw"
+        }
     };
 
     println!("{out}");

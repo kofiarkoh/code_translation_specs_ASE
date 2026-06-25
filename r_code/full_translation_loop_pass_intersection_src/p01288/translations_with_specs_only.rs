@@ -1,69 +1,168 @@
 use std::io::{self, Read};
 
-#[derive(Clone, Copy)]
-struct Op {
-    kind: u8, // b'M' for mark; anything else is query by behavior
-    x: usize,
+struct Scanner {
+    input: Vec<u8>,
+    idx: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut input = Vec::new();
+        io::stdin().read_to_end(&mut input).unwrap();
+        Self { input, idx: 0 }
+    }
+    fn skip_ws(&mut self) {
+        while self.idx < self.input.len() && self.input[self.idx].is_ascii_whitespace() {
+            self.idx += 1;
+        }
+    }
+    fn next_i32(&mut self) -> Option<i32> {
+        self.skip_ws();
+        if self.idx >= self.input.len() {
+            return None;
+        }
+        let mut sign = 1i32;
+        if self.input[self.idx] == b'-' {
+            sign = -1;
+            self.idx += 1;
+        }
+        let mut val: i32 = 0;
+        while self.idx < self.input.len() && !self.input[self.idx].is_ascii_whitespace() {
+            let c = self.input[self.idx];
+            if !(b'0'..=b'9').contains(&c) {
+                // Malformed input: per spec, behavior undefined; we stop parsing.
+                return None;
+            }
+            val = val.saturating_mul(10).saturating_add((c - b'0') as i32);
+            self.idx += 1;
+        }
+        Some(val * sign)
+    }
+    fn next_usize(&mut self) -> Option<usize> {
+        self.next_i32().map(|v| v as usize)
+    }
+    fn next_char(&mut self) -> Option<u8> {
+        self.skip_ws();
+        if self.idx >= self.input.len() {
+            return None;
+        }
+        let c = self.input[self.idx];
+        self.idx += 1;
+        Some(c)
+    }
 }
 
-fn find_active(mut v: usize, parent: &[usize], active: &[i32]) -> usize {
-    // Follow parent links until reaching a node with positive active count.
-    // Preconditions guarantee termination (eventually reaches an active value).
-    while active[v] <= 0 {
-        v = parent[v];
+struct DsuNextMarked {
+    parent: Vec<usize>,
+    // mark_count[x] > 0 means x is marked. Node 1 is permanently marked.
+    mark_count: Vec<i32>,
+    // dsu[x] points to the next candidate ancestor to check when x is unmarked.
+    // If x is marked, dsu[x] is not used by find(x) (it returns x immediately).
+    dsu: Vec<usize>,
+}
+
+impl DsuNextMarked {
+    fn new(tree_parent: Vec<usize>) -> Self {
+        let n = tree_parent.len() - 1;
+        let mut mark_count = vec![0i32; n + 1];
+        mark_count[1] = 1; // invariant: node 1 always marked
+        let mut dsu = vec![0usize; n + 1];
+        for i in 1..=n {
+            dsu[i] = i;
+        }
+        Self {
+            parent: tree_parent,
+            mark_count,
+            dsu,
+        }
     }
-    v
+
+    fn is_marked(&self, x: usize) -> bool {
+        self.mark_count[x] > 0
+    }
+
+    fn find(&mut self, x: usize) -> usize {
+        // Returns nearest marked ancestor of x (including x).
+        // Assumption: such an ancestor exists (node 1 is always marked).
+        if self.is_marked(x) {
+            return x;
+        }
+        // Path compression on "next unmarked to skip" structure:
+        // dsu[x] stores a representative for x when x is unmarked; it should
+        // eventually lead to a marked node.
+        let mut v = x;
+        // Find root in dsu forest
+        while self.dsu[v] != v {
+            v = self.dsu[v];
+        }
+        // v is representative; if it's unmarked, it should point upward.
+        // Ensure representative is advanced to a marked node.
+        let rep = if self.is_marked(v) {
+            v
+        } else {
+            // Move to parent chain via dsu links; compress along the way.
+            let p = self.parent[v];
+            let ans = self.find(p);
+            self.dsu[v] = ans;
+            ans
+        };
+
+        // Compress path from x to rep in dsu forest
+        let mut u = x;
+        while self.dsu[u] != u {
+            let nxt = self.dsu[u];
+            self.dsu[u] = rep;
+            u = nxt;
+        }
+        self.dsu[u] = rep;
+        rep
+    }
+
+    fn mark(&mut self, x: usize) {
+        // Marking is cumulative; no unmark operation exists in the spec.
+        // If x transitions from unmarked to marked, future finds should stop at x.
+        self.mark_count[x] += 1;
+        // No need to update dsu eagerly; find() checks is_marked(x) first.
+    }
 }
 
 fn main() {
-    // Read entire stdin, parse as whitespace-separated tokens.
-    let mut input = String::new();
-    io::stdin().read_to_string(&mut input).unwrap();
-    let mut it = input.split_whitespace();
-
+    let mut sc = Scanner::new();
     let mut out = String::new();
 
     loop {
-        let n_opt = it.next();
-        if n_opt.is_none() {
-            break;
-        }
-        let n: usize = n_opt.unwrap().parse().unwrap();
-        let q: usize = it.next().unwrap().parse().unwrap();
-
+        let n = match sc.next_usize() {
+            Some(v) => v,
+            None => break,
+        };
         if n == 0 {
             break;
         }
+        let q = match sc.next_usize() {
+            Some(v) => v,
+            None => break,
+        };
 
-        // parent[1] is unused/self; parents for 2..=N are provided.
         let mut parent = vec![0usize; n + 1];
         parent[1] = 1;
         for k in 2..=n {
-            parent[k] = it.next().unwrap().parse().unwrap();
+            parent[k] = sc.next_usize().unwrap_or(1);
         }
 
-        let mut ops = Vec::with_capacity(q);
-        for _ in 0..q {
-            let c = it.next().unwrap().as_bytes()[0];
-            let x: usize = it.next().unwrap().parse().unwrap();
-            ops.push(Op { kind: c, x });
-        }
-
-        // Active counts: initial active multiset contains value 1 once.
-        let mut active = vec![0i32; n + 1];
-        active[1] = 1;
+        let mut dsu = DsuNextMarked::new(parent);
 
         let mut sum: i64 = 0;
+        for _ in 0..q {
+            let t = sc.next_char().unwrap_or(b'?');
+            let x = sc.next_usize().unwrap_or(1);
 
-        for op in ops {
-            if op.kind == b'M' {
-                // Mark operation: increase active count (possibly multiple times).
-                // i32 is sufficient for counts under given constraints.
-                active[op.x] = active[op.x].wrapping_add(1);
+            // Query types: "mark" or "ask" (any non-mark treated as ask).
+            // The spec does not define the exact mark character; we choose the
+            // narrowest reasonable interpretation: only 'M' or 'm' are mark.
+            if t == b'M' || t == b'm' {
+                dsu.mark(x);
             } else {
-                // Query operation: any non-'M' character is treated as query.
-                let res = find_active(op.x, &parent, &active);
-                sum = sum.wrapping_add(res as i64);
+                let ans = dsu.find(x);
+                sum += ans as i64;
             }
         }
 

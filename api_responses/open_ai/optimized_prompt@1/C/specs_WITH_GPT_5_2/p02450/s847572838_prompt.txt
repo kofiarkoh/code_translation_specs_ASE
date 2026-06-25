@@ -1,0 +1,64 @@
+You are an expert senior software engineer.
+Given source code, generate a precise, structured behavioral specification that states WHAT the code guarantees, not HOW it achieves it.
+
+Output must use exactly these sections and headings:
+1. Functional Description
+2. Inputs
+3. Outputs
+4. Preconditions
+5. Postconditions
+6. Invariants
+7. Error Handling / Exceptional Behavior
+8. State Transitions (if applicable)
+9. Non-functional Constraints (if inferable)
+
+Content requirements:
+- Be concise and contract-focused; omit incidental or low-level details.
+- Do not reference language/library APIs, format strings, or identifiers.
+- Describe I/O abstractly; never cite exact parsing patterns or format specifiers.
+- Do not restate implementation structure or control flow.
+- If behavior is ambiguous, state explicit assumptions.
+- Avoid extreme assumptions. Capture only behavior implied by the code's observable contract.
+- Return only the nine sections with the exact headings and numbering specified.
+
+Now generate the specification for the code below:
+
+```C
+#include <stdio.h>
+void enumeration(int result[],int used[],int n,int d){
+    int i;
+    if(d>=n){
+        for(i=0;i<n;i++){
+            if(i==0)printf("%d",result[i]);
+            else printf(" %d",result[i]);
+        }
+        printf("\n");
+        return;
+    }
+    
+    int used2[n-d-1];
+    int j,k;
+    for(i=0;i<n-d;i++){
+        result[d]=used[i];
+        for(j=0,k=0;j<n-d;j++)if(j!=i)used2[k++]=used[j];
+        enumeration(result,used2,n,d+1);
+    }
+    
+    return;
+}
+int main(void){
+    int i;
+    
+    int n;
+    scanf("%d\n",&n);
+    
+    int used[n];
+    for(i=0;i<n;i++)used[i]=i+1;
+    
+    int result[n];
+    
+    enumeration(result,used,n,0);
+    
+    return 0;
+}
+```

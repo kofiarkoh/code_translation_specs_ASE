@@ -1,32 +1,33 @@
 use std::io::{self, Read};
 
 const LEN: usize = 128;
+const MAX_DIGITS: usize = 80;
 
 fn convert(char_num: &str, int_num: &mut [u8; LEN]) {
-    // Store digits in reverse order (least significant digit at index 0),
+    // Stores digits in reverse order (least significant digit at index 0),
     // matching the C code's behavior.
     for (j, b) in char_num.as_bytes().iter().rev().enumerate() {
-        int_num[j] = b - b'0';
+        // Spec assumes digits only; behavior for non-digits is unspecified.
+        int_num[j] = b.wrapping_sub(b'0');
     }
 }
 
 fn main() {
-    // Read entire stdin and tokenize by whitespace, similar to scanf("%d %s %s ...").
+    // Read entire stdin, then split by whitespace (matches scanf("%d"/"%s") tokenization).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
 
-    // Spec precondition: present and parseable.
-    let data_set: i32 = match it.next() {
-        Some(tok) => tok.parse().unwrap(),
+    // Preconditions say this exists; if not, behavior is not well-defined.
+    let data_set: usize = match it.next() {
+        Some(tok) => tok.parse::<usize>().unwrap_or(0),
         None => return,
     };
 
     let mut out = String::new();
 
-    // Process exactly data_set test cases (spec). If tokens are missing, behavior is
-    // unspecified by spec; we stop to avoid inventing behavior.
-    for _ in 0..data_set.max(0) {
+    for _case_idx in 0..data_set {
+        // Spec: if tokens are missing, behavior is not well-defined; we stop.
         let first = match it.next() {
             Some(s) => s,
             None => break,
@@ -36,7 +37,7 @@ fn main() {
             None => break,
         };
 
-        if first.len() > 80 || second.len() > 80 {
+        if first.len() > MAX_DIGITS || second.len() > MAX_DIGITS {
             out.push_str("overflow\n");
             continue;
         }
@@ -49,37 +50,32 @@ fn main() {
         convert(second, &mut snum);
 
         for i in 0..LEN {
-            sum[i] = fnum[i] + snum[i];
+            sum[i] = fnum[i].wrapping_add(snum[i]);
         }
-        for i in 0..LEN {
+
+        // Carry propagation. The C code writes sum[i+1] for i=LEN-1 if needed,
+        // which would be out-of-bounds; under the spec's constraints (<=80 digits
+        // operands), the carry cannot reach beyond index 80, so we keep it safe.
+        for i in 0..(LEN - 1) {
             if sum[i] >= 10 {
                 sum[i] %= 10;
-                if i + 1 < LEN {
-                    sum[i + 1] += 1;
-                }
-                // If i+1 == LEN, that would exceed fixed capacity; outside preconditions.
+                sum[i + 1] = sum[i + 1].wrapping_add(1);
             }
         }
 
         // Count leading zeros from the most significant end, but keep at least one digit.
-        let mut k: usize = 0;
-        let mut j: isize = (LEN as isize) - 1;
-        while j >= 0 {
-            let idx = j as usize;
-            if sum[idx] == 0 && idx != 0 {
-                k += 1;
-                j -= 1;
-            } else {
-                break;
-            }
+        let mut k = 0usize;
+        let mut j = LEN - 1;
+        while j > 0 && sum[j] == 0 {
+            k += 1;
+            j -= 1;
         }
 
-        // Overflow if the result needs more than 80 digits.
-        // This matches the C logic: overflow when k < LEN - 80.
-        if k < LEN - 80 {
+        // C logic: overflow if k < LEN - 80, i.e., if highest non-zero digit index >= 80.
+        if k < LEN - MAX_DIGITS {
             out.push_str("overflow\n");
         } else {
-            // Print from most significant non-zero down to 0.
+            // Print from most significant non-zero down to 0 (or just "0").
             for l in (0..=(LEN - k - 1)).rev() {
                 out.push(char::from(b'0' + sum[l]));
             }

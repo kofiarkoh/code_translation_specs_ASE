@@ -1,7 +1,7 @@
 use std::io::{self, Read};
 
 fn main() {
-    // Read entire stdin, then parse as whitespace-separated integers (like scanf).
+    // Read entire stdin, then parse as whitespace-separated integers (like scanf("%d")).
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let mut it = input.split_whitespace();
@@ -9,7 +9,7 @@ fn main() {
     loop {
         let n_opt = it.next();
         if n_opt.is_none() {
-            break; // No more input; C would block, but for batch input this is fine.
+            break; // No more input; C code would have undefined behavior, but we stop cleanly.
         }
         let n: i32 = n_opt.unwrap().parse().unwrap();
         let m: i32 = it.next().unwrap().parse().unwrap();
@@ -18,53 +18,51 @@ fn main() {
             break;
         }
 
-        // C uses VLAs: int q[n][m]; int cnt[m]; int maxed[m];
-        // We'll use Vecs. Indices are usize.
-        let nu = n as usize;
-        let mu = m as usize;
+        let n_usize = n as usize;
+        let m_usize = m as usize;
 
-        let mut q = vec![vec![0i32; mu]; nu];
-        for j in 0..nu {
-            for i in 0..mu {
-                q[j][i] = it.next().unwrap().parse::<i32>().unwrap();
+        // q[n][m]
+        let mut q = vec![vec![0i32; m_usize]; n_usize];
+        for j in 0..n_usize {
+            for i in 0..m_usize {
+                q[j][i] = it.next().unwrap().parse().unwrap();
             }
         }
 
-        // cnt[j] += q[i][j] with C's signed int overflow behavior (UB in C).
-        // We emulate typical 32-bit two's-complement wraparound using wrapping_add.
-        let mut cnt = vec![0i32; mu];
-        for i in 0..nu {
-            for j in 0..mu {
+        // cnt[m], computed with 32-bit signed wraparound to emulate typical C int overflow behavior.
+        let mut cnt = vec![0i32; m_usize];
+        for i in 0..n_usize {
+            for j in 0..m_usize {
                 cnt[j] = cnt[j].wrapping_add(q[i][j]);
             }
         }
 
-        let mut maxed = vec![0u8; mu];
+        // Selection of indices in descending cnt order, tie-broken by first encountered (smallest j),
+        // matching the C logic.
+        let mut maxed = vec![false; m_usize];
         let mut out = String::new();
 
-        for i in 0..mu {
+        for i in 0..m_usize {
             if i != 0 {
                 out.push(' ');
             }
-            let mut max_idx: i32 = -1;
-            for j in 0..mu {
-                if maxed[j] == 0 {
-                    if max_idx == -1 {
-                        max_idx = j as i32;
-                    } else {
-                        let mi = max_idx as usize;
-                        if cnt[mi] < cnt[j] {
-                            max_idx = j as i32;
+            let mut max_idx: Option<usize> = None;
+            for j in 0..m_usize {
+                if !maxed[j] {
+                    match max_idx {
+                        None => max_idx = Some(j),
+                        Some(mi) => {
+                            if cnt[mi] < cnt[j] {
+                                max_idx = Some(j);
+                            }
                         }
                     }
                 }
             }
-            // In the C code, max is always found because each iteration marks one new index.
-            let mi = max_idx as usize;
-            out.push_str(&(mi + 1).to_string());
-            maxed[mi] = 1;
+            let max = max_idx.unwrap();
+            out.push_str(&(max as i32 + 1).to_string());
+            maxed[max] = true;
         }
-
         out.push('\n');
         print!("{out}");
     }
