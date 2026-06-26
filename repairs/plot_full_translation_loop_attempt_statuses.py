@@ -6,7 +6,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 
-PIPELINE_NAME = "translation_with_validated_specs_GPT_5_2"
+PIPELINE_NAME = "full_translation_loop"
 SCRIPT_DIR = Path(__file__).resolve().parent
 INPUT_CSV = SCRIPT_DIR / f"{PIPELINE_NAME}_analysis" / "optimized_prompt@1" / "attempt_status_summary.csv"
 OUTPUT_PNG = INPUT_CSV.with_name("attempt_status_dashboard.png")
@@ -147,7 +147,8 @@ def main() -> None:
     ax2.set_xticklabels([f"k={a}" for a in attempts], fontsize=BASE_FONT_SIZE)
     ax2.tick_params(length=0, pad=25)
 
-    ax.set_ylabel("Count")
+    ax.set_yscale("symlog", linthresh=1)
+    ax.set_ylabel("Count (log scale)")
     ax.grid(axis="y", linestyle="--", alpha=0.3)
     ax.legend(
         loc="upper center",
