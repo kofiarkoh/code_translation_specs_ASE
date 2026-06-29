@@ -64,3 +64,15 @@ project-root/
 | `plot_metrics_boxplots.py` | Plots boxplots of rust-code-analysis metric distributions per translation profile. |
 | `plot_spec_generation_attempt_statuses.py` | Plots grouped bar charts of pass/fail statuses across spec-generation validation attempts. |
 
+## Scripts in `cost_estimates/`
+
+| Script | Description |
+|--------|-------------|
+| `cost_estimate_utils.py` | Shared utilities: model pricing, token counting (o200k_base / cl100k_base), cost computation, and CSV/table helpers. |
+| `estimate_spec_generation_cost.py` | Estimates token usage and API cost for spec generation runs by scanning prompt/response files. |
+| `estimate_translation_cost.py` | Estimates token usage and API cost for translation repair attempts by scanning repair prompt/response files. |
+| `combine_cost_summaries.py` | Combines translation and spec-generation costs into a unified summary with allocated spec costs per profile. |
+| `plot_spec_generation_costs.py` | Plots a bar chart of spec generation cost per directory, colored by model. |
+| `plot_translation_costs.py` | Plots grouped bar charts of translation cost by pipeline and profile. |
+| `plot_attempt_trends.py` | Plots cumulative repair attempt counts per pipeline and profile across attempt levels. |
+
