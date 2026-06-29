@@ -20,6 +20,42 @@ project-root/
 └── r_code/                               # Prepared source trees for rust-code-analysis
 ```
 
+## Root Scripts
+
+### Dataset Preparation
+
+| Script | Description |
+|--------|-------------|
+| `scan_projects.py` | Scans CodeNet project folders and copies only those containing the configured source language. |
+| `keep_one_c_file_per_problem.py` | Retains only the first C file per problem directory and deletes all extras. |
+| `delete_unpaired_source_files.py` | Filters a dataset to keep only source files that have a matching counterpart in the target language. |
+| `copy_successful_programs.py` | Copies program files listed in a success CSV into directories grouped by problem ID. |
+| `filter_successful_problem_ids.py` | Filters a run-summary CSV to keep only problem IDs where all samples passed with zero failures. |
+| `extract_sample_test_input_and_output.py` | Parses problem HTML files to extract sample input/output blocks into per-problem text files. |
+| `extract_sample_test_input_and_output_fallback.py` | Extracts sample input/output pairs from plain-text `_test.txt` files as an HTML-fallback method. |
+
+### Execution
+
+| Script | Description |
+|--------|-------------|
+| `run_c_program_with_samples.py` | Compiles C programs and runs them against sample inputs, reporting pass/fail per problem. |
+| `run_java_program_with_samples.py` | Compiles Java programs and runs them against sample inputs, reporting pass/fail per problem. |
+
+### Spec Generation
+
+| Script | Description |
+|--------|-------------|
+| `generate_code_specs_with_openai.py` | Sends source code files to the OpenAI API and saves the generated behavioral specifications. |
+| `generate_validated_code_specs_with_openai.py` | Generates specs, validates them by regenerating C code, and iteratively refines until tests pass. |
+| `generate_missing_spec_prompts.py` | Backfills missing `_prompt.txt` files by reconstructing the prompt used to generate each spec. |
+| `validated_spec_prompts.py` | Defines prompt templates (system, spec generation, diagnosis, fix) for validated spec generation. |
+
+### Plotting
+
+| Script | Description |
+|--------|-------------|
+| `plot_validation_pass_distribution.py` | Plots stacked-bar and cumulative-pass charts of spec validation outcomes by attempt number. |
+
 ## Scripts in `repairs/`
 
 ### Translation & Repair
